@@ -300,6 +300,226 @@
   font-size: 13px;
 }
 
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover,
+.breadcrumb a:focus-visible {
+  color: var(--ink);
+}
+
+.breadcrumb span:last-child {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.class-banner {
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 32px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.class-banner > span {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.class-banner h1 {
+  margin: 4px 0 2px;
+  color: var(--surface);
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.class-banner p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.class-tabs {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-top: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.class-tab {
+  min-height: 40px;
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.class-tab:hover,
+.class-tab:focus-visible {
+  color: var(--ink);
+}
+
+.class-tab-active {
+  border-bottom-color: var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.class-panel {
+  padding-top: 28px;
+}
+
+.detail-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.detail-section-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.detail-section-heading p {
+  max-width: 760px;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.data-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.data-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  color: var(--ink);
+  font-size: 14px;
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.data-table th {
+  background: #f8fafa;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover {
+  background: #f8fafa;
+}
+
+.table-primary-cell {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.table-muted-cell {
+  color: var(--muted);
+}
+
+.table-action-cell {
+  text-align: right;
+}
+
+.table-action {
+  color: var(--accent);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.table-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.table-status > span {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+}
+
+.table-status-active,
+.student-submitted {
+  color: var(--accent);
+}
+
+.table-status-closed {
+  color: var(--muted);
+}
+
+.student-missing {
+  color: var(--error);
+  font-weight: 500;
+}
+
+.table-empty {
+  padding: 32px 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.student-table {
+  min-width: 620px;
+}
+
 .state-panel {
   max-width: 640px;
   margin: 40px auto 0;
@@ -427,6 +647,24 @@
   }
 
   .dashboard-heading .button {
+    width: 100%;
+  }
+
+  .class-banner {
+    padding: 20px;
+  }
+
+  .class-tabs {
+    gap: 24px;
+  }
+
+  .detail-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .detail-section-heading .button {
     width: 100%;
   }
 
