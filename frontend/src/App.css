@@ -520,6 +520,199 @@
   min-width: 620px;
 }
 
+.assignment-page .page-container {
+  padding-top: 32px;
+}
+
+.assignment-form-card {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 40px 36px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.assignment-form-heading {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.assignment-form-heading h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(24px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.assignment-form-heading > p:last-child {
+  max-width: 640px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.form-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 20px;
+  margin-top: 28px;
+}
+
+.form-field-wide {
+  grid-column: 1 / -1;
+}
+
+.form-field-narrow {
+  max-width: 240px;
+}
+
+.form-field label {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-field label > span {
+  color: var(--error);
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.form-field input:hover,
+.form-field select:hover {
+  border-color: #9eafb3;
+}
+
+.form-field input[aria-invalid='true'],
+.form-field select[aria-invalid='true'] {
+  border-color: var(--error);
+  background: #fffafa;
+}
+
+.form-field-help,
+.form-field-error {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.form-field-help {
+  color: var(--muted);
+}
+
+.form-field-error {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.input-with-suffix {
+  position: relative;
+  margin-top: 8px;
+}
+
+.input-with-suffix input {
+  margin-top: 0;
+  padding-right: 38px;
+}
+
+.input-with-suffix > span {
+  position: absolute;
+  top: 50%;
+  right: 13px;
+  color: var(--muted);
+  font-size: 14px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.form-error-summary,
+.form-submit-message {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 24px;
+  padding: 12px 14px;
+  border: 1px solid #e5c8c5;
+  border-left: 3px solid var(--error);
+  background: #fffafa;
+  color: var(--error);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.form-error-summary strong {
+  font-weight: 700;
+}
+
+.form-error-summary span {
+  color: #7c4a47;
+}
+
+.assignment-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.assignment-form-actions .button-primary:disabled {
+  background: var(--muted);
+  cursor: wait;
+}
+
+.assignment-success {
+  max-width: 720px;
+  margin: 48px auto 0;
+  padding: 40px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.assignment-success h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.assignment-success > p:not(.state-kicker) {
+  max-width: 560px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.assignment-success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
 .state-panel {
   max-width: 640px;
   margin: 40px auto 0;
@@ -652,6 +845,34 @@
 
   .class-banner {
     padding: 20px;
+  }
+
+  .assignment-form-card {
+    padding: 24px 20px 28px;
+  }
+
+  .form-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .form-field-wide,
+  .form-field-narrow {
+    grid-column: auto;
+    max-width: none;
+  }
+
+  .assignment-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .assignment-form-actions .button,
+  .assignment-success-actions .button {
+    width: 100%;
+  }
+
+  .assignment-success {
+    margin-top: 32px;
+    padding: 28px 24px;
   }
 
   .class-tabs {
