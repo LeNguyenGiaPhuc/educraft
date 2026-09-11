@@ -1,4 +1,5 @@
 import { getStoredAssignments } from './mockAssignmentStore.js'
+import { getTeacherClass, getTeacherClasses } from './mockClassStore.js'
 import { getStoredReference } from './mockReferenceStore.js'
 import { getStoredSubmissions } from './mockSubmissionStore.js'
 
@@ -126,9 +127,9 @@ export function getMockAssignmentSubmissions(assignmentId) {
 }
 
 export function getClassDetailSnapshot(classId, storage) {
-  const data = classDetails[classId]
+  const classroom = getTeacherClass(classId, storage)
 
-  if (!data) {
+  if (!classroom) {
     return {
       status: 'error',
       message: 'Không tìm thấy lớp học này.',
@@ -138,8 +139,12 @@ export function getClassDetailSnapshot(classId, storage) {
   return {
     status: 'success',
     data: {
-      ...data,
-      assignments: [...data.assignments, ...getStoredAssignments(classId, storage)],
+      ...classroom,
+      assignments: [
+        ...(classDetails[classroom.id]?.assignments ?? []),
+        ...getStoredAssignments(classroom.id, storage),
+      ],
+      students: [...(classDetails[classroom.id]?.students ?? [])],
     },
   }
 }
@@ -153,9 +158,10 @@ export function getClassTabView(classroom, tab = 'assignments') {
 }
 
 export function getAssignmentSnapshot(assignmentId, storage) {
-  for (const [classId, classroom] of Object.entries(classDetails)) {
+  for (const classroom of getTeacherClasses(storage)) {
+    const classId = classroom.id
     const assignments = [
-      ...classroom.assignments,
+      ...(classDetails[classId]?.assignments ?? []),
       ...getStoredAssignments(classId, storage),
     ]
     const assignment = assignments.find((item) => item.id === assignmentId)

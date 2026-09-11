@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import { getDashboardSnapshot } from './mockDashboard.js'
 import { createStoredAssignment } from './mockAssignmentStore.js'
+import { createStoredClass } from './mockClassStore.js'
 
 function createMemoryStorage() {
   const values = new Map()
@@ -42,6 +43,27 @@ test('includes stored assignments in the class count', () => {
   const classroom = snapshot.data.find((item) => item.id === '10A1')
 
   assert.equal(classroom.assignmentCount, 4)
+})
+
+test('includes a newly created class in the dashboard snapshot', () => {
+  const storage = createMemoryStorage()
+
+  createStoredClass(
+    {
+      id: '12B1',
+      subject: 'Toán',
+      semester: 'Học kỳ 2',
+      schoolYear: 'Năm học 2026–2027',
+    },
+    storage,
+  )
+
+  const snapshot = getDashboardSnapshot('success', storage)
+  const classroom = snapshot.data.find((item) => item.id === '12B1')
+
+  assert.equal(classroom.name, 'Toán 12B1')
+  assert.equal(classroom.studentCount, 0)
+  assert.equal(classroom.assignmentCount, 0)
 })
 
 test('returns an explicit loading snapshot', () => {

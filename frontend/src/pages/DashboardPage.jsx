@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import ClassManagementPanel from '../components/ClassManagementPanel.jsx'
 import { getDashboardSnapshot } from '../data/mockDashboard.js'
 
 function requestedDashboardState() {
@@ -10,16 +12,21 @@ function requestedDashboardState() {
   return new URLSearchParams(window.location.search).get('state') ?? 'success'
 }
 
-function DashboardHeading() {
+function DashboardHeading({ manageOpen, onManage }) {
   return (
     <div className="dashboard-heading">
       <div>
         <h1>Chào buổi tối, thầy Phúc</h1>
         <p>Quản lý các lớp và bài kiểm tra bài ghi tại một nơi.</p>
       </div>
-      <Link className="button button-primary" to="/classes/10A1/assignments/new">
-        Tạo bài kiểm tra
-      </Link>
+      <div className="dashboard-actions">
+        <button className="button button-outline" type="button" onClick={onManage}>
+          {manageOpen ? 'Đóng quản lý' : 'Quản lý lớp'}
+        </button>
+        <Link className="button button-primary" to="/classes/10A1/assignments/new">
+          Tạo bài kiểm tra
+        </Link>
+      </div>
     </div>
   )
 }
@@ -109,12 +116,23 @@ function DashboardState({ snapshot }) {
 }
 
 function DashboardPage() {
-  const snapshot = getDashboardSnapshot(requestedDashboardState())
+  const [snapshot, setSnapshot] = useState(() => getDashboardSnapshot(requestedDashboardState()))
+  const [manageOpen, setManageOpen] = useState(false)
+
+  function refreshSnapshot() {
+    setSnapshot(getDashboardSnapshot(requestedDashboardState()))
+  }
 
   return (
     <main className="page-content">
       <div className="page-container">
-        <DashboardHeading />
+        <DashboardHeading
+          manageOpen={manageOpen}
+          onManage={() => setManageOpen((current) => !current)}
+        />
+        {manageOpen && snapshot.status === 'success' && (
+          <ClassManagementPanel classes={snapshot.data} onChanged={refreshSnapshot} />
+        )}
         <DashboardState snapshot={snapshot} />
       </div>
     </main>

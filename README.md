@@ -5,6 +5,7 @@ Web-based educational platform for teachers to create assignments and students t
 
 - Xem danh sách lớp học.
 - Xem chi tiết lớp và học sinh.
+- Tạo, chỉnh sửa và xóa lớp học/môn học bằng dữ liệu mock.
 - Tạo bài kiểm tra có validation.
 - Xem chi tiết bài kiểm tra, lưu bài mẫu giáo viên và chốt bài nộp mock.
 - Hiển thị loading, empty, success và error state.
@@ -47,5 +48,6 @@ npm run build
 ```
 
 Dữ liệu prototype được lưu tạm trong `localStorage` với các key
-`educraft.assignments`, `educraft.references` và `educraft.submissions`.
+`educraft.classes`, `educraft.assignments`, `educraft.references` và
+`educraft.submissions`.
 Project hiện chưa cần chạy backend.

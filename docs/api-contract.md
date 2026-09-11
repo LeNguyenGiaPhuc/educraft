@@ -2,8 +2,9 @@
 
 This document defines the API contract for the EduCraft frontend prototype.
 The current homework uses mock data instead of a running HTTP server. The
-assignment creation, teacher reference, student submission and review flows
-use browser `localStorage` mock stores while the frontend is developed.
+class management, assignment creation, teacher reference, student submission
+and review flows use browser `localStorage` mock stores while the frontend is
+developed.
 
 ## Base URL
 
@@ -70,6 +71,61 @@ Example response:
     "students": []
   }
 }
+```
+
+### Create a class
+
+```http
+POST /api/classes
+Content-Type: application/json
+```
+
+Example request:
+
+```json
+{
+  "id": "12B1",
+  "subject": "Toán",
+  "semester": "Học kỳ 2",
+  "schoolYear": "Năm học 2026–2027"
+}
+```
+
+Example response:
+
+```json
+{
+  "data": {
+    "id": "12B1",
+    "subject": "Toán",
+    "name": "Toán 12B1",
+    "studentCount": 0,
+    "assignmentCount": 0
+  }
+}
+```
+
+### Update a class
+
+```http
+PATCH /api/classes/12B1
+Content-Type: application/json
+```
+
+Example request:
+
+```json
+{
+  "subject": "Toán nâng cao",
+  "semester": "Học kỳ 2",
+  "schoolYear": "Năm học 2026–2027"
+}
+```
+
+### Delete a class
+
+```http
+DELETE /api/classes/12B1
 ```
 
 ### Create an assignment
@@ -210,7 +266,11 @@ Example response:
 ## Current implementation status
 
 - `GET /api/classes` and `GET /api/classes/:classId` are represented by the
-  dashboard and class-detail mock data functions.
+  dashboard and class-detail mock data functions. Class records are stored in
+  the `educraft.classes` localStorage mock store.
+- `POST /api/classes`, `PATCH /api/classes/:classId` and
+  `DELETE /api/classes/:classId` are represented by the class management panel
+  and `mockClassStore.js`.
 - `POST /api/classes/:classId/assignments` is represented by
   `submitAssignmentDraft()` and the `localStorage` mock store.
 - `POST /api/assignments/:assignmentId/submissions` is represented by

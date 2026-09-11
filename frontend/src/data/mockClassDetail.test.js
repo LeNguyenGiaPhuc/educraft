@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import * as classDetailData from './mockClassDetail.js'
 import { createStoredAssignment } from './mockAssignmentStore.js'
+import { createStoredClass } from './mockClassStore.js'
 import { createStoredSubmission } from './mockSubmissionStore.js'
 
 function createMemoryStorage() {
@@ -44,6 +45,53 @@ test('includes a stored assignment in the class detail', () => {
 
   assert.equal(snapshot.data.assignments.length, 3)
   assert.equal(snapshot.data.assignments.at(-1).title, 'Bài ghi đã lưu')
+})
+
+test('opens a newly created class with empty assignment and student lists', () => {
+  const storage = createMemoryStorage()
+
+  createStoredClass(
+    {
+      id: '12B1',
+      subject: 'Toán',
+      semester: 'Học kỳ 2',
+      schoolYear: 'Năm học 2026–2027',
+    },
+    storage,
+  )
+
+  const snapshot = classDetailData.getClassDetailSnapshot('12B1', storage)
+
+  assert.equal(snapshot.status, 'success')
+  assert.equal(snapshot.data.name, 'Toán 12B1')
+  assert.equal(snapshot.data.assignments.length, 0)
+  assert.equal(snapshot.data.students.length, 0)
+})
+
+test('uses edited class metadata in the class detail', () => {
+  const storage = createMemoryStorage()
+
+  storage.setItem(
+    'educraft.classes',
+    JSON.stringify([
+      {
+        id: '10A1',
+        subject: 'Ngữ văn nâng cao',
+        name: 'Ngữ văn nâng cao 10A1',
+        semester: 'Học kỳ 2',
+        schoolYear: 'Năm học 2027–2028',
+        studentCount: 42,
+        assignmentCount: 3,
+        accent: 'green',
+      },
+    ]),
+  )
+
+  const snapshot = classDetailData.getClassDetailSnapshot('10A1', storage)
+
+  assert.equal(snapshot.data.subject, 'Ngữ văn nâng cao')
+  assert.equal(snapshot.data.name, 'Ngữ văn nâng cao 10A1')
+  assert.equal(snapshot.data.semester, 'Học kỳ 2')
 })
 
 test('returns the assignment tab by default', () => {
