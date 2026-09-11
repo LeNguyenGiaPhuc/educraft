@@ -5,6 +5,7 @@ import * as classDetailData from './mockClassDetail.js'
 import { createStoredAssignment } from './mockAssignmentStore.js'
 import { createStoredClass } from './mockClassStore.js'
 import { createStoredSubmission } from './mockSubmissionStore.js'
+import { mergeStudentRows } from './mockStudentStore.js'
 
 function createMemoryStorage() {
   const values = new Map()
@@ -66,6 +67,36 @@ test('opens a newly created class with empty assignment and student lists', () =
   assert.equal(snapshot.data.name, 'Toán 12B1')
   assert.equal(snapshot.data.assignments.length, 0)
   assert.equal(snapshot.data.students.length, 0)
+})
+
+test('uses the imported roster and updates the class student count', () => {
+  const storage = createMemoryStorage()
+
+  createStoredClass(
+    {
+      id: '12B1',
+      subject: 'Toán',
+      semester: 'Học kỳ 2',
+      schoolYear: 'Năm học 2026–2027',
+    },
+    storage,
+  )
+  mergeStudentRows(
+    '12B1',
+    [
+      { code: 'HS260104', name: 'Lê Cẩm Chi', email: '' },
+      { code: 'HS260105', name: 'Phạm Minh An', email: '' },
+    ],
+    storage,
+  )
+
+  const snapshot = classDetailData.getClassDetailSnapshot('12B1', storage)
+
+  assert.equal(snapshot.data.studentCount, 2)
+  assert.deepEqual(
+    snapshot.data.students.map((student) => student.code),
+    ['HS260104', 'HS260105'],
+  )
 })
 
 test('uses edited class metadata in the class detail', () => {

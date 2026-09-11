@@ -1,3 +1,8 @@
+import { deleteStoredAssignmentsForClass } from './mockAssignmentStore.js'
+import { deleteStoredReferences } from './mockReferenceStore.js'
+import { deleteStoredSubmissions } from './mockSubmissionStore.js'
+import { deleteStoredStudentsForClass } from './mockStudentStore.js'
+
 const CLASSES_STORAGE_KEY = 'educraft.classes'
 
 const defaultTeacherClasses = Object.freeze([
@@ -191,6 +196,12 @@ export function deleteStoredClass(classId, storage = getBrowserStorage()) {
       errors: { form: 'Không tìm thấy lớp học để xóa.' },
     }
   }
+
+  const removedAssignments = deleteStoredAssignmentsForClass(normalizedId, storage)
+  const removedAssignmentIds = removedAssignments.map((assignment) => assignment.id)
+  deleteStoredReferences(removedAssignmentIds, storage)
+  deleteStoredSubmissions(removedAssignmentIds, storage)
+  deleteStoredStudentsForClass(normalizedId, storage)
 
   writeClasses(
     classes.filter((item) => item.id !== normalizedId),

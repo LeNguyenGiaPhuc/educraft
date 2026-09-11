@@ -7,6 +7,10 @@ import {
   getTeacherClasses,
   updateStoredClass,
 } from './mockClassStore.js'
+import { createStoredAssignment, getStoredAssignments } from './mockAssignmentStore.js'
+import { createStoredReference, getStoredReference } from './mockReferenceStore.js'
+import { createStoredSubmission, getStoredSubmissions } from './mockSubmissionStore.js'
+import { getStoredStudents, mergeStudentRows } from './mockStudentStore.js'
 
 function createMemoryStorage() {
   const values = new Map()
@@ -113,4 +117,57 @@ test('deletes a class from the stored teacher class list', () => {
   assert.equal(result.status, 'success')
   assert.equal(result.data.id, '10A2')
   assert.equal(getTeacherClasses(storage).some((classroom) => classroom.id === '10A2'), false)
+})
+
+test('deleting a class removes its stored assignments and related submissions', () => {
+  const storage = createMemoryStorage()
+  const classResult = createStoredClass(
+    {
+      id: '12B1',
+      subject: 'Toán',
+      semester: 'Học kỳ 2',
+      schoolYear: 'Năm học 2026–2027',
+    },
+    storage,
+  )
+  const assignment = createStoredAssignment(
+    {
+      title: 'Bài ghi cần xóa cùng lớp',
+      classId: classResult.data.id,
+      dueAt: '2026-09-18T23:59',
+      threshold: '80',
+    },
+    storage,
+  )
+
+  createStoredReference(
+    {
+      assignmentId: assignment.id,
+      fileName: 'bai-mau.png',
+      fileSizeBytes: 1000,
+    },
+    storage,
+  )
+  createStoredSubmission(
+    {
+      assignmentId: assignment.id,
+      studentId: 'HS260101',
+      fileName: 'bai-nop.png',
+      fileSizeBytes: 1000,
+    },
+    storage,
+  )
+  mergeStudentRows(
+    '12B1',
+    [{ code: 'HS260104', name: 'Lê Cẩm Chi', email: '' }],
+    storage,
+  )
+
+  const result = deleteStoredClass('12B1', storage)
+
+  assert.equal(result.status, 'success')
+  assert.deepEqual(getStoredAssignments('12B1', storage), [])
+  assert.equal(getStoredReference(assignment.id, storage), null)
+  assert.deepEqual(getStoredSubmissions(assignment.id, storage), [])
+  assert.deepEqual(getStoredStudents('12B1', storage), [])
 })

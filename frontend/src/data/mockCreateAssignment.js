@@ -1,29 +1,34 @@
 import { createStoredAssignment } from './mockAssignmentStore.js'
-
-const assignmentClassOptions = Object.freeze([
-  { id: '10A1', label: 'Ngữ văn 10A1 (42 học sinh)' },
-  { id: '10A2', label: 'Lịch sử 10A2 (39 học sinh)' },
-  { id: '11A1', label: 'Sinh học 11A1 (41 học sinh)' },
-])
+import { getTeacherClasses } from './mockClassStore.js'
+import { getClassStudentCount } from './mockStudentStore.js'
 
 const defaultDueAt = '2026-09-18T23:59'
 
-export function getAssignmentClassOptions() {
-  return assignmentClassOptions
+export function getAssignmentClassOptions(storage) {
+  return getTeacherClasses(storage).map((classroom) => {
+    const studentCount = getClassStudentCount(classroom.id, classroom.studentCount, storage)
+
+    return {
+      id: classroom.id,
+      label: `${classroom.name} (${studentCount} học sinh)`,
+    }
+  })
 }
 
-export function getDefaultAssignmentForm(classId = '10A1') {
-  const selectedClass = assignmentClassOptions.some((option) => option.id === classId)
+export function getDefaultAssignmentForm(classId, storage) {
+  const options = getAssignmentClassOptions(storage)
+  const selectedClass = options.some((option) => option.id === classId)
+  const defaultClassId = selectedClass ? classId : (options[0]?.id ?? '')
 
   return {
     title: '',
-    classId: selectedClass ? classId : '10A1',
+    classId: defaultClassId,
     dueAt: defaultDueAt,
     threshold: '80',
   }
 }
 
-export function validateAssignmentForm(form = {}) {
+export function validateAssignmentForm(form = {}, storage) {
   const errors = {}
   const title = String(form.title ?? '').trim()
   const classId = String(form.classId ?? '').trim()
@@ -36,7 +41,7 @@ export function validateAssignmentForm(form = {}) {
     errors.title = 'Tên bài kiểm tra không vượt quá 120 ký tự.'
   }
 
-  if (!assignmentClassOptions.some((option) => option.id === classId)) {
+  if (!getAssignmentClassOptions(storage).some((option) => option.id === classId)) {
     errors.classId = 'Chọn lớp học.'
   }
 

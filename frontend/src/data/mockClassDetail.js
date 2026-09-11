@@ -2,6 +2,7 @@ import { getStoredAssignments } from './mockAssignmentStore.js'
 import { getTeacherClass, getTeacherClasses } from './mockClassStore.js'
 import { getStoredReference } from './mockReferenceStore.js'
 import { getStoredSubmissions } from './mockSubmissionStore.js'
+import { getClassStudentCount, getClassStudents } from './mockStudentStore.js'
 
 const classDetails = Object.freeze({
   '10A1': {
@@ -136,15 +137,18 @@ export function getClassDetailSnapshot(classId, storage) {
     }
   }
 
+  const fallbackStudents = [...(classDetails[classroom.id]?.students ?? [])]
+
   return {
     status: 'success',
     data: {
       ...classroom,
+      studentCount: getClassStudentCount(classroom.id, classroom.studentCount, storage),
       assignments: [
         ...(classDetails[classroom.id]?.assignments ?? []),
         ...getStoredAssignments(classroom.id, storage),
       ],
-      students: [...(classDetails[classroom.id]?.students ?? [])],
+      students: getClassStudents(classroom.id, fallbackStudents, storage),
     },
   }
 }
@@ -177,7 +181,7 @@ export function getAssignmentSnapshot(assignmentId, storage) {
             name: classroom.name,
             semester: classroom.semester,
             schoolYear: classroom.schoolYear,
-            studentCount: classroom.studentCount,
+            studentCount: getClassStudentCount(classroom.id, classroom.studentCount, storage),
           },
         },
       }

@@ -2,11 +2,14 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  getAssignmentClassOptions,
   getDefaultAssignmentForm,
   submitAssignmentDraft,
   validateAssignmentForm,
 } from './mockCreateAssignment.js'
 import { getStoredAssignments } from './mockAssignmentStore.js'
+import { createStoredClass } from './mockClassStore.js'
+import { mergeStudentRows } from './mockStudentStore.js'
 
 function createMemoryStorage() {
   const values = new Map()
@@ -28,6 +31,77 @@ test('returns a draft with sensible defaults for the selected class', () => {
     dueAt: '2026-09-18T23:59',
     threshold: '80',
   })
+})
+
+test('uses a newly created class in assignment options and defaults', () => {
+  const storage = createMemoryStorage()
+
+  createStoredClass(
+    {
+      id: '12B1',
+      subject: 'Toán',
+      semester: 'Học kỳ 2',
+      schoolYear: 'Năm học 2026–2027',
+    },
+    storage,
+  )
+
+  assert.deepEqual(
+    getAssignmentClassOptions(storage).find((option) => option.id === '12B1'),
+    { id: '12B1', label: 'Toán 12B1 (0 học sinh)' },
+  )
+  assert.equal(getDefaultAssignmentForm('12B1', storage).classId, '12B1')
+})
+
+test('accepts a complete assignment for a newly created class', () => {
+  const storage = createMemoryStorage()
+
+  createStoredClass(
+    {
+      id: '12B1',
+      subject: 'Toán',
+      semester: 'Học kỳ 2',
+      schoolYear: 'Năm học 2026–2027',
+    },
+    storage,
+  )
+
+  assert.deepEqual(
+    validateAssignmentForm(
+      {
+        title: 'Bài ghi mới',
+        classId: '12B1',
+        dueAt: '2026-09-18T23:59',
+        threshold: '80',
+      },
+      storage,
+    ),
+    {},
+  )
+})
+
+test('shows the imported student count in assignment class options', () => {
+  const storage = createMemoryStorage()
+
+  createStoredClass(
+    {
+      id: '12B1',
+      subject: 'Toán',
+      semester: 'Học kỳ 2',
+      schoolYear: 'Năm học 2026–2027',
+    },
+    storage,
+  )
+  mergeStudentRows(
+    '12B1',
+    [{ code: 'HS260104', name: 'Lê Cẩm Chi', email: '' }],
+    storage,
+  )
+
+  assert.deepEqual(
+    getAssignmentClassOptions(storage).find((option) => option.id === '12B1'),
+    { id: '12B1', label: 'Toán 12B1 (1 học sinh)' },
+  )
 })
 
 test('reports required-field errors for an empty assignment draft', () => {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import {
   createStoredClass,
@@ -151,17 +152,20 @@ function ClassManagementPanel({ classes, onChanged }) {
   const [showForm, setShowForm] = useState(false)
   const [notice, setNotice] = useState('')
   const [noticeTone, setNoticeTone] = useState('success')
+  const [recentlyCreatedClass, setRecentlyCreatedClass] = useState(null)
 
   function openCreateForm() {
     setFormClass(null)
     setShowForm(true)
     setNotice('')
+    setRecentlyCreatedClass(null)
   }
 
   function openEditForm(classroom) {
     setFormClass(classroom)
     setShowForm(true)
     setNotice('')
+    setRecentlyCreatedClass(null)
   }
 
   function handleSaved(classroom, action) {
@@ -169,6 +173,7 @@ function ClassManagementPanel({ classes, onChanged }) {
     setShowForm(false)
     setFormClass(null)
     setNoticeTone('success')
+    setRecentlyCreatedClass(action === 'created' ? classroom : null)
     setNotice(
       action === 'updated'
         ? `Đã cập nhật lớp ${classroom.name}.`
@@ -194,6 +199,7 @@ function ClassManagementPanel({ classes, onChanged }) {
     }
 
     onChanged()
+    setRecentlyCreatedClass(null)
     setNoticeTone('success')
     setNotice(`Đã xóa lớp ${classroom.name}.`)
   }
@@ -240,6 +246,12 @@ function ClassManagementPanel({ classes, onChanged }) {
               </span>
             </div>
             <div className="class-management-row-actions">
+              <Link
+                className="button button-outline"
+                to={`/classes/${classroom.id}?tab=students&import=1`}
+              >
+                Nhập học sinh
+              </Link>
               <button
                 className="button button-outline"
                 type="button"
@@ -261,6 +273,21 @@ function ClassManagementPanel({ classes, onChanged }) {
           <p className="class-management-empty">Chưa có lớp nào. Hãy tạo lớp đầu tiên.</p>
         )}
       </div>
+
+      {recentlyCreatedClass && (
+        <div className="class-management-next-step">
+          <div>
+            <strong>Lớp đã được tạo thành công.</strong>
+            <span>Tiếp theo, hãy nhập danh sách học sinh cho lớp vừa tạo.</span>
+          </div>
+          <Link
+            className="button button-primary"
+            to={`/classes/${recentlyCreatedClass.id}?tab=students&import=1`}
+          >
+            Nhập danh sách Excel
+          </Link>
+        </div>
+      )}
     </section>
   )
 }

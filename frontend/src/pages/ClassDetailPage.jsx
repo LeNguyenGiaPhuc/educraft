@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import PageErrorState from '../components/PageErrorState.jsx'
+import StudentImportPanel from '../components/StudentImportPanel.jsx'
 import {
   getClassDetailSnapshot,
   getClassTabView,
@@ -75,9 +76,11 @@ function StudentTable({ rows }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((student) => (
+          {rows.map((student, index) => (
             <tr key={student.code}>
-              <td className="table-muted-cell">{student.number}</td>
+              <td className="table-muted-cell">
+                {student.number ?? String(index + 1).padStart(2, '0')}
+              </td>
               <td className="table-primary-cell">{student.name}</td>
               <td className="table-muted-cell">{student.code}</td>
               <td
@@ -103,9 +106,29 @@ function ClassDetailError({ message }) {
   )
 }
 
+function requestedTab() {
+  if (typeof window === 'undefined') {
+    return 'assignments'
+  }
+
+  return new URLSearchParams(window.location.search).get('tab') === 'students'
+    ? 'students'
+    : 'assignments'
+}
+
+function requestedImportOpen() {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return new URLSearchParams(window.location.search).get('import') === '1'
+}
+
 function ClassDetailPage() {
   const { classId = '10A1' } = useParams()
-  const [activeTab, setActiveTab] = useState('assignments')
+  const [activeTab, setActiveTab] = useState(requestedTab)
+  const [isImportOpen, setIsImportOpen] = useState(requestedImportOpen)
+  const [, setStudentRefreshToken] = useState(0)
   const snapshot = getClassDetailSnapshot(classId)
 
   if (snapshot.status === 'error') {
@@ -171,12 +194,30 @@ function ClassDetailPage() {
                   : `Sĩ số lớp ${classroom.id} ${classroom.semester.toLowerCase()} ${classroom.schoolYear.toLowerCase()}.`}
               </p>
             </div>
-            {tabView.kind === 'assignments' && (
+            {tabView.kind === 'assignments' ? (
               <Link className="button button-primary" to={`/classes/${classroom.id}/assignments/new`}>
                 Tạo bài kiểm tra
               </Link>
+            ) : (
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={() => setIsImportOpen((current) => !current)}
+              >
+                {isImportOpen ? 'Đóng nhập file' : 'Nhập danh sách Excel'}
+              </button>
             )}
           </div>
+
+          {tabView.kind === 'students' && isImportOpen && (
+            <StudentImportPanel
+              classId={classroom.id}
+              onCancel={() => setIsImportOpen(false)}
+              onImported={() => {
+                setStudentRefreshToken((current) => current + 1)
+              }}
+            />
+          )}
 
           {tabView.kind === 'assignments' ? (
             <AssignmentTable classId={classroom.id} rows={tabView.rows} />

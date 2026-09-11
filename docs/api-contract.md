@@ -128,6 +128,28 @@ Example request:
 DELETE /api/classes/12B1
 ```
 
+### Import students into a class
+
+```http
+POST /api/classes/12B1/students/import
+Content-Type: application/json
+```
+
+The frontend reads the `.xlsx` file locally, validates the required columns
+`Mã học sinh` and `Họ và tên`, then sends normalized rows in the future API:
+
+```json
+{
+  "students": [
+    {
+      "code": "HS260104",
+      "name": "Lê Cẩm Chi",
+      "email": "chi@example.com"
+    }
+  ]
+}
+```
+
 ### Create an assignment
 
 ```http
@@ -273,6 +295,9 @@ Example response:
   and `mockClassStore.js`.
 - `POST /api/classes/:classId/assignments` is represented by
   `submitAssignmentDraft()` and the `localStorage` mock store.
+- `POST /api/classes/:classId/students/import` is represented by
+  `readStudentExcel()`, `mergeStudentRows()` and the `educraft.students`
+  localStorage mock store.
 - `POST /api/assignments/:assignmentId/submissions` is represented by
   `submitNote()` and the `educraft.submissions` localStorage mock store; the
   student-facing screen is reserved for a later workflow step.
