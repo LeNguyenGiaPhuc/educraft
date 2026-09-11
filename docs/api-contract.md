@@ -174,5 +174,7 @@ Example response:
   dashboard and class-detail mock data functions.
 - `POST /api/classes/:classId/assignments` is represented by
   `submitAssignmentDraft()` and the `localStorage` mock store.
-- Submission and review endpoints are documented here and will be connected
-  to the next frontend workflow step.
+- `POST /api/assignments/:assignmentId/submissions` is represented by
+  `submitNote()` and the `educraft.submissions` localStorage mock store.
+- The review endpoint is documented here and will be connected to the next
+  frontend workflow step.

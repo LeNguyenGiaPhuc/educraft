@@ -6,6 +6,7 @@ Web-based educational platform for teachers to create assignments and students t
 - Xem danh sách lớp học.
 - Xem chi tiết lớp và học sinh.
 - Tạo bài kiểm tra có validation.
+- Nộp bài ghi bằng mock submission flow.
 - Hiển thị loading, empty, success và error state.
 - Responsive trên desktop và mobile.
 - API contract mẫu được lưu tại [`docs/api-contract.md`](docs/api-contract.md).

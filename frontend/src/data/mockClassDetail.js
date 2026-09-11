@@ -118,3 +118,35 @@ export function getClassTabView(classroom, tab = 'assignments') {
 
   return { kind: 'assignments', rows: classroom.assignments }
 }
+
+export function getAssignmentSnapshot(assignmentId, storage) {
+  for (const [classId, classroom] of Object.entries(classDetails)) {
+    const assignments = [
+      ...classroom.assignments,
+      ...getStoredAssignments(classId, storage),
+    ]
+    const assignment = assignments.find((item) => item.id === assignmentId)
+
+    if (assignment) {
+      return {
+        status: 'success',
+        data: {
+          ...assignment,
+          classroom: {
+            id: classroom.id,
+            subject: classroom.subject,
+            name: classroom.name,
+            semester: classroom.semester,
+            schoolYear: classroom.schoolYear,
+            studentCount: classroom.studentCount,
+          },
+        },
+      }
+    }
+  }
+
+  return {
+    status: 'error',
+    message: 'Không tìm thấy bài kiểm tra này.',
+  }
+}

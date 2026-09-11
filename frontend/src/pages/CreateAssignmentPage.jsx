@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import PageErrorState from '../components/PageErrorState.jsx'
 import { getClassDetailSnapshot } from '../data/mockClassDetail.js'
 import {
   getAssignmentClassOptions,
@@ -49,29 +50,22 @@ function FormBreadcrumb({ classroom }) {
 
 function CreateAssignmentError({ message }) {
   return (
-    <main className="page-content">
-      <div className="page-container">
-        <section className="state-panel state-panel-error" role="alert">
-          <p className="state-kicker">Tạo bài kiểm tra</p>
-          <h1>Không thể mở biểu mẫu</h1>
-          <p>{message}</p>
-          <Link className="button button-primary" to="/">
-            Về tổng quan
-          </Link>
-        </section>
-      </div>
-    </main>
+    <PageErrorState
+      kicker="Tạo bài kiểm tra"
+      message={message}
+      title="Không thể mở biểu mẫu"
+    />
   )
 }
 
-function AssignmentSuccess({ classroom, onCreateAnother }) {
+function AssignmentSuccess({ classroom, onCreateAnother, submission }) {
   return (
     <section className="assignment-success" role="status" aria-live="polite">
-      <p className="state-kicker">Đã lưu bản nháp</p>
+      <p className="state-kicker">Đã tạo bài kiểm tra</p>
       <h1>Đã tạo bài kiểm tra</h1>
       <p>
-        Bài kiểm tra đã được thêm vào lớp {classroom.name}. Bạn có thể xem lại trong danh sách bài
-        kiểm tra.
+        Bài “{submission.data.title}” đã được thêm vào lớp {classroom.name}. Bạn có thể xem lại
+        trong danh sách bài kiểm tra.
       </p>
       <div className="assignment-success-actions">
         <Link className="button button-primary" to={`/classes/${classroom.id}`}>
@@ -272,12 +266,25 @@ function CreateAssignmentWorkspace({ classId, classroom }) {
     setSubmission({ status: 'idle' })
   }
 
+  const successClassroomSnapshot =
+    submission.status === 'success'
+      ? getClassDetailSnapshot(submission.data.classId)
+      : null
+  const successClassroom =
+    successClassroomSnapshot?.status === 'success'
+      ? successClassroomSnapshot.data
+      : classroom
+
   return (
     <>
       <FormBreadcrumb classroom={classroom} />
 
       {submission.status === 'success' ? (
-        <AssignmentSuccess classroom={classroom} onCreateAnother={handleCreateAnother} />
+        <AssignmentSuccess
+          classroom={successClassroom}
+          onCreateAnother={handleCreateAnother}
+          submission={submission}
+        />
       ) : (
         <CreateAssignmentForm
           classroom={classroom}

@@ -4,6 +4,7 @@ import AppShell from './components/AppShell.jsx'
 import ClassDetailPage from './pages/ClassDetailPage.jsx'
 import CreateAssignmentPage from './pages/CreateAssignmentPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
+import StudentSubmissionPage from './pages/StudentSubmissionPage.jsx'
 import './App.css'
 
 function App() {
@@ -19,6 +20,10 @@ function App() {
           <Route
             path="/classes/:classId/assignments/new"
             element={<CreateAssignmentPage />}
+          />
+          <Route
+            path="/student/assignments/:assignmentId"
+            element={<StudentSubmissionPage />}
           />
         </Route>
       </Routes>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import PageErrorState from '../components/PageErrorState.jsx'
 import {
   getClassDetailSnapshot,
   getClassTabView,
@@ -40,7 +41,12 @@ function AssignmentTable({ rows }) {
                 </span>
               </td>
               <td className="table-action-cell">
-                <span className="table-action">Chi tiết</span>
+                <Link
+                  className="table-action"
+                  to={`/student/assignments/${assignment.id}`}
+                >
+                  Nộp bài mẫu
+                </Link>
               </td>
             </tr>
           ))}
@@ -89,18 +95,11 @@ function StudentTable({ rows }) {
 
 function ClassDetailError({ message }) {
   return (
-    <main className="page-content">
-      <div className="page-container">
-        <section className="state-panel state-panel-error" role="alert">
-          <p className="state-kicker">Lớp học</p>
-          <h1>Không thể mở lớp học</h1>
-          <p>{message}</p>
-          <Link className="button button-primary" to="/">
-            Về tổng quan
-          </Link>
-        </section>
-      </div>
-    </main>
+    <PageErrorState
+      kicker="Lớp học"
+      message={message}
+      title="Không thể mở lớp học"
+    />
   )
 }
 

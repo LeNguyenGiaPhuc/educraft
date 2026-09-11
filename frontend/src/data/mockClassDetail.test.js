@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   getClassDetailSnapshot,
   getClassTabView,
+  getAssignmentSnapshot,
 } from './mockClassDetail.js'
 import { createStoredAssignment } from './mockAssignmentStore.js'
 
@@ -69,4 +70,12 @@ test('returns an error snapshot for an unknown class', () => {
 
   assert.equal(snapshot.status, 'error')
   assert.match(snapshot.message, /không tìm thấy lớp/i)
+})
+
+test('finds an assignment and its class for the student submission page', () => {
+  const snapshot = getAssignmentSnapshot('nam-xuong')
+
+  assert.equal(snapshot.status, 'success')
+  assert.equal(snapshot.data.id, 'nam-xuong')
+  assert.equal(snapshot.data.classroom.id, '10A1')
 })
