@@ -1,3 +1,5 @@
+import { getStoredAssignments } from './mockAssignmentStore.js'
+
 const classDetails = Object.freeze({
   '10A1': {
     id: '10A1',
@@ -90,7 +92,7 @@ const classDetails = Object.freeze({
   },
 })
 
-export function getClassDetailSnapshot(classId) {
+export function getClassDetailSnapshot(classId, storage) {
   const data = classDetails[classId]
 
   if (!data) {
@@ -100,7 +102,13 @@ export function getClassDetailSnapshot(classId) {
     }
   }
 
-  return { status: 'success', data }
+  return {
+    status: 'success',
+    data: {
+      ...data,
+      assignments: [...data.assignments, ...getStoredAssignments(classId, storage)],
+    },
+  }
 }
 
 export function getClassTabView(classroom, tab = 'assignments') {

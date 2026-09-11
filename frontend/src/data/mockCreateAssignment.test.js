@@ -6,6 +6,20 @@ import {
   submitAssignmentDraft,
   validateAssignmentForm,
 } from './mockCreateAssignment.js'
+import { getStoredAssignments } from './mockAssignmentStore.js'
+
+function createMemoryStorage() {
+  const values = new Map()
+
+  return {
+    getItem(key) {
+      return values.get(key) ?? null
+    },
+    setItem(key, value) {
+      values.set(key, value)
+    },
+  }
+}
 
 test('returns a draft with sensible defaults for the selected class', () => {
   assert.deepEqual(getDefaultAssignmentForm('10A1'), {
@@ -69,6 +83,28 @@ test('returns a successful mock submission', async () => {
 
   assert.equal(result.status, 'success')
   assert.equal(result.data.title, 'Bài ghi thử nghiệm')
+})
+
+test('persists a successful assignment draft for its class', async () => {
+  const storage = createMemoryStorage()
+  const result = await submitAssignmentDraft(
+    {
+      title: 'Bài ghi cần lưu',
+      classId: '10A1',
+      dueAt: '2026-09-18T23:59',
+      threshold: '80',
+    },
+    'success',
+    0,
+    storage,
+  )
+
+  const assignments = getStoredAssignments('10A1', storage)
+
+  assert.equal(result.status, 'success')
+  assert.equal(assignments.length, 1)
+  assert.equal(assignments[0].title, 'Bài ghi cần lưu')
+  assert.equal(assignments[0].threshold, '80%')
 })
 
 test('returns a visible error snapshot for a failed mock submission', async () => {

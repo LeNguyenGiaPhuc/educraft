@@ -1,3 +1,5 @@
+import { getStoredAssignments } from './mockAssignmentStore.js'
+
 const teacherClasses = Object.freeze([
   {
     id: '10A1',
@@ -31,7 +33,7 @@ const teacherClasses = Object.freeze([
   },
 ])
 
-export function getDashboardSnapshot(state = 'success') {
+export function getDashboardSnapshot(state = 'success', storage) {
   if (state === 'loading') {
     return { status: 'loading' }
   }
@@ -47,5 +49,11 @@ export function getDashboardSnapshot(state = 'success') {
     }
   }
 
-  return { status: 'success', data: teacherClasses }
+  const data = teacherClasses.map((classroom) => ({
+    ...classroom,
+    assignmentCount:
+      classroom.assignmentCount + getStoredAssignments(classroom.id, storage).length,
+  }))
+
+  return { status: 'success', data }
 }

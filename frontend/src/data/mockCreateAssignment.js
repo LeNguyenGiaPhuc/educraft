@@ -1,3 +1,5 @@
+import { createStoredAssignment } from './mockAssignmentStore.js'
+
 const assignmentClassOptions = Object.freeze([
   { id: '10A1', label: 'Ngữ văn 10A1 (42 học sinh)' },
   { id: '10A2', label: 'Lịch sử 10A2 (39 học sinh)' },
@@ -53,7 +55,7 @@ export function validateAssignmentForm(form = {}) {
   return errors
 }
 
-export function submitAssignmentDraft(form, outcome = 'success', delay = 0) {
+export function submitAssignmentDraft(form, outcome = 'success', delay = 0, storage) {
   return new Promise((resolve) => {
     setTimeout(() => {
       if (outcome === 'error') {
@@ -63,6 +65,8 @@ export function submitAssignmentDraft(form, outcome = 'success', delay = 0) {
         })
         return
       }
+
+      createStoredAssignment(form, storage)
 
       resolve({
         status: 'success',
