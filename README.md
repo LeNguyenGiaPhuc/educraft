@@ -8,6 +8,7 @@ Web-based educational platform for teachers to create assignments and students t
 - Tạo bài kiểm tra có validation.
 - Hiển thị loading, empty, success và error state.
 - Responsive trên desktop và mobile.
+- API contract mẫu được lưu tại [`docs/api-contract.md`](docs/api-contract.md).
 
 ## Công nghệ
 
@@ -40,3 +41,6 @@ npm test
 npm run lint
 npm run build
 ```
+
+Dữ liệu bài kiểm tra mới được lưu tạm trong `localStorage` với key
+`educraft.assignments`. Project hiện chưa cần chạy backend.
