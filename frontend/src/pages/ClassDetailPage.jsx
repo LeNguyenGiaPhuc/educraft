@@ -7,7 +7,7 @@ import {
   getClassTabView,
 } from '../data/mockClassDetail.js'
 
-function AssignmentTable({ rows }) {
+function AssignmentTable({ classId, rows }) {
   if (rows.length === 0) {
     return <div className="table-empty">Chưa có bài kiểm tra nào trong lớp này.</div>
   }
@@ -43,9 +43,9 @@ function AssignmentTable({ rows }) {
               <td className="table-action-cell">
                 <Link
                   className="table-action"
-                  to={`/student/assignments/${assignment.id}`}
+                  to={`/classes/${classId}/assignments/${assignment.id}`}
                 >
-                  Nộp bài mẫu
+                  Xem chi tiết
                 </Link>
               </td>
             </tr>
@@ -179,7 +179,7 @@ function ClassDetailPage() {
           </div>
 
           {tabView.kind === 'assignments' ? (
-            <AssignmentTable rows={tabView.rows} />
+            <AssignmentTable classId={classroom.id} rows={tabView.rows} />
           ) : (
             <StudentTable rows={tabView.rows} />
           )}

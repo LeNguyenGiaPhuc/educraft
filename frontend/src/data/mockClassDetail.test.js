@@ -1,12 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import {
-  getClassDetailSnapshot,
-  getClassTabView,
-  getAssignmentSnapshot,
-} from './mockClassDetail.js'
+import * as classDetailData from './mockClassDetail.js'
 import { createStoredAssignment } from './mockAssignmentStore.js'
+import { createStoredSubmission } from './mockSubmissionStore.js'
 
 function createMemoryStorage() {
   const values = new Map()
@@ -22,7 +19,7 @@ function createMemoryStorage() {
 }
 
 test('loads the 10A1 class detail with assignments and students', () => {
-  const snapshot = getClassDetailSnapshot('10A1')
+  const snapshot = classDetailData.getClassDetailSnapshot('10A1')
 
   assert.equal(snapshot.status, 'success')
   assert.equal(snapshot.data.id, '10A1')
@@ -43,39 +40,72 @@ test('includes a stored assignment in the class detail', () => {
     storage,
   )
 
-  const snapshot = getClassDetailSnapshot('10A1', storage)
+  const snapshot = classDetailData.getClassDetailSnapshot('10A1', storage)
 
   assert.equal(snapshot.data.assignments.length, 3)
   assert.equal(snapshot.data.assignments.at(-1).title, 'Bài ghi đã lưu')
 })
 
 test('returns the assignment tab by default', () => {
-  const snapshot = getClassDetailSnapshot('10A1')
-  const view = getClassTabView(snapshot.data, 'assignments')
+  const snapshot = classDetailData.getClassDetailSnapshot('10A1')
+  const view = classDetailData.getClassTabView(snapshot.data, 'assignments')
 
   assert.equal(view.kind, 'assignments')
   assert.equal(view.rows[0].title, 'Bài ghi Chuyện người con gái Nam Xương')
 })
 
 test('returns the student tab when requested', () => {
-  const snapshot = getClassDetailSnapshot('10A1')
-  const view = getClassTabView(snapshot.data, 'students')
+  const snapshot = classDetailData.getClassDetailSnapshot('10A1')
+  const view = classDetailData.getClassTabView(snapshot.data, 'students')
 
   assert.equal(view.kind, 'students')
   assert.equal(view.rows[0].name, 'Nguyễn An Bình')
 })
 
 test('returns an error snapshot for an unknown class', () => {
-  const snapshot = getClassDetailSnapshot('unknown')
+  const snapshot = classDetailData.getClassDetailSnapshot('unknown')
 
   assert.equal(snapshot.status, 'error')
   assert.match(snapshot.message, /không tìm thấy lớp/i)
 })
 
 test('finds an assignment and its class for the student submission page', () => {
-  const snapshot = getAssignmentSnapshot('nam-xuong')
+  const snapshot = classDetailData.getAssignmentSnapshot('nam-xuong')
 
   assert.equal(snapshot.status, 'success')
   assert.equal(snapshot.data.id, 'nam-xuong')
   assert.equal(snapshot.data.classroom.id, '10A1')
+})
+
+test('returns assignment detail data with stored submissions', () => {
+  const storage = createMemoryStorage()
+
+  createStoredSubmission(
+    {
+      assignmentId: 'nam-xuong',
+      studentId: 'HS260101',
+      fileName: 'note.png',
+      fileSizeBytes: 2000,
+    },
+    storage,
+  )
+
+  assert.equal(typeof classDetailData.getAssignmentDetailSnapshot, 'function')
+
+  const snapshot = classDetailData.getAssignmentDetailSnapshot('nam-xuong', storage)
+
+  assert.equal(snapshot.status, 'success')
+  assert.equal(snapshot.data.reference, null)
+  assert.equal(snapshot.data.submissions.some((item) => item.studentId === 'HS260101'), true)
+  assert.equal(snapshot.data.submissions.some((item) => item.fileName === 'note.png'), true)
+})
+
+test('provides teacher-side mock submissions for the assignment detail page', () => {
+  assert.equal(typeof classDetailData.getMockAssignmentSubmissions, 'function')
+
+  const submissions = classDetailData.getMockAssignmentSubmissions('nam-xuong')
+
+  assert.equal(submissions.length, 2)
+  assert.equal(submissions[0].studentId, 'HS260101')
+  assert.equal(submissions[1].status, 'approved')
 })

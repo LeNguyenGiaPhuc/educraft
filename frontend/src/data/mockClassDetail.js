@@ -1,4 +1,6 @@
 import { getStoredAssignments } from './mockAssignmentStore.js'
+import { getStoredReference } from './mockReferenceStore.js'
+import { getStoredSubmissions } from './mockSubmissionStore.js'
 
 const classDetails = Object.freeze({
   '10A1': {
@@ -92,6 +94,37 @@ const classDetails = Object.freeze({
   },
 })
 
+const mockAssignmentSubmissions = Object.freeze({
+  'nam-xuong': Object.freeze([
+    Object.freeze({
+      id: 'mock-submission-nam-xuong-001',
+      assignmentId: 'nam-xuong',
+      studentId: 'HS260101',
+      fileName: 'bai-ghi-nam-xuong-hs260101.png',
+      fileSizeBytes: 2400000,
+      submittedAt: '2026-09-17T15:30:00+07:00',
+      status: 'submitted',
+    }),
+    Object.freeze({
+      id: 'mock-submission-nam-xuong-002',
+      assignmentId: 'nam-xuong',
+      studentId: 'HS260102',
+      fileName: 'bai-ghi-nam-xuong-hs260102.jpg',
+      fileSizeBytes: 2100000,
+      submittedAt: '2026-09-17T14:10:00+07:00',
+      status: 'approved',
+      score: 88,
+      feedback: 'Bài ghi đầy đủ, cần bổ sung phần kết luận.',
+    }),
+  ]),
+})
+
+export function getMockAssignmentSubmissions(assignmentId) {
+  return (mockAssignmentSubmissions[assignmentId] ?? []).map((submission) => ({
+    ...submission,
+  }))
+}
+
 export function getClassDetailSnapshot(classId, storage) {
   const data = classDetails[classId]
 
@@ -148,5 +181,30 @@ export function getAssignmentSnapshot(assignmentId, storage) {
   return {
     status: 'error',
     message: 'Không tìm thấy bài kiểm tra này.',
+  }
+}
+
+export function getAssignmentDetailSnapshot(assignmentId, storage) {
+  const assignmentSnapshot = getAssignmentSnapshot(assignmentId, storage)
+
+  if (assignmentSnapshot.status === 'error') {
+    return assignmentSnapshot
+  }
+
+  const storedSubmissions = getStoredSubmissions(assignmentId, storage)
+  const storedSubmissionIds = new Set(storedSubmissions.map((submission) => submission.id))
+
+  return {
+    status: 'success',
+    data: {
+      ...assignmentSnapshot.data,
+      reference: getStoredReference(assignmentId, storage),
+      submissions: [
+        ...getMockAssignmentSubmissions(assignmentId).filter(
+          (submission) => !storedSubmissionIds.has(submission.id),
+        ),
+        ...storedSubmissions,
+      ],
+    },
   }
 }

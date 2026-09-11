@@ -41,6 +41,12 @@ export function getStoredSubmissions(assignmentId, storage = getBrowserStorage()
   )
 }
 
+export function getStoredSubmission(submissionId, storage = getBrowserStorage()) {
+  return readSubmissions(storage).find(
+    (submission) => submission.id === submissionId,
+  ) ?? null
+}
+
 export function createStoredSubmission(form, storage = getBrowserStorage()) {
   const submissions = readSubmissions(storage)
   const submission = {
@@ -55,4 +61,30 @@ export function createStoredSubmission(form, storage = getBrowserStorage()) {
 
   writeSubmissions([...submissions, submission], storage)
   return submission
+}
+
+export function updateStoredSubmissionReview(submissionId, review, storage = getBrowserStorage()) {
+  const submissions = readSubmissions(storage)
+  const storedSubmission = submissions.find((item) => item.id === submissionId)
+  const submission = storedSubmission ?? review.submission
+
+  if (!submission) {
+    throw new Error('Không tìm thấy bài nộp này.')
+  }
+
+  const updatedSubmission = {
+    ...submission,
+    status: 'approved',
+    score: Number(review.score),
+    feedback: review.feedback,
+    reviewedAt: new Date().toISOString(),
+  }
+
+  const nextSubmissions = storedSubmission
+    ? submissions.map((item) => (item.id === submissionId ? updatedSubmission : item))
+    : [...submissions, updatedSubmission]
+
+  writeSubmissions(nextSubmissions, storage)
+
+  return updatedSubmission
 }

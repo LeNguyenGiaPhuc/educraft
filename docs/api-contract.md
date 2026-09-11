@@ -2,9 +2,8 @@
 
 This document defines the API contract for the EduCraft frontend prototype.
 The current homework uses mock data instead of a running HTTP server. The
-assignment creation flow persists data in browser `localStorage` under the
-`educraft.assignments` key. The submission and review endpoints are the
-contract for the next workflow step.
+assignment creation, teacher reference, student submission and review flows
+use browser `localStorage` mock stores while the frontend is developed.
 
 ## Base URL
 
@@ -138,6 +137,46 @@ Example response:
 }
 ```
 
+### Get assignment detail
+
+```http
+GET /api/assignments/assignment-003/detail
+```
+
+Example response:
+
+```json
+{
+  "data": {
+    "id": "assignment-003",
+    "title": "Bài ghi Chuyện người con gái Nam Xương",
+    "reference": {
+      "assignmentId": "assignment-003",
+      "fileName": "bai-mau-nam-xuong.png",
+      "fileSizeBytes": 1800000,
+      "uploadedAt": "2026-09-10T09:15:00+07:00"
+    },
+    "submissions": []
+  }
+}
+```
+
+### Upload a teacher reference
+
+```http
+POST /api/assignments/assignment-003/reference
+Content-Type: application/json
+```
+
+Example request:
+
+```json
+{
+  "fileName": "bai-mau-nam-xuong.png",
+  "fileSizeBytes": 1800000
+}
+```
+
 ### Review a submission
 
 ```http
@@ -175,6 +214,13 @@ Example response:
 - `POST /api/classes/:classId/assignments` is represented by
   `submitAssignmentDraft()` and the `localStorage` mock store.
 - `POST /api/assignments/:assignmentId/submissions` is represented by
-  `submitNote()` and the `educraft.submissions` localStorage mock store.
-- The review endpoint is documented here and will be connected to the next
-  frontend workflow step.
+  `submitNote()` and the `educraft.submissions` localStorage mock store; the
+  student-facing screen is reserved for a later workflow step.
+- `GET /api/assignments/:assignmentId/detail` is represented by
+  `getAssignmentDetailSnapshot()` and combines the assignment, reference,
+  teacher-side mock submissions and stored submissions.
+- `POST /api/assignments/:assignmentId/reference` is represented by
+  `submitReference()` and the `educraft.references` localStorage mock store.
+- `PATCH /api/submissions/:submissionId/review` is represented by
+  `reviewSubmission()` and updates the stored submission with the teacher's
+  final score and feedback.
