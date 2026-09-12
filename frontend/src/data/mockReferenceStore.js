@@ -57,3 +57,12 @@ export function createStoredReference(form, storage = getBrowserStorage()) {
 
   return reference
 }
+
+export function deleteStoredReferences(assignmentIds, storage = getBrowserStorage()) {
+  const references = readReferences(storage)
+
+  writeReferences(
+    references.filter((reference) => !assignmentIds.includes(reference.assignmentId)),
+    storage,
+  )
+}

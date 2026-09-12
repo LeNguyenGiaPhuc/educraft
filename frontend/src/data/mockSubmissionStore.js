@@ -88,3 +88,12 @@ export function updateStoredSubmissionReview(submissionId, review, storage = get
 
   return updatedSubmission
 }
+
+export function deleteStoredSubmissions(assignmentIds, storage = getBrowserStorage()) {
+  const submissions = readSubmissions(storage)
+
+  writeSubmissions(
+    submissions.filter((submission) => !assignmentIds.includes(submission.assignmentId)),
+    storage,
+  )
+}
