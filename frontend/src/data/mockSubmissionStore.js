@@ -41,6 +41,20 @@ export function getStoredSubmissions(assignmentId, storage = getBrowserStorage()
   )
 }
 
+export function deleteStoredSubmissions(assignmentIds, storage = getBrowserStorage()) {
+  const ids = new Set(assignmentIds)
+
+  if (ids.size === 0) {
+    return
+  }
+
+  const submissions = readSubmissions(storage)
+  writeSubmissions(
+    submissions.filter((submission) => !ids.has(submission.assignmentId)),
+    storage,
+  )
+}
+
 export function getStoredSubmission(submissionId, storage = getBrowserStorage()) {
   return readSubmissions(storage).find(
     (submission) => submission.id === submissionId,
