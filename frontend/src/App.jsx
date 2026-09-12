@@ -14,6 +14,7 @@ function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />
+          <Route path="/assignments/new" element={<CreateAssignmentPage />} />
           <Route
             path="/classes/:classId"
             element={<ClassDetailPage />}

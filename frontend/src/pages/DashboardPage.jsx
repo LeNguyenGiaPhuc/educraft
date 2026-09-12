@@ -23,7 +23,7 @@ function DashboardHeading({ manageOpen, onManage }) {
         <button className="button button-outline" type="button" onClick={onManage}>
           {manageOpen ? 'Đóng quản lý' : 'Quản lý lớp'}
         </button>
-        <Link className="button button-primary" to="/classes/10A1/assignments/new">
+        <Link className="button button-primary" to="/assignments/new">
           Tạo bài kiểm tra
         </Link>
       </div>
