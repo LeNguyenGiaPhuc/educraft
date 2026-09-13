@@ -326,22 +326,21 @@ test('keeps unfinalized score and feedback hidden while waiting for review', () 
   assert.equal(Object.hasOwn(item, 'result'), false)
 })
 
-test('shows teacher-finalized score and feedback as a result without deriving pass or fail', async () => {
+test('shows the teacher-finalized workflow status and feedback without a numeric score', async () => {
   const storage = createMemoryStorage()
   const saved = createStoredSubmission({ ...form, studentId: student.studentId }, storage)
   await reviewSubmission({
     submissionId: saved.id,
-    score: '64',
+    finalStatus: 'needs_completion',
     feedback: 'Cần bổ sung phần kết luận.',
   }, 'success', 0, storage)
 
   const item = getStudentSubmissionHistory(student, form.assignmentId, storage).data[0]
   assert.equal(item.status, 'approved')
-  assert.equal(item.result.score, 64)
+  assert.equal(item.result.finalStatus, 'needs_completion')
   assert.equal(item.result.feedback, 'Cần bổ sung phần kết luận.')
   assert.equal(typeof item.result.finalizedAt, 'string')
-  assert.equal(Object.hasOwn(item, 'passed'), false)
-  assert.equal(Object.hasOwn(item.result, 'passed'), false)
+  assert.equal(Object.hasOwn(item.result, 'score'), false)
 })
 
 test('never exposes another student finalized result', async () => {
@@ -354,7 +353,7 @@ test('never exposes another student finalized result', async () => {
   }, storage)
   await reviewSubmission({
     submissionId: other.id,
-    score: '98',
+    finalStatus: 'completed',
     feedback: 'Private feedback for another student.',
   }, 'success', 0, storage)
 
@@ -379,14 +378,14 @@ test('keeps finalization independent between attempts', async () => {
   }, storage)
   await reviewSubmission({
     submissionId: first.id,
-    score: '82',
+    finalStatus: 'completed',
     feedback: 'Kết quả của lần một.',
   }, 'success', 0, storage)
 
   const history = getStudentSubmissionHistory(student, form.assignmentId, storage)
   assert.equal(history.data[0].id, first.id)
   assert.equal(history.data[0].status, 'approved')
-  assert.equal(history.data[0].result.score, 82)
+  assert.equal(history.data[0].result.finalStatus, 'completed')
   assert.equal(history.data[1].id, second.id)
   assert.equal(history.data[1].status, 'submitted')
   assert.equal(Object.hasOwn(history.data[1], 'result'), false)
@@ -398,7 +397,7 @@ test('keeps a finalized result visible through a refresh-style read', async () =
   const saved = createStoredSubmission({ ...form, studentId: student.studentId }, firstStorage)
   await reviewSubmission({
     submissionId: saved.id,
-    score: '91',
+    finalStatus: 'requires_teacher_review',
     feedback: 'Kết quả đã chốt.',
   }, 'success', 0, firstStorage)
 
@@ -409,7 +408,7 @@ test('keeps a finalized result visible through a refresh-style read', async () =
     refreshedStorage,
   ).data[0]
   assert.equal(item.status, 'approved')
-  assert.equal(item.result.score, 91)
+  assert.equal(item.result.finalStatus, 'requires_teacher_review')
   assert.equal(item.result.feedback, 'Kết quả đã chốt.')
 })
 
@@ -421,13 +420,13 @@ test('reflects a teacher review in the student next read', async () => {
 
   await reviewSubmission({
     submissionId: saved.id,
-    score: '77',
+    finalStatus: 'needs_completion',
     feedback: 'Giáo viên đã chốt lần nộp này.',
   }, 'success', 0, storage)
 
   const afterReview = getStudentSubmissionHistory(student, form.assignmentId, storage).data[0]
   assert.equal(afterReview.status, 'approved')
-  assert.equal(afterReview.result.score, 77)
+  assert.equal(afterReview.result.finalStatus, 'needs_completion')
   assert.equal(afterReview.result.feedback, 'Giáo viên đã chốt lần nộp này.')
 })
 

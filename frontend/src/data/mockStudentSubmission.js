@@ -44,7 +44,7 @@ export function getStudentSubmissionHistory(currentUser, assignmentId, storage) 
 
       if (submission.status === 'approved') {
         item.result = {
-          score: submission.score,
+          finalStatus: submission.finalStatus ?? 'requires_teacher_review',
           feedback: submission.feedback,
           finalizedAt: submission.reviewedAt,
         }

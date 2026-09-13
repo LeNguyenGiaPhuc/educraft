@@ -9,9 +9,17 @@ import {
   getStudentSubmissionHistory,
   submitStudentNote,
 } from '../data/mockStudentSubmission.js'
-import { validateSubmissionForm } from '../data/mockSubmission.js'
+import {
+  getFinalReviewStatusLabel,
+  validateSubmissionForm,
+} from '../data/mockSubmission.js'
 
 const MOCK_STATUS_DELAY_MS = 1200
+const submissionDateFormatter = new Intl.DateTimeFormat('vi-VN', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+  timeZone: 'Asia/Ho_Chi_Minh',
+})
 
 function requestedSubmissionState() {
   if (typeof window === 'undefined') {
@@ -77,11 +85,7 @@ function formatSubmissionDate(value) {
 
   if (!Number.isFinite(submittedAt)) return 'Không xác định'
 
-  return new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-    timeZone: 'Asia/Ho_Chi_Minh',
-  }).format(submittedAt)
+  return submissionDateFormatter.format(submittedAt)
 }
 
 function submissionStatusLabel(status) {
@@ -137,7 +141,7 @@ function SubmissionHistory({ submissions }) {
                         <div className="student-submission-result">
                           <div>
                             <span>Kết quả do giáo viên chốt</span>
-                            <strong>{item.result.score}/100</strong>
+                            <strong>{getFinalReviewStatusLabel(item.result.finalStatus)}</strong>
                           </div>
                           <p>
                             <strong>Nhận xét:</strong> {item.result.feedback}

@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import PageErrorState from '../components/PageErrorState.jsx'
 import { getAssignmentDetailSnapshot } from '../data/mockClassDetail.js'
 import {
+  getFinalReviewStatusLabel,
   getMockAiEvaluation,
   reviewSubmission,
   validateReviewForm,
@@ -186,7 +187,7 @@ function ReferenceCard({ assignment, reference, onSaved }) {
 
 function submissionStatusLabel(submission) {
   if (submission.status === 'approved') {
-    return `Đã chốt · ${submission.score}/100`
+    return `Đã chốt · ${getFinalReviewStatusLabel(submission.finalStatus)}`
   }
 
   return 'Chờ giáo viên chốt'
@@ -238,8 +239,8 @@ function AiResultCard({ evaluation }) {
         <strong>{Math.round(evaluation.confidence * 100)}% tin cậy</strong>
       </div>
       <div className="ai-score-row">
-        <span>Điểm dự kiến</span>
-        <strong>{evaluation.suggestedScore}/100</strong>
+        <span>Trạng thái AI đề xuất</span>
+        <strong>{getFinalReviewStatusLabel(evaluation.suggestedStatus)}</strong>
       </div>
       <div className="ai-result-columns">
         <div>
@@ -263,7 +264,7 @@ function SubmissionReviewPanel({ submission, onReviewed }) {
   const evaluation = getMockAiEvaluation(submission)
   const [form, setForm] = useState({
     submissionId: submission.id,
-    score: submission.score?.toString() ?? '',
+    finalStatus: submission.finalStatus ?? evaluation.suggestedStatus,
     feedback: submission.feedback ?? evaluation.feedbackDraft,
   })
   const [errors, setErrors] = useState({})
@@ -334,24 +335,22 @@ function SubmissionReviewPanel({ submission, onReviewed }) {
       <form className="review-form" noValidate onSubmit={handleSubmit}>
         <div className="form-fields">
           <div className="form-field form-field-narrow">
-            <label htmlFor="review-score">
-              Điểm giáo viên chốt <span aria-hidden="true">*</span>
+            <label htmlFor="review-final-status">
+              Kết quả giáo viên chốt <span aria-hidden="true">*</span>
             </label>
-            <div className="input-with-suffix">
-              <input
-                aria-describedby={errors.score ? 'review-score-error' : undefined}
-                aria-invalid={Boolean(errors.score)}
-                id="review-score"
-                max="100"
-                min="0"
-                name="score"
-                onChange={handleChange}
-                type="number"
-                value={form.score}
-              />
-              <span aria-hidden="true">/100</span>
-            </div>
-            <FieldError id="review-score-error" message={errors.score} />
+            <select
+              aria-describedby={errors.finalStatus ? 'review-final-status-error' : undefined}
+              aria-invalid={Boolean(errors.finalStatus)}
+              id="review-final-status"
+              name="finalStatus"
+              onChange={handleChange}
+              value={form.finalStatus}
+            >
+              <option value="completed">Completed</option>
+              <option value="needs_completion">Needs Completion</option>
+              <option value="requires_teacher_review">Requires Teacher Review</option>
+            </select>
+            <FieldError id="review-final-status-error" message={errors.finalStatus} />
           </div>
 
           <div className="form-field form-field-wide">
@@ -379,7 +378,7 @@ function SubmissionReviewPanel({ submission, onReviewed }) {
 
         {review.status === 'success' && (
           <div className="form-submit-message form-submit-success" role="status">
-            Đã chốt điểm và nhận xét cho học sinh.
+            Đã chốt trạng thái và nhận xét cho học sinh.
           </div>
         )}
 
@@ -439,7 +438,7 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
             <span className="detail-card-label">{detail.submissions.length} bài nộp</span>
           </div>
           <p className="assignment-detail-card-description">
-            Chọn một bài nộp để xem kết quả AI mô phỏng và chốt điểm cuối cùng.
+            Chọn một bài nộp để xem kết quả AI mô phỏng và chốt trạng thái cuối cùng.
           </p>
 
           <SubmissionList

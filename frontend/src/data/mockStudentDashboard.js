@@ -1,9 +1,10 @@
+import { getAssignmentAvailability } from './assignmentDeadline.js'
 import { getClassDetailSnapshot } from './mockClassDetail.js'
 import { getTeacherClasses } from './mockClassStore.js'
 import { canAccessRole } from './mockSession.js'
 import { isStudentInClass } from './mockStudentAccess.js'
 
-export function getStudentDashboardSnapshot(currentUser, storage) {
+export function getStudentDashboardSnapshot(currentUser, storage, now = Date.now()) {
   if (!canAccessRole(currentUser, 'student')) {
     return {
       status: 'error',
@@ -32,15 +33,19 @@ export function getStudentDashboardSnapshot(currentUser, storage) {
       name: detail.name,
       semester: detail.semester,
       schoolYear: detail.schoolYear,
-      assignments: detail.assignments.map((assignment) => ({
-        id: assignment.id,
-        title: assignment.title,
-        classId: detail.id,
-        className: detail.name,
-        dueDate: assignment.dueDate,
-        status: assignment.status,
-        statusTone: assignment.statusTone,
-      })),
+      assignments: detail.assignments.map((assignment) => {
+        const availability = getAssignmentAvailability(assignment, now)
+
+        return {
+          id: assignment.id,
+          title: assignment.title,
+          classId: detail.id,
+          className: detail.name,
+          dueDate: assignment.dueDate,
+          status: availability.isOpen ? 'Đang mở' : 'Đã đóng',
+          statusTone: availability.isOpen ? 'active' : 'closed',
+        }
+      }),
     })
   }
 

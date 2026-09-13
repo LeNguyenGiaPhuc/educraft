@@ -50,6 +50,16 @@ test('shows only the fixture student class and its activities with existing dead
   ])
 })
 
+test('derives a closed dashboard status when the deadline has passed', () => {
+  const storage = createMemoryStorage()
+  const afterDeadline = Date.parse('2026-09-19T00:00:00+07:00')
+  const snapshot = getStudentDashboardSnapshot(student, storage, afterDeadline)
+  const assignment = snapshot.data[0].assignments.find((item) => item.id === 'nam-xuong')
+
+  assert.equal(assignment.status, 'Đã đóng')
+  assert.equal(assignment.statusTone, 'closed')
+})
+
 test('returns no dashboard data for nonstudent or incomplete identities', () => {
   for (const user of [null, getMockUser('teacher'), { ...student, studentId: null }]) {
     const snapshot = getStudentDashboardSnapshot(user, createMemoryStorage())

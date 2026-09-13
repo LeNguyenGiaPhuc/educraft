@@ -117,10 +117,11 @@ export function updateStoredSubmissionReview(submissionId, review, storage = get
   const updatedSubmission = {
     ...submission,
     status: 'approved',
-    score: Number(review.score),
+    finalStatus: review.finalStatus,
     feedback: review.feedback,
     reviewedAt: new Date().toISOString(),
   }
+  delete updatedSubmission.score
 
   const nextSubmissions = storedSubmission
     ? submissions.map((item) => (item.id === submissionId ? updatedSubmission : item))

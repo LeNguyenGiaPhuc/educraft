@@ -1,4 +1,10 @@
 // The mock school uses UTC+07:00, including the teacher's datetime-local input.
+const studentDeadlineFormatter = new Intl.DateTimeFormat('vi-VN', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+  timeZone: 'Asia/Ho_Chi_Minh',
+})
+
 function parseCanonicalDeadline(value) {
   if (typeof value !== 'string') return NaN
 
@@ -42,9 +48,5 @@ export function formatAssignmentDeadline(assignment) {
   const deadline = parseCanonicalDeadline(assignment.dueAt)
   if (!Number.isFinite(deadline)) return 'Chưa xác định'
 
-  return `${new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-    timeZone: 'Asia/Ho_Chi_Minh',
-  }).format(deadline)} (UTC+07:00)`
+  return `${studentDeadlineFormatter.format(deadline)} (UTC+07:00)`
 }

@@ -119,7 +119,7 @@ const mockAssignmentSubmissions = Object.freeze({
       fileSizeBytes: 2100000,
       submittedAt: '2026-09-17T14:10:00+07:00',
       status: 'approved',
-      score: 88,
+      finalStatus: 'needs_completion',
       feedback: 'Bài ghi đầy đủ, cần bổ sung phần kết luận.',
     }),
   ]),
