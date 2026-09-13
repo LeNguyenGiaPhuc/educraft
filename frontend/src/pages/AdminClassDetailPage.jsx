@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
+import StudentImportPanel from '../components/StudentImportPanel.jsx'
 import { ADMIN_STATE, addStudentsToAdminClass, deleteAdminClass, getAdminWorkspace } from '../data/mockAdminStore.js'
 import { ROLES } from '../data/mockAuthStore.js'
 
@@ -60,6 +61,8 @@ function AdminClassDetailPage() {
   const snapshot = getAdminWorkspace(ADMIN_STATE.SUCCESS)
   const [query, setQuery] = useState('')
   const [showStudentModal, setShowStudentModal] = useState(false)
+  const [showImportPanel, setShowImportPanel] = useState(false)
+  const [, setDataVersion] = useState(0)
 
   if (snapshot.status === 'error') {
     return <section className="admin-empty-panel"><p className="state-kicker">Chi tiết lớp</p><h1>Không thể mở lớp</h1><p>{snapshot.message}</p></section>
@@ -86,7 +89,16 @@ function AdminClassDetailPage() {
 
     addStudentsToAdminClass(classId.toUpperCase(), ids)
     setShowStudentModal(false)
-    window.location.reload()
+    setDataVersion((version) => version + 1)
+  }
+
+  function handleImported(result) {
+    setShowImportPanel(false)
+    setDataVersion((version) => version + 1)
+    const created = result.addedCount ?? 0
+    const assigned = result.assignedCount ?? 0
+    const skipped = result.skippedCount ?? 0
+    window.alert(`Đã import: ${created} tài khoản mới, ${assigned} tài khoản có sẵn, bỏ qua ${skipped} học sinh.`)
   }
 
   function handleDeleteClass() {
@@ -124,6 +136,7 @@ function AdminClassDetailPage() {
         <div className="admin-page-actions">
           <Link className="button button-outline" to="/admin/classes">← Quay lại</Link>
           <button className="button button-danger" type="button" onClick={handleDeleteClass}>Xóa lớp</button>
+          <button className="button button-outline" type="button" onClick={() => setShowImportPanel(true)}>Import Excel</button>
           <button className="button button-primary" type="button" onClick={() => setShowStudentModal(true)}>+ Thêm học sinh</button>
         </div>
       </div>
@@ -158,18 +171,22 @@ function AdminClassDetailPage() {
               <tr>
                 <th>Tên tài khoản</th>
                 <th>Họ tên</th>
+                <th>Email</th>
                 <th>Trạng thái</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {matchingStudents.length === 0 ? (
-                <tr><td colSpan="4" className="empty-row">Lớp này chưa có học sinh.</td></tr>
+                <tr><td colSpan="5" className="empty-row">Lớp này chưa có học sinh.</td></tr>
               ) : matchingStudents.map((student) => (
                 <tr key={student.id}>
                   <td><strong>{student.username}</strong></td>
                   <td>{student.name}</td>
-                  <td><span className="status-badge status-active">Hoạt động</span></td>
+                  <td>{student.email ?? '—'}</td>
+                  <td><span className={`status-badge status-${student.status ?? 'active'}`}>
+                    {student.status === 'pending' ? 'Chờ kích hoạt' : student.status === 'locked' ? 'Khóa' : 'Hoạt động'}
+                  </span></td>
                   <td><button className="button button-ghost" type="button">Xem</button></td>
                 </tr>
               ))}
@@ -177,6 +194,18 @@ function AdminClassDetailPage() {
           </table>
         </div>
       </section>
+
+      {showImportPanel && (
+        <div className="admin-modal-backdrop">
+          <div className="admin-modal large">
+            <StudentImportPanel
+              classId={classId}
+              onCancel={() => setShowImportPanel(false)}
+              onImported={handleImported}
+            />
+          </div>
+        </div>
+      )}
 
       {showStudentModal && (
         <StudentAddModal students={availableStudents} onCancel={() => setShowStudentModal(false)} onAdd={addStudents} />

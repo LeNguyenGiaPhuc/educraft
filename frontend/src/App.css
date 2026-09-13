@@ -909,6 +909,22 @@
   padding-left: 20px;
 }
 
+.student-import-warnings {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #ecd49a;
+  border-radius: 5px;
+  background: #fffaf0;
+  color: #795400;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.student-import-warnings ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+
 .student-import-preview {
   margin-bottom: 20px;
 }
@@ -918,6 +934,23 @@
   margin-bottom: 10px;
   color: var(--ink);
   font-size: 14px;
+}
+
+.student-import-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.student-import-summary span {
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .student-import-preview-wrap {
@@ -2178,6 +2211,11 @@
 .status-locked {
   background: #fee9e9;
   color: #a83d3d;
+}
+
+.status-pending {
+  background: #fff4d6;
+  color: #8a5a00;
 }
 
 .admin-table-actions {

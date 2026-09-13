@@ -135,14 +135,16 @@ POST /api/classes/12B1/students/import
 Content-Type: application/json
 ```
 
-The frontend reads the `.xlsx` file locally, validates the required columns
-`Mã học sinh` and `Họ và tên`, then sends normalized rows in the future API:
+The frontend reads the `.xlsx` file locally and only enables confirmation when
+every row has the required `STT`, `Họ và tên` and `Email` columns. `STT` is a
+display/order value; the normalized email identifies an account. A future API
+can receive rows such as:
 
 ```json
 {
   "students": [
     {
-      "code": "HS260104",
+      "studentNumber": "01",
       "name": "Lê Cẩm Chi",
       "email": "chi@example.com"
     }
@@ -296,11 +298,14 @@ Example response:
 - `POST /api/classes/:classId/assignments` is represented by
   `submitAssignmentDraft()` and the `localStorage` mock store.
 - `POST /api/classes/:classId/students/import` is represented by
-  `readStudentExcel()`, `mergeStudentRows()` and the `educraft.students`
-  localStorage mock store.
+  `readStudentExcel()`, `previewAdminStudentImport()` and
+  `provisionMockStudentsForClass()`. New student accounts are stored in
+  `educraft.users` with `role: STUDENT`, `status: pending`, no password, and
+  the selected class in `classIds`; the Admin must confirm a valid preview
+  before any mock account is written.
 - `POST /api/assignments/:assignmentId/submissions` is represented by
   `submitNote()` and the `educraft.submissions` localStorage mock store; the
-  student-facing screen is reserved for a later workflow step.
+  student-facing submit/resubmit screen consumes the same mock contract.
 - `GET /api/assignments/:assignmentId/detail` is represented by
   `getAssignmentDetailSnapshot()` and combines the assignment, reference,
   teacher-side mock submissions and stored submissions.

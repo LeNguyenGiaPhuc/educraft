@@ -5,6 +5,8 @@ import {
   getCurrentUser,
   getStoredUsers,
   ROLES,
+  previewMockStudentImport,
+  provisionMockStudentsForClass,
   toggleMockAccountStatus,
   updateMockAccount,
 } from './mockAuthStore.js'
@@ -140,6 +142,34 @@ export function addStudentsToAdminClass(classId, studentIds) {
   })
 
   return { status: 'success', data: mergedStudentIds }
+}
+
+export function previewAdminStudentImport(classId, rows, storage) {
+  const normalizedClassId = String(classId ?? '').trim().toUpperCase()
+  const classroom = getTeacherClasses(storage).find((item) => item.id === normalizedClassId)
+
+  if (!classroom) {
+    return {
+      status: 'error',
+      errors: [{ rowNumber: 1, message: 'Không tìm thấy lớp học.' }],
+    }
+  }
+
+  return previewMockStudentImport(normalizedClassId, rows, storage)
+}
+
+export function importStudentsToAdminClass(classId, rows, storage) {
+  const normalizedClassId = String(classId ?? '').trim().toUpperCase()
+  const classroom = getTeacherClasses(storage).find((item) => item.id === normalizedClassId)
+
+  if (!classroom) {
+    return {
+      status: 'error',
+      errors: [{ rowNumber: 1, message: 'Không tìm thấy lớp học.' }],
+    }
+  }
+
+  return provisionMockStudentsForClass(normalizedClassId, rows, storage)
 }
 
 export function filterAdminClasses(classes, { query = '', teacher = 'all' } = {}) {

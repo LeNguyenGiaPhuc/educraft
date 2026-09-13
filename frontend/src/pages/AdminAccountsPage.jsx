@@ -267,7 +267,9 @@ function AdminAccountsPage() {
                 <td>{account.name}</td>
                 <td><span className="role-badge">{roleLabels[account.role] ?? account.role}</span></td>
                 <td>{getAccountClassLabel(account, classes)}</td>
-                <td><span className={`status-badge status-${account.status}`}>{account.status === 'locked' ? 'Khóa' : 'Hoạt động'}</span></td>
+                <td><span className={`status-badge status-${account.status}`}>
+                  {account.status === 'pending' ? 'Chờ kích hoạt' : account.status === 'locked' ? 'Khóa' : 'Hoạt động'}
+                </span></td>
                 <td>
                   <div className="admin-table-actions">
                     <button className="button button-outline" type="button" onClick={() => openEdit(account)}>Chỉnh sửa</button>

@@ -1,4 +1,7 @@
+import { getStoredUsers, ROLES } from './mockAuthStore.js'
+
 const STUDENTS_STORAGE_KEY = 'educraft.students'
+const USERS_STORAGE_KEY = 'educraft.users'
 
 function getBrowserStorage() {
   if (typeof window === 'undefined') {
@@ -41,6 +44,54 @@ function normalizeStudentRow(row = {}) {
     name: String(row.name ?? row.fullName ?? '').trim(),
     email: String(row.email ?? '').trim(),
   }
+}
+
+function hasStoredAuthUsers(storage = getBrowserStorage()) {
+  if (!storage) {
+    return false
+  }
+
+  try {
+    return Boolean(storage.getItem(USERS_STORAGE_KEY))
+  } catch {
+    return false
+  }
+}
+
+function getAuthStudents(classId, storage = getBrowserStorage()) {
+  if (!hasStoredAuthUsers(storage)) {
+    return []
+  }
+
+  return getStoredUsers(storage)
+    .filter((student) => (
+      student.role === ROLES.STUDENT
+      && (student.classIds ?? []).includes(classId)
+    ))
+    .map((student) => ({
+      id: student.id,
+      number: student.importedStudentNumber,
+      name: student.name,
+      code: student.studentCode || student.email,
+      email: student.email,
+      latestSubmission: 'Chưa nộp',
+      status: student.status,
+    }))
+}
+
+function mergeStudentViews(students, importedStudents) {
+  const merged = [...students]
+  const existingKeys = new Set(merged.map((student) => student.code || student.email || student.id))
+
+  importedStudents.forEach((student) => {
+    const key = student.code || student.email || student.id
+    if (!existingKeys.has(key)) {
+      merged.push(student)
+      existingKeys.add(key)
+    }
+  })
+
+  return merged
 }
 
 export function validateStudentRows(rows = []) {
@@ -86,17 +137,25 @@ export function getStoredStudents(classId, storage = getBrowserStorage()) {
 
 export function getClassStudents(classId, fallbackRows = [], storage = getBrowserStorage()) {
   const storedStudents = getStoredStudents(classId, storage)
+  const authStudents = getAuthStudents(classId, storage)
 
-  if (storedStudents.length > 0) {
-    return storedStudents
+  if (hasStoredAuthUsers(storage)) {
+    return authStudents
   }
 
-  return fallbackRows.map((student) => ({ ...student }))
+  if (storedStudents.length > 0) {
+    return mergeStudentViews(storedStudents, authStudents)
+  }
+
+  return mergeStudentViews(
+    fallbackRows.map((student) => ({ ...student })),
+    authStudents,
+  )
 }
 
 export function getClassStudentCount(classId, fallbackCount, storage = getBrowserStorage()) {
-  const storedStudents = getStoredStudents(classId, storage)
-  return storedStudents.length > 0 ? storedStudents.length : fallbackCount
+  const students = getClassStudents(classId, [], storage)
+  return students.length > 0 ? students.length : fallbackCount
 }
 
 export function deleteStoredStudentsForClass(classId, storage = getBrowserStorage()) {

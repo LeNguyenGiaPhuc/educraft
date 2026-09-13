@@ -10,6 +10,8 @@ import {
   getStoredUsers,
   loginWithMockCredentials,
   logoutMockUser,
+  previewMockStudentImport,
+  provisionMockStudentsForClass,
   ROLES,
   toggleMockAccountStatus,
   updateMockAccount,
@@ -157,4 +159,82 @@ test('assigns one teacher and selected students to a class', () => {
   assert.equal(result.status, 'success')
   assert.equal(users.find((user) => user.id === teacher.id).classIds.includes('12B1'), true)
   assert.equal(users.find((user) => user.id === student.id).classIds.includes('12B1'), true)
+})
+
+test('previews and provisions new student accounts as pending without a password', () => {
+  const storage = createMemoryStorage()
+  const rows = [{ studentNumber: '01', name: 'Le Cẩm Chi', email: 'chi@example.com' }]
+
+  const preview = previewMockStudentImport('10A1', rows, storage)
+  assert.equal(preview.status, 'success')
+  assert.deepEqual(preview.data.summary, {
+    total: 1,
+    newAccounts: 1,
+    existingAccounts: 0,
+    alreadyInClass: 0,
+    errors: 0,
+  })
+
+  const result = provisionMockStudentsForClass('10A1', rows, storage)
+  assert.equal(result.status, 'success')
+  assert.equal(result.addedCount, 1)
+
+  const student = getStoredUsers(storage).find((user) => user.email === 'chi@example.com')
+  assert.equal(student.role, ROLES.STUDENT)
+  assert.equal(student.status, 'pending')
+  assert.equal(student.password, '')
+  assert.deepEqual(student.classIds, ['10A1'])
+
+  const login = loginWithMockCredentials('chi@example.com', 'anything', storage)
+  assert.equal(login.status, 'error')
+  assert.match(login.message, /chưa được kích hoạt/i)
+})
+
+test('reuses matching student accounts, skips existing memberships, and blocks conflicts', () => {
+  const storage = createMemoryStorage()
+
+  const existing = createMockAccount({
+    name: 'Le Cẩm Chi',
+    email: 'chi@example.com',
+    password: 'secret1',
+    role: ROLES.STUDENT,
+  }, storage).data
+
+  const assigned = provisionMockStudentsForClass('10A1', [{
+    studentNumber: '03',
+    name: 'Lê Cẩm Chi',
+    email: 'CHI@example.com',
+  }], storage)
+  assert.equal(assigned.status, 'success')
+  assert.equal(assigned.assignedCount, 1)
+  assert.deepEqual(getStoredUsers(storage).find((user) => user.id === existing.id).classIds, ['10A1'])
+
+  const skipped = provisionMockStudentsForClass('10A1', [{
+    studentNumber: '03',
+    name: 'Lê Cẩm Chi',
+    email: 'chi@example.com',
+  }], storage)
+  assert.equal(skipped.status, 'success')
+  assert.equal(skipped.skippedCount, 1)
+
+  const conflict = provisionMockStudentsForClass('10A1', [{
+    studentNumber: '04',
+    name: 'Người khác',
+    email: 'chi@example.com',
+  }], storage)
+  assert.equal(conflict.status, 'error')
+  assert.match(conflict.errors[0].message, /không khớp/i)
+  assert.deepEqual(getStoredUsers(storage).find((user) => user.id === existing.id).classIds, ['10A1'])
+})
+
+test('rejects an email that belongs to a non-student account', () => {
+  const storage = createMemoryStorage()
+  const result = provisionMockStudentsForClass('10A1', [{
+    studentNumber: '01',
+    name: 'Admin',
+    email: 'admin@educraft.test',
+  }], storage)
+
+  assert.equal(result.status, 'error')
+  assert.match(result.errors[0].message, /Quản trị/i)
 })

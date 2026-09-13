@@ -219,6 +219,55 @@ function normalizeUsername(value) {
   return String(value ?? '').trim().toLowerCase()
 }
 
+function normalizePersonName(value) {
+  return String(value ?? '')
+    .trim()
+    .toLocaleLowerCase('vi-VN')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/\s+/g, ' ')
+}
+
+function normalizeImportRow(row = {}) {
+  return {
+    studentNumber: String(row.studentNumber ?? row.number ?? row.stt ?? '').trim(),
+    name: String(row.name ?? row.fullName ?? '').trim(),
+    email: normalizeEmail(row.email),
+  }
+}
+
+function createUniqueUsername(email, users) {
+  const base = normalizeUsername(email.split('@')[0]).replace(/[^a-z0-9_-]/gi, '-') || 'student'
+  const used = new Set(users.map((user) => normalizeUsername(user.username)))
+
+  if (!used.has(base)) {
+    return base
+  }
+
+  let suffix = 2
+  while (used.has(`${base}-${suffix}`)) {
+    suffix += 1
+  }
+
+  return `${base}-${suffix}`
+}
+
+function createUniqueStudentId(email, users, index) {
+  const emailSlug = email.split('@')[0].replace(/[^a-z0-9_-]/gi, '-').toLowerCase() || 'student'
+  const base = `student-${emailSlug}-${Date.now().toString(36)}-${index + 1}`
+  const used = new Set(users.map((user) => user.id))
+  let id = base
+  let suffix = 2
+
+  while (used.has(id)) {
+    id = `${base}-${suffix}`
+    suffix += 1
+  }
+
+  return id
+}
+
 function normalizeAccountForm(form = {}) {
   const email = normalizeEmail(form.email)
   const username = normalizeUsername(form.username ?? email?.split('@')[0])
@@ -281,7 +330,7 @@ export function getCurrentUser(storage = getBrowserStorage()) {
 
   const user = readUsers(storage).find((item) => item.id === session.userId)
 
-  if (!user || user.status === 'locked') {
+  if (!user || user.status !== 'active') {
     writeSession(null, storage)
     return null
   }
@@ -292,6 +341,13 @@ export function getCurrentUser(storage = getBrowserStorage()) {
 export function loginWithMockCredentials(identifier, password, storage = getBrowserStorage()) {
   const normalizedEmail = normalizeEmail(identifier)
   const user = readUsers(storage).find((item) => item.email === normalizedEmail)
+
+  if (user?.status === 'pending') {
+    return {
+      status: 'error',
+      message: 'Tài khoản chưa được kích hoạt.',
+    }
+  }
 
   if (!user || user.password !== password) {
     return {
@@ -328,7 +384,196 @@ export function getRoleHome(role) {
 }
 
 export function canAccessRole(user, allowedRoles = []) {
-  return Boolean(user && user.status !== 'locked' && allowedRoles.includes(user.role))
+  return Boolean(user && user.status === 'active' && allowedRoles.includes(user.role))
+}
+
+function buildStudentImportPlan(classId, rows = [], storage = getBrowserStorage()) {
+  const normalizedClassId = String(classId ?? '').trim().toUpperCase()
+  const users = readUsers(storage)
+  const errors = []
+  const warnings = []
+  const entries = []
+  const seenEmails = new Set()
+
+  if (!normalizedClassId) {
+    errors.push({ rowNumber: 1, message: 'Mã lớp là bắt buộc.' })
+  }
+
+  rows.forEach((row, index) => {
+    const normalized = normalizeImportRow(row)
+    const rowNumber = Number(row.rowNumber) || index + 2
+
+    if (!normalized.name && !normalized.email && !normalized.studentNumber) {
+      return
+    }
+
+    if (!normalized.name) {
+      errors.push({ rowNumber, message: 'Họ và tên là bắt buộc.' })
+    }
+
+    if (!normalized.studentNumber) {
+      errors.push({ rowNumber, message: 'STT là bắt buộc.' })
+    } else if (!/^\d+$/.test(normalized.studentNumber) || Number(normalized.studentNumber) < 1) {
+      errors.push({ rowNumber, message: 'STT phải là số nguyên dương.' })
+    }
+
+    if (!normalized.email) {
+      errors.push({ rowNumber, message: 'Email là bắt buộc.' })
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.email)) {
+      errors.push({ rowNumber, message: 'Email không hợp lệ.' })
+    } else if (seenEmails.has(normalized.email)) {
+      errors.push({ rowNumber, message: `Email ${normalized.email} bị trùng trong file.` })
+    }
+
+    if (!normalized.studentNumber || !/^\d+$/.test(normalized.studentNumber) || Number(normalized.studentNumber) < 1 || !normalized.name || !normalized.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.email) || seenEmails.has(normalized.email)) {
+      return
+    }
+
+    seenEmails.add(normalized.email)
+    const existingUser = users.find((user) => user.email === normalized.email)
+
+    if (!existingUser) {
+      entries.push({
+        kind: 'new',
+        name: normalized.name,
+        email: normalized.email,
+        studentNumber: normalized.studentNumber,
+        status: 'pending',
+        message: 'Tạo tài khoản học sinh mới (chờ kích hoạt).',
+      })
+      return
+    }
+
+    if (existingUser.role !== ROLES.STUDENT) {
+      errors.push({
+        rowNumber,
+        message: `Email ${normalized.email} đang thuộc tài khoản ${roleLabels[existingUser.role] ?? existingUser.role}.`,
+      })
+      return
+    }
+
+    if (normalizePersonName(existingUser.name) !== normalizePersonName(normalized.name)) {
+      errors.push({
+        rowNumber,
+        message: `Email ${normalized.email} đã tồn tại nhưng họ tên không khớp với tài khoản hiện tại.`,
+      })
+      return
+    }
+
+    const alreadyInClass = (existingUser.classIds ?? []).includes(normalizedClassId)
+    const warning = existingUser.status === 'locked'
+      ? 'Tài khoản đang bị khóa; thêm vào lớp nhưng vẫn giữ trạng thái khóa.'
+      : ''
+
+    entries.push({
+      kind: alreadyInClass ? 'skipped' : 'existing',
+      accountId: existingUser.id,
+      name: normalized.name,
+      email: normalized.email,
+      studentNumber: normalized.studentNumber,
+      status: existingUser.status,
+      message: alreadyInClass ? 'Học sinh đã có trong lớp, sẽ bỏ qua.' : 'Tài khoản hiện có sẽ được thêm vào lớp.',
+      warning,
+    })
+
+    if (warning) {
+      warnings.push({ rowNumber, message: warning })
+    }
+  })
+
+  const summary = {
+    total: entries.length,
+    newAccounts: entries.filter((entry) => entry.kind === 'new').length,
+    existingAccounts: entries.filter((entry) => entry.kind === 'existing').length,
+    alreadyInClass: entries.filter((entry) => entry.kind === 'skipped').length,
+    errors: errors.length,
+  }
+
+  return {
+    classId: normalizedClassId,
+    entries,
+    errors,
+    warnings,
+    summary,
+  }
+}
+
+export function previewMockStudentImport(classId, rows, storage = getBrowserStorage()) {
+  return {
+    status: 'success',
+    data: buildStudentImportPlan(classId, rows, storage),
+  }
+}
+
+export function provisionMockStudentsForClass(classId, rows, storage = getBrowserStorage()) {
+  const plan = buildStudentImportPlan(classId, rows, storage)
+
+  if (plan.errors.length > 0) {
+    return {
+      status: 'error',
+      errors: plan.errors,
+      warnings: plan.warnings,
+      data: plan,
+    }
+  }
+
+  const users = readUsers(storage)
+  const nextUsers = users.map((user) => ({
+    ...user,
+    classIds: [...(user.classIds ?? [])],
+  }))
+  const addedEntries = []
+  const assignedEntries = []
+
+  plan.entries.forEach((entry, index) => {
+    if (entry.kind === 'skipped') {
+      return
+    }
+
+    if (entry.kind === 'new') {
+      const user = {
+        id: createUniqueStudentId(entry.email, nextUsers, index),
+        username: createUniqueUsername(entry.email, nextUsers),
+        name: entry.name,
+        email: entry.email,
+        password: '',
+        role: ROLES.STUDENT,
+        status: 'pending',
+        classIds: [plan.classId],
+        importSource: 'excel',
+        importedStudentNumber: entry.studentNumber,
+      }
+      nextUsers.push(user)
+      entry.accountId = user.id
+      addedEntries.push(entry)
+      return
+    }
+
+    const user = nextUsers.find((item) => item.id === entry.accountId)
+    if (!user) {
+      return
+    }
+
+    user.classIds = [...new Set([...(user.classIds ?? []), plan.classId])]
+    user.importSource = user.importSource ?? 'excel'
+    user.importedStudentNumber = user.importedStudentNumber ?? entry.studentNumber
+    assignedEntries.push(entry)
+  })
+
+  writeUsers(nextUsers, storage)
+
+  return {
+    status: 'success',
+    data: {
+      ...plan,
+      addedEntries,
+      assignedEntries,
+    },
+    addedCount: addedEntries.length,
+    assignedCount: assignedEntries.length,
+    skippedCount: plan.summary.alreadyInClass,
+    warnings: plan.warnings,
+  }
 }
 
 export function createMockAccount(form, storage = getBrowserStorage()) {

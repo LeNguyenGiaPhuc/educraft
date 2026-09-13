@@ -49,3 +49,38 @@ test('reads a valid xlsx file and rejects unsupported extensions', async () => {
     /chỉ hỗ trợ file Excel định dạng .xlsx/i,
   )
 })
+
+test('requires STT, name, and email for the class roster format', async () => {
+  const importApi = await import('./studentImport.js')
+
+  const result = importApi.parseStudentRows([
+    ['STT', 'Họ tên', 'Email'],
+    [1, 'Nguyễn An Bình', ' Binh@Example.com '],
+    [2, 'Trần Hoàng Bảo', ''],
+  ])
+
+  assert.deepEqual(result.rows, [
+    { studentNumber: '1', name: 'Nguyễn An Bình', email: 'binh@example.com' },
+  ])
+  assert.deepEqual(result.errors, [
+    { rowNumber: 3, message: 'Email là bắt buộc.' },
+  ])
+})
+
+test('rejects duplicate roster emails and STT values', async () => {
+  const importApi = await import('./studentImport.js')
+
+  const result = importApi.parseStudentRows([
+    ['STT', 'Họ và tên', 'Email'],
+    ['01', 'Nguyễn An Bình', 'binh@example.com'],
+    ['1', 'Trần Hoàng Bảo', 'binh@example.com'],
+  ])
+
+  assert.deepEqual(result.rows, [
+    { studentNumber: '01', name: 'Nguyễn An Bình', email: 'binh@example.com' },
+  ])
+  assert.deepEqual(result.errors, [
+    { rowNumber: 3, message: 'STT 1 bị trùng trong file.' },
+    { rowNumber: 3, message: 'Email binh@example.com bị trùng trong file.' },
+  ])
+})
