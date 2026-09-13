@@ -5,6 +5,21 @@ import {
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 const ACCEPTED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png']
+export const FINAL_REVIEW_STATUSES = Object.freeze([
+  'completed',
+  'needs_completion',
+  'requires_teacher_review',
+])
+
+const FINAL_REVIEW_STATUS_LABELS = Object.freeze({
+  completed: 'Completed',
+  needs_completion: 'Needs Completion',
+  requires_teacher_review: 'Requires Teacher Review',
+})
+
+export function getFinalReviewStatusLabel(status) {
+  return FINAL_REVIEW_STATUS_LABELS[status] ?? FINAL_REVIEW_STATUS_LABELS.requires_teacher_review
+}
 
 export function validateSubmissionForm(form = {}) {
   const errors = {}
@@ -51,7 +66,7 @@ export function submitNote(form, outcome = 'success', delay = 0, storage) {
 
 export function getMockAiEvaluation() {
   return {
-    suggestedScore: 86,
+    suggestedStatus: 'needs_completion',
     confidence: 0.91,
     strengths: ['Đủ các ý chính', 'Bố cục rõ ràng'],
     weaknesses: ['Phần kết luận còn ngắn'],
@@ -61,13 +76,13 @@ export function getMockAiEvaluation() {
 
 export function validateReviewForm(form = {}) {
   const errors = {}
-  const score = String(form.score ?? '').trim()
+  const finalStatus = String(form.finalStatus ?? '').trim()
   const feedback = String(form.feedback ?? '').trim()
 
-  if (!score) {
-    errors.score = 'Nhập điểm chốt của giáo viên.'
-  } else if (!Number.isFinite(Number(score)) || Number(score) < 0 || Number(score) > 100) {
-    errors.score = 'Điểm chốt phải từ 0 đến 100.'
+  if (!finalStatus) {
+    errors.finalStatus = 'Chọn kết quả cuối cùng.'
+  } else if (!FINAL_REVIEW_STATUSES.includes(finalStatus)) {
+    errors.finalStatus = 'Kết quả cuối cùng không hợp lệ.'
   }
 
   if (!feedback) {

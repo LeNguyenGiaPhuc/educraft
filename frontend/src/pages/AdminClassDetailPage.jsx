@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ADMIN_STATE, addStudentsToAdminClass, deleteAdminClass, getAdminWorkspace } from '../data/mockAdminStore.js'
 import { ROLES } from '../data/mockAuthStore.js'
 
-function StudentAddModal({ classId, students, onCancel, onAdd }) {
+function StudentAddModal({ students, onCancel, onAdd }) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState([])
 
@@ -179,7 +179,7 @@ function AdminClassDetailPage() {
       </section>
 
       {showStudentModal && (
-        <StudentAddModal classId={classId} students={availableStudents} onCancel={() => setShowStudentModal(false)} onAdd={addStudents} />
+        <StudentAddModal students={availableStudents} onCancel={() => setShowStudentModal(false)} onAdd={addStudents} />
       )}
     </section>
   )

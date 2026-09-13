@@ -94,16 +94,24 @@ test('returns a visible error for a failed note submission', async () => {
   })
 })
 
-test('requires a score and feedback before a teacher can approve a submission', () => {
+test('requires an allowed final status and feedback before a teacher can finalize a submission', () => {
   assert.equal(typeof submissionApi.validateReviewForm, 'function')
 
   assert.deepEqual(submissionApi.validateReviewForm({}), {
-    score: 'Nhập điểm chốt của giáo viên.',
+    finalStatus: 'Chọn kết quả cuối cùng.',
     feedback: 'Nhập nhận xét cho học sinh.',
   })
+
+  assert.equal(
+    submissionApi.validateReviewForm({
+      finalStatus: 'automatic_pass',
+      feedback: 'Không được dùng trạng thái ngoài quy trình.',
+    }).finalStatus,
+    'Kết quả cuối cùng không hợp lệ.',
+  )
 })
 
-test('stores the teacher-approved score and feedback', async () => {
+test('stores the teacher-finalized status and feedback without a numeric score', async () => {
   const storage = createMemoryStorage()
   const submission = await submitNote(
     {
@@ -122,7 +130,7 @@ test('stores the teacher-approved score and feedback', async () => {
   const result = await submissionApi.reviewSubmission(
     {
       submissionId: submission.data.id,
-      score: '88',
+      finalStatus: 'needs_completion',
       feedback: 'Bài ghi đầy đủ, cần bổ sung phần kết luận.',
     },
     'success',
@@ -133,7 +141,8 @@ test('stores the teacher-approved score and feedback', async () => {
 
   assert.equal(result.status, 'success')
   assert.equal(saved.status, 'approved')
-  assert.equal(saved.score, 88)
+  assert.equal(saved.finalStatus, 'needs_completion')
+  assert.equal(Object.hasOwn(saved, 'score'), false)
   assert.equal(saved.feedback, 'Bài ghi đầy đủ, cần bổ sung phần kết luận.')
 })
 
@@ -142,7 +151,7 @@ test('can persist a teacher review for a mock submission fixture', async () => {
   const result = await submissionApi.reviewSubmission(
     {
       submissionId: 'mock-submission-nam-xuong-001',
-      score: '90',
+      finalStatus: 'completed',
       feedback: 'Đã kiểm tra và chốt kết quả.',
       submission: {
         id: 'mock-submission-nam-xuong-001',
@@ -160,5 +169,5 @@ test('can persist a teacher review for a mock submission fixture', async () => {
   )
 
   assert.equal(result.status, 'success')
-  assert.equal(getStoredSubmissions('nam-xuong', storage)[0].score, 90)
+  assert.equal(getStoredSubmissions('nam-xuong', storage)[0].finalStatus, 'completed')
 })

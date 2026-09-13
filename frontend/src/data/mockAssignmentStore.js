@@ -1,3 +1,5 @@
+import { toCanonicalDeadline } from './assignmentDeadline.js'
+
 const ASSIGNMENTS_STORAGE_KEY = 'educraft.assignments'
 
 function getBrowserStorage() {
@@ -47,7 +49,19 @@ function formatDueDate(dueAt) {
 }
 
 export function getStoredAssignments(classId, storage = getBrowserStorage()) {
-  return readAssignments(storage).filter((assignment) => assignment.classId === classId)
+  return readAssignments(storage)
+    .filter((assignment) => assignment.classId === classId)
+    .map((assignment) => {
+      if (Object.hasOwn(assignment, 'dueAt')) return assignment
+
+      // Compatibility for records saved before dueAt existed; reads do not rewrite storage.
+      const parts = /^(\d{2})\/(\d{2})\/(\d{4}), (\d{2}:\d{2})$/.exec(assignment.dueDate)
+      const dueAt = parts
+        ? toCanonicalDeadline(`${parts[3]}-${parts[2]}-${parts[1]}T${parts[4]}`)
+        : null
+
+      return { ...assignment, dueAt }
+    })
 }
 
 export function deleteStoredAssignmentsForClass(classId, storage = getBrowserStorage()) {
@@ -71,6 +85,7 @@ export function createStoredAssignment(form, storage = getBrowserStorage()) {
     classId: form.classId,
     title: String(form.title ?? '').trim(),
     dueDate: formatDueDate(form.dueAt),
+    dueAt: toCanonicalDeadline(form.dueAt),
     threshold: `${Number(form.threshold)}%`,
     submission: '0 học sinh đã nộp',
     status: 'Đang mở',

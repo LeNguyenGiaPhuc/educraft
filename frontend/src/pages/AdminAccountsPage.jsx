@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import {
   ADMIN_STATE,
@@ -160,9 +160,7 @@ function AdminAccountsPage() {
   const classes = snapshot.status === 'success' ? snapshot.data.classes ?? [] : []
   const accounts = snapshot.status === 'success' ? snapshot.data.users ?? [] : []
 
-  const filteredAccounts = useMemo(() => {
-    return filterAdminAccounts(accounts, { query, role, classId })
-  }, [accounts, query, role, classId])
+  const filteredAccounts = filterAdminAccounts(accounts, { query, role, classId })
 
   function openCreate() {
     setEditingAccount(null)

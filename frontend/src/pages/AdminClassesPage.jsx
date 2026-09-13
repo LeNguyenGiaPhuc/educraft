@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import {
@@ -93,9 +93,7 @@ function AdminClassesPage() {
   const classes = snapshot.data?.classes ?? []
   const teachers = getTeachers(snapshot.data?.users ?? [])
 
-  const filteredClasses = useMemo(() => {
-    return filterAdminClasses(classes, { query, teacher })
-  }, [classes, query, teacher])
+  const filteredClasses = filterAdminClasses(classes, { query, teacher })
 
   function onCreate(savedClass) {
     setShowClassForm(false)
