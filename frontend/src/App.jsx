@@ -1,64 +1,109 @@
-import { useState } from 'react'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
+import AdminShell from './components/AdminShell.jsx'
 import AppShell from './components/AppShell.jsx'
-import MockRoleSwitcher from './components/MockRoleSwitcher.jsx'
-import RequireRole from './components/RequireRole.jsx'
 import RequireStudentAssignment from './components/RequireStudentAssignment.jsx'
-import StudentShell from './components/StudentShell.jsx'
-import ClassDetailPage from './pages/ClassDetailPage.jsx'
+import RoleRoute from './components/RoleRoute.jsx'
+import { AuthProvider } from './contexts/AuthProvider.jsx'
+import { useAuth } from './contexts/useAuth.js'
+import { getRoleHome, ROLES } from './data/mockAuthStore.js'
+import AdminAccountsPage from './pages/AdminAccountsPage.jsx'
+import AdminClassDetailPage from './pages/AdminClassDetailPage.jsx'
+import AdminClassesPage from './pages/AdminClassesPage.jsx'
+import AdminDashboardPage from './pages/AdminDashboardPage.jsx'
 import AssignmentDetailPage from './pages/AssignmentDetailPage.jsx'
+import ClassDetailPage from './pages/ClassDetailPage.jsx'
 import CreateAssignmentPage from './pages/CreateAssignmentPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
+import LoginPage from './pages/LoginPage.jsx'
 import StudentDashboardPage from './pages/StudentDashboardPage.jsx'
 import StudentSubmissionPage from './pages/StudentSubmissionPage.jsx'
-import { getMockUser, readDemoRole, writeDemoRole } from './data/mockSession.js'
 import './App.css'
 
-function App() {
-  const [demoRole, setDemoRole] = useState(readDemoRole)
-  const currentUser = getMockUser(demoRole)
+function HomeRedirect() {
+  const { user } = useAuth()
 
-  function handleRoleChange(nextRole) {
-    writeDemoRole(nextRole)
-    setDemoRole(nextRole)
-  }
+  return <Navigate replace to={user ? getRoleHome(user.role) : '/login'} />
+}
+
+function AppRoutes() {
+  const { user } = useAuth()
+
+  // Chuyển cấu trúc user của Auth sang cấu trúc Student portal đang sử dụng.
+  const currentStudent = user?.role === ROLES.STUDENT
+    ? {
+        id: user.id,
+        name: user.name,
+        role: 'student',
+        studentId: user.studentCode,
+      }
+    : null
 
   return (
-    <BrowserRouter>
-      <MockRoleSwitcher role={demoRole} onRoleChange={handleRoleChange} />
-      <Routes>
-        <Route element={<RequireRole currentUser={currentUser} requiredRole="teacher" />}>
-          <Route element={<AppShell />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="/assignments/new" element={<CreateAssignmentPage />} />
+    <Routes>
+      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/login" element={<LoginPage />} />
+
+      <Route element={<RoleRoute allowedRoles={[ROLES.ADMIN]} />}>
+        <Route element={<AdminShell />}>
+          <Route path="/admin" element={<AdminDashboardPage />} />
+          <Route path="/admin/accounts" element={<AdminAccountsPage />} />
+          <Route path="/admin/classes" element={<AdminClassesPage />} />
+          <Route
+            path="/admin/classes/:classId"
+            element={<AdminClassDetailPage />}
+          />
+        </Route>
+      </Route>
+
+      <Route element={<RoleRoute allowedRoles={[ROLES.TEACHER]} />}>
+        <Route element={<AppShell />}>
+          <Route path="/teacher" element={<DashboardPage />} />
+          <Route path="/assignments/new" element={<CreateAssignmentPage />} />
+          <Route path="/classes/:classId" element={<ClassDetailPage />} />
+          <Route
+            path="/classes/:classId/assignments/new"
+            element={<CreateAssignmentPage />}
+          />
+          <Route
+            path="/classes/:classId/assignments/:assignmentId"
+            element={<AssignmentDetailPage />}
+          />
+        </Route>
+      </Route>
+
+      <Route element={<RoleRoute allowedRoles={[ROLES.STUDENT]} />}>
+        <Route element={<AppShell />}>
+          <Route
+            path="/student"
+            element={<StudentDashboardPage currentUser={currentStudent} />}
+          />
+          <Route
+            path="/student/assignments/:assignmentId"
+            element={
+              <RequireStudentAssignment currentUser={currentStudent} />
+            }
+          >
             <Route
-              path="/classes/:classId"
-              element={<ClassDetailPage />}
-            />
-            <Route
-              path="/classes/:classId/assignments/new"
-              element={<CreateAssignmentPage />}
-            />
-            <Route
-              path="/classes/:classId/assignments/:assignmentId"
-              element={<AssignmentDetailPage />}
+              index
+              element={
+                <StudentSubmissionPage currentUser={currentStudent} />
+              }
             />
           </Route>
         </Route>
-        <Route element={<RequireRole currentUser={currentUser} requiredRole="student" />}>
-          <Route path="/student" element={<StudentShell currentUser={currentUser} />}>
-            <Route index element={<StudentDashboardPage currentUser={currentUser} />} />
-            <Route
-              path="assignments/:assignmentId"
-              element={<RequireStudentAssignment currentUser={currentUser} />}
-            >
-              <Route index element={<StudentSubmissionPage currentUser={currentUser} />} />
-            </Route>
-          </Route>
-        </Route>
-      </Routes>
-    </BrowserRouter>
+      </Route>
+    </Routes>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
 
