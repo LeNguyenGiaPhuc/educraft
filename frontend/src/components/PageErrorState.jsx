@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-function PageErrorState({ kicker, title, message }) {
+function PageErrorState({ kicker, title, message, returnTo = '/' }) {
   return (
     <main className="page-content">
       <div className="page-container">
@@ -8,7 +8,7 @@ function PageErrorState({ kicker, title, message }) {
           <p className="state-kicker">{kicker}</p>
           <h1>{title}</h1>
           <p>{message}</p>
-          <Link className="button button-primary" to="/">
+          <Link className="button button-primary" to={returnTo}>
             Về tổng quan
           </Link>
         </section>

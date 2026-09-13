@@ -852,6 +852,53 @@
   min-width: 620px;
 }
 
+.student-submission-history {
+  max-width: 860px;
+  margin: 32px auto 0;
+}
+
+.student-submission-table {
+  min-width: 620px;
+}
+
+.student-submission-result-row td {
+  padding: 0;
+  white-space: normal;
+}
+
+.student-submission-result {
+  padding: 18px 20px;
+  border-left: 3px solid var(--accent);
+  background: #f3fbf8;
+}
+
+.student-submission-result > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.student-submission-result span,
+.student-submission-result p {
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.student-submission-result > div strong {
+  color: var(--accent);
+  font-size: 20px;
+}
+
+.student-submission-result p {
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
+
+.student-submission-result p strong {
+  color: var(--ink);
+}
+
 .assignment-page .page-container {
   padding-top: 32px;
 }
