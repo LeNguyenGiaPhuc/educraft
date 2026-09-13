@@ -52,7 +52,7 @@ function App() {
               path="assignments/:assignmentId"
               element={<RequireStudentAssignment currentUser={currentUser} />}
             >
-              <Route index element={<StudentSubmissionPage />} />
+              <Route index element={<StudentSubmissionPage currentUser={currentUser} />} />
             </Route>
           </Route>
         </Route>

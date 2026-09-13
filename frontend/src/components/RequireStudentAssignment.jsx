@@ -13,6 +13,7 @@ function RequireStudentAssignment({ currentUser }) {
         kicker="Bài kiểm tra"
         title="Không thể mở bài kiểm tra"
         message={snapshot.message}
+        returnTo="/student"
       />
     )
   }

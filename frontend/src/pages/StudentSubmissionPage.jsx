@@ -1,14 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import PageErrorState from '../components/PageErrorState.jsx'
-import {
-  getAssignmentSnapshot,
-} from '../data/mockClassDetail.js'
-import {
-  submitNote,
-  validateSubmissionForm,
-} from '../data/mockSubmission.js'
+import { formatAssignmentDeadline, getAssignmentAvailability } from '../data/assignmentDeadline.js'
+import { getStudentAssignmentSnapshot } from '../data/mockStudentAccess.js'
+import { submitStudentNote } from '../data/mockStudentSubmission.js'
+import { validateSubmissionForm } from '../data/mockSubmission.js'
 
 function requestedSubmissionState() {
   if (typeof window === 'undefined') {
@@ -38,11 +35,12 @@ function SubmissionError({ message }) {
       kicker="Nộp bài ghi"
       message={message}
       title="Không thể mở bài kiểm tra"
+      returnTo="/student"
     />
   )
 }
 
-function SubmissionSuccess({ assignment, submission, onSubmitAnother }) {
+function SubmissionSuccess({ assignment, submission }) {
   return (
     <section className="assignment-success" role="status" aria-live="polite">
       <p className="state-kicker">Đã nhận bài nộp</p>
@@ -54,19 +52,16 @@ function SubmissionSuccess({ assignment, submission, onSubmitAnother }) {
       <div className="assignment-success-actions">
         <Link
           className="button button-primary"
-          to={`/classes/${assignment.classroom.id}`}
+          to="/student"
         >
-          Về lớp học
+          Về tổng quan học sinh
         </Link>
-        <button className="button button-outline" type="button" onClick={onSubmitAnother}>
-          Nộp bài khác
-        </button>
       </div>
     </section>
   )
 }
 
-function StudentSubmissionForm({ assignment, form, errors, submission, onFileChange, onSubmit }) {
+function StudentSubmissionForm({ assignment, availability, form, errors, submission, onFileChange, onSubmit }) {
   const isSubmitting = submission.status === 'loading'
   const hasValidationErrors = Object.keys(errors).length > 0
 
@@ -74,12 +69,24 @@ function StudentSubmissionForm({ assignment, form, errors, submission, onFileCha
     <section className="assignment-form-card" aria-labelledby="submission-form-title">
       <div className="assignment-form-heading">
         <p className="state-kicker">Góc nhìn học sinh · {assignment.classroom.name}</p>
-        <h1 id="submission-form-title">Nộp bài ghi</h1>
-        <p>
-          {assignment.title} · Hạn nộp {assignment.dueDate}
-        </p>
+        <h1 id="submission-form-title">{assignment.title}</h1>
+        <p>Hạn nộp: {formatAssignmentDeadline(assignment)}</p>
+        <span className={`table-status table-status-${availability.isOpen ? 'active' : 'closed'}`}>
+          <span aria-hidden="true" />
+          {availability.isOpen ? 'Đang mở' : 'Đã đóng'}
+        </span>
       </div>
 
+      {!availability.isOpen ? (
+        <>
+          <p className="form-submit-message" role="status">{availability.message}</p>
+          <div className="assignment-form-actions">
+            <Link className="button button-primary" to="/student">
+              Về tổng quan học sinh
+            </Link>
+          </div>
+        </>
+      ) : (
       <form noValidate onSubmit={onSubmit}>
         {hasValidationErrors && (
           <div className="form-error-summary" role="alert">
@@ -104,6 +111,7 @@ function StudentSubmissionForm({ assignment, form, errors, submission, onFileCha
               aria-describedby={errors.file ? 'note-file-help note-file-error' : 'note-file-help'}
               aria-invalid={Boolean(errors.file)}
               id="note-file"
+              disabled={isSubmitting}
               name="file"
               onChange={onFileChange}
               type="file"
@@ -119,7 +127,7 @@ function StudentSubmissionForm({ assignment, form, errors, submission, onFileCha
         </div>
 
         <div className="assignment-form-actions">
-          <Link className="button button-outline" to={`/classes/${assignment.classroom.id}`}>
+          <Link className="button button-outline" to="/student">
             Hủy
           </Link>
           <button
@@ -132,19 +140,27 @@ function StudentSubmissionForm({ assignment, form, errors, submission, onFileCha
           </button>
         </div>
       </form>
+      )}
     </section>
   )
 }
 
-function StudentSubmissionWorkspace({ assignment }) {
+function StudentSubmissionWorkspace({ assignment, currentUser }) {
   const [form, setForm] = useState({
     assignmentId: assignment.id,
-    studentId: 'HS260101',
     fileName: '',
     fileSizeBytes: 0,
   })
   const [errors, setErrors] = useState({})
   const [submission, setSubmission] = useState({ status: 'idle' })
+  const [now, setNow] = useState(Date.now)
+  const pending = useRef(false)
+  const availability = getAssignmentAvailability(assignment, now)
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   function handleFileChange(event) {
     const file = event.target.files?.[0]
@@ -160,6 +176,14 @@ function StudentSubmissionWorkspace({ assignment }) {
 
   async function handleSubmit(event) {
     event.preventDefault()
+    if (pending.current) return
+
+    const currentAvailability = getAssignmentAvailability(assignment)
+    setNow(Date.now())
+    if (!currentAvailability.isOpen) {
+      setSubmission({ status: 'error', message: currentAvailability.message })
+      return
+    }
 
     const nextErrors = validateSubmissionForm(form)
     setErrors(nextErrors)
@@ -169,64 +193,50 @@ function StudentSubmissionWorkspace({ assignment }) {
       return
     }
 
+    pending.current = true
     setSubmission({ status: 'loading' })
 
     try {
-      const result = await submitNote(form, requestedSubmissionState(), 650)
+      const result = await submitStudentNote(currentUser, form, requestedSubmissionState(), 650)
       setSubmission(result)
     } catch {
       setSubmission({
         status: 'error',
         message: 'Không thể nộp bài lúc này. Vui lòng thử lại.',
       })
+    } finally {
+      pending.current = false
+      setNow(Date.now())
     }
   }
 
-  function handleSubmitAnother() {
-    setForm((current) => ({
-      ...current,
-      fileName: '',
-      fileSizeBytes: 0,
-    }))
-    setErrors({})
-    setSubmission({ status: 'idle' })
-  }
-
-  return submission.status === 'success' ? (
+  return (
     <>
       <nav className="breadcrumb" aria-label="Đường dẫn trang">
-        <Link to={`/classes/${assignment.classroom.id}`}>{assignment.classroom.name}</Link>
+        <Link to="/student">Tổng quan học sinh</Link>
         <span aria-hidden="true">/</span>
         <span>Nộp bài ghi</span>
       </nav>
-      <SubmissionSuccess
-        assignment={assignment}
-        onSubmitAnother={handleSubmitAnother}
-        submission={submission}
-      />
-    </>
-  ) : (
-    <>
-      <nav className="breadcrumb" aria-label="Đường dẫn trang">
-        <Link to={`/classes/${assignment.classroom.id}`}>{assignment.classroom.name}</Link>
-        <span aria-hidden="true">/</span>
-        <span>Nộp bài ghi</span>
-      </nav>
-      <StudentSubmissionForm
-        assignment={assignment}
-        errors={errors}
-        form={form}
-        onFileChange={handleFileChange}
-        onSubmit={handleSubmit}
-        submission={submission}
-      />
+      {submission.status === 'success' ? (
+        <SubmissionSuccess assignment={assignment} submission={submission} />
+      ) : (
+        <StudentSubmissionForm
+          assignment={assignment}
+          availability={availability}
+          errors={errors}
+          form={form}
+          onFileChange={handleFileChange}
+          onSubmit={handleSubmit}
+          submission={submission}
+        />
+      )}
     </>
   )
 }
 
-function StudentSubmissionPage() {
-  const { assignmentId = 'nam-xuong' } = useParams()
-  const snapshot = getAssignmentSnapshot(assignmentId)
+function StudentSubmissionPage({ currentUser }) {
+  const { assignmentId } = useParams()
+  const snapshot = getStudentAssignmentSnapshot(currentUser, assignmentId)
 
   if (snapshot.status === 'error') {
     return <SubmissionError message={snapshot.message} />
@@ -235,7 +245,11 @@ function StudentSubmissionPage() {
   return (
     <main className="page-content assignment-page">
       <div className="page-container">
-        <StudentSubmissionWorkspace assignment={snapshot.data} />
+        <StudentSubmissionWorkspace
+          key={`${currentUser.id}:${assignmentId}`}
+          assignment={snapshot.data}
+          currentUser={currentUser}
+        />
       </div>
     </main>
   )
