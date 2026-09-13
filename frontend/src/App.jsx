@@ -47,7 +47,7 @@ function App() {
         </Route>
         <Route element={<RequireRole currentUser={currentUser} requiredRole="student" />}>
           <Route path="/student" element={<StudentShell currentUser={currentUser} />}>
-            <Route index element={<StudentDashboardPage />} />
+            <Route index element={<StudentDashboardPage currentUser={currentUser} />} />
             <Route
               path="assignments/:assignmentId"
               element={<RequireStudentAssignment currentUser={currentUser} />}
