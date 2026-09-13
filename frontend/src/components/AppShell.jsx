@@ -29,37 +29,37 @@ function AppShell() {
             <span>EduCraft</span>
           </Link>
 
-          <nav className="primary-nav" aria-label="Dieu huong chinh">
+          <nav className="primary-nav" aria-label="Điều hướng chính">
             {user?.role === ROLES.ADMIN && (
               <NavLink className={navigationClassName} end to="/admin">
-                Admin
+                Quản trị
               </NavLink>
             )}
 
             {user?.role === ROLES.TEACHER && (
               <>
                 <NavLink className={navigationClassName} end to="/teacher">
-                  Tong quan
+                  Tổng quan
                 </NavLink>
                 <NavLink className={navigationClassName} to="/assignments/new">
-                  Tao bai kiem tra
+                  Tạo bài kiểm tra
                 </NavLink>
               </>
             )}
 
             {user?.role === ROLES.STUDENT && (
               <NavLink className={navigationClassName} end to="/student">
-                Hoc sinh
+                Học sinh
               </NavLink>
             )}
           </nav>
 
           <div className="profile-area">
-            <div className="profile-monogram" aria-label={user?.name ?? 'Nguoi dung'}>
+            <div className="profile-monogram" aria-label={user?.name ?? 'Người dùng'}>
               {initials}
             </div>
             <button className="logout-button" onClick={logout} type="button">
-              Dang xuat
+              Đăng xuất
             </button>
           </div>
         </div>

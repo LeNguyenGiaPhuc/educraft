@@ -3,9 +3,9 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth.js'
 
 const adminNavigation = [
-  { label: 'Tong quan', to: '/admin', end: true },
-  { label: 'Quan ly tai khoan', to: '/admin/accounts' },
-  { label: 'Quan ly lop hoc', to: '/admin/classes' },
+  { label: 'Tổng quan', to: '/admin', end: true },
+  { label: 'Quản lý tài khoản', to: '/admin/accounts' },
+  { label: 'Quản lý lớp học', to: '/admin/classes' },
 ]
 
 function adminNavClassName({ isActive }) {
@@ -24,13 +24,13 @@ function AdminShell() {
 
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar" aria-label="Dieu huong Admin">
+      <aside className="admin-sidebar" aria-label="Điều hướng quản trị">
         <div>
           <div className="admin-sidebar-brand">
             <span className="brand-mark" aria-hidden="true">E</span>
             <div>
               <strong>EduCraft</strong>
-              <span>Admin</span>
+              <span className="admin-role-label">Quản trị</span>
             </div>
           </div>
 
@@ -52,12 +52,12 @@ function AdminShell() {
           <div className="admin-user-pill">
             <span>{initials}</span>
             <div>
-              <strong>{user?.name ?? 'Admin'}</strong>
+              <strong>{user?.name ?? 'Quản trị viên'}</strong>
               <small>{user?.username ?? 'admin'}</small>
             </div>
           </div>
           <button className="logout-button" onClick={logout} type="button">
-            Dang xuat
+            Đăng xuất
           </button>
         </div>
       </aside>

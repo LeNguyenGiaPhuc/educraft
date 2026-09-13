@@ -9,7 +9,7 @@ import {
   toggleAdminAccountStatus,
   updateAdminAccount,
 } from '../data/mockAdminStore.js'
-import { getCurrentUser, ROLES } from '../data/mockAuthStore.js'
+import { getCurrentUser, roleLabels, ROLES } from '../data/mockAuthStore.js'
 
 function AccountForm({ initialForm, classes, onCancel, onSaved }) {
   const [form, setForm] = useState(initialForm)
@@ -58,13 +58,13 @@ function AccountForm({ initialForm, classes, onCancel, onSaved }) {
 
   return (
     <div className="admin-modal-backdrop">
-      <div className="admin-modal">
+      <div aria-labelledby="account-modal-title" aria-modal="true" className="admin-modal" role="dialog">
         <div className="admin-modal-header">
           <div>
             <span className="panel-subtitle">Tài khoản</span>
-            <h2>{initialForm?.id ? 'Chỉnh sửa tài khoản' : 'Tạo tài khoản'}</h2>
+            <h2 id="account-modal-title">{initialForm?.id ? 'Chỉnh sửa tài khoản' : 'Tạo tài khoản'}</h2>
           </div>
-          <button className="icon-button" type="button" onClick={onCancel}>×</button>
+          <button aria-label="Đóng cửa sổ" className="icon-button" title="Đóng" type="button" onClick={onCancel}>×</button>
         </div>
 
         <form className="admin-form" onSubmit={handleSubmit} noValidate>
@@ -84,10 +84,10 @@ function AccountForm({ initialForm, classes, onCancel, onSaved }) {
                   onChange={(event) => updateField('password', event.target.value)}
                 />
                 <button
-                  aria-label={showPassword ? 'An mat khau' : 'Hien mat khau'}
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                   className="password-toggle-button"
                   onClick={() => setShowPassword((value) => !value)}
-                  title={showPassword ? 'An mat khau' : 'Hien mat khau'}
+                  title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                   type="button"
                 >
                   <svg aria-hidden="true" className="password-toggle-icon" viewBox="0 0 24 24">
@@ -115,9 +115,9 @@ function AccountForm({ initialForm, classes, onCancel, onSaved }) {
             <label className="field-label">
               <span>Vai trò</span>
               <select value={form.role} onChange={(event) => updateField('role', event.target.value)}>
-                <option value={ROLES.ADMIN}>Admin</option>
-                <option value={ROLES.TEACHER}>Teacher</option>
-                <option value={ROLES.STUDENT}>Student</option>
+                <option value={ROLES.ADMIN}>{roleLabels[ROLES.ADMIN]}</option>
+                <option value={ROLES.TEACHER}>{roleLabels[ROLES.TEACHER]}</option>
+                <option value={ROLES.STUDENT}>{roleLabels[ROLES.STUDENT]}</option>
               </select>
             </label>
 
@@ -230,9 +230,9 @@ function AdminAccountsPage() {
             <span>Vai trò</span>
             <select value={role} onChange={(event) => setRole(event.target.value)}>
               <option value="all">Tất cả</option>
-              <option value={ROLES.ADMIN}>Admin</option>
-              <option value={ROLES.TEACHER}>Teacher</option>
-              <option value={ROLES.STUDENT}>Student</option>
+              <option value={ROLES.ADMIN}>{roleLabels[ROLES.ADMIN]}</option>
+              <option value={ROLES.TEACHER}>{roleLabels[ROLES.TEACHER]}</option>
+              <option value={ROLES.STUDENT}>{roleLabels[ROLES.STUDENT]}</option>
             </select>
           </label>
 
@@ -265,7 +265,7 @@ function AdminAccountsPage() {
               <tr key={account.id}>
                 <td><strong>{account.username}</strong></td>
                 <td>{account.name}</td>
-                <td><span className="role-badge">{account.role}</span></td>
+                <td><span className="role-badge">{roleLabels[account.role] ?? account.role}</span></td>
                 <td>{getAccountClassLabel(account, classes)}</td>
                 <td><span className={`status-badge status-${account.status}`}>{account.status === 'locked' ? 'Khóa' : 'Hoạt động'}</span></td>
                 <td>

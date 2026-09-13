@@ -1,7 +1,5 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import ClassManagementPanel from '../components/ClassManagementPanel.jsx'
 import { getDashboardSnapshot } from '../data/mockDashboard.js'
 
 function requestedDashboardState() {
@@ -12,17 +10,14 @@ function requestedDashboardState() {
   return new URLSearchParams(window.location.search).get('state') ?? 'success'
 }
 
-function DashboardHeading({ manageOpen, onManage }) {
+function DashboardHeading() {
   return (
     <div className="dashboard-heading">
       <div>
         <h1>Chào buổi tối, thầy Phúc</h1>
-        <p>Quản lý các lớp và bài kiểm tra bài ghi tại một nơi.</p>
+        <p>Theo dõi các lớp được phân công và quản lý bài kiểm tra bài ghi tại một nơi.</p>
       </div>
       <div className="dashboard-actions">
-        <button className="button button-outline" type="button" onClick={onManage}>
-          {manageOpen ? 'Đóng quản lý' : 'Quản lý lớp'}
-        </button>
         <Link className="button button-primary" to="/assignments/new">
           Tạo bài kiểm tra
         </Link>
@@ -36,7 +31,7 @@ function DashboardState({ snapshot }) {
     return (
       <section className="class-section" aria-live="polite" aria-busy="true">
         <div className="section-heading">
-          <h2>Danh sách lớp giảng dạy</h2>
+          <h2>Lớp học được phân công</h2>
           <span>Đang tải dữ liệu...</span>
         </div>
         <div className="class-grid class-grid-loading">
@@ -80,7 +75,7 @@ function DashboardState({ snapshot }) {
   return (
     <section className="class-section">
       <div className="section-heading">
-        <h2>Danh sách lớp giảng dạy</h2>
+        <h2>Lớp học được phân công</h2>
         <span>Học kỳ 1 · 2026–2027</span>
       </div>
 
@@ -116,23 +111,12 @@ function DashboardState({ snapshot }) {
 }
 
 function DashboardPage() {
-  const [snapshot, setSnapshot] = useState(() => getDashboardSnapshot(requestedDashboardState()))
-  const [manageOpen, setManageOpen] = useState(false)
-
-  function refreshSnapshot() {
-    setSnapshot(getDashboardSnapshot(requestedDashboardState()))
-  }
+  const snapshot = getDashboardSnapshot(requestedDashboardState())
 
   return (
     <main className="page-content">
       <div className="page-container">
-        <DashboardHeading
-          manageOpen={manageOpen}
-          onManage={() => setManageOpen((current) => !current)}
-        />
-        {manageOpen && snapshot.status === 'success' && (
-          <ClassManagementPanel classes={snapshot.data} onChanged={refreshSnapshot} />
-        )}
+        <DashboardHeading />
         <DashboardState snapshot={snapshot} />
       </div>
     </main>

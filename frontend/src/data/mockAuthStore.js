@@ -8,9 +8,9 @@ export const ROLES = Object.freeze({
 })
 
 export const roleLabels = Object.freeze({
-  [ROLES.ADMIN]: 'Admin',
-  [ROLES.TEACHER]: 'Giao vien',
-  [ROLES.STUDENT]: 'Hoc sinh',
+  [ROLES.ADMIN]: 'Quản trị',
+  [ROLES.TEACHER]: 'Giáo viên',
+  [ROLES.STUDENT]: 'Học sinh',
 })
 
 const defaultUsers = Object.freeze([

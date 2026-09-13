@@ -40,13 +40,13 @@ function ClassCreateModal({ teachers, onCancel, onSaved }) {
 
   return (
     <div className="admin-modal-backdrop">
-      <div className="admin-modal">
+      <div aria-labelledby="class-modal-title" aria-modal="true" className="admin-modal" role="dialog">
         <div className="admin-modal-header">
           <div>
             <span className="panel-subtitle">Lớp học</span>
-            <h2>Tạo lớp</h2>
+            <h2 id="class-modal-title">Tạo lớp</h2>
           </div>
-          <button className="icon-button" type="button" onClick={onCancel}>×</button>
+          <button aria-label="Đóng cửa sổ" className="icon-button" title="Đóng" type="button" onClick={onCancel}>×</button>
         </div>
 
         <form className="admin-form" onSubmit={handleSubmit} noValidate>
@@ -143,7 +143,7 @@ function AdminClassesPage() {
           <Link className="admin-class-card" key={classroom.id} to={`/admin/classes/${classroom.id}`}>
             <div className="admin-class-card-top">
               <span className="class-code">{classroom.id}</span>
-              <span className="class-status"><span aria-hidden="true" />Active</span>
+              <span className="class-status"><span aria-hidden="true" />Đang hoạt động</span>
             </div>
             <div className="admin-class-card-body">
               <h3>{classroom.name}</h3>

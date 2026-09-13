@@ -1,12 +1,22 @@
 :root {
   --page-bg: #f4f6f5;
   --surface: #ffffff;
+  --surface-subtle: #f8fbfa;
+  --surface-hover: #eef4f4;
   --ink: #17324d;
   --ink-deep: #001d36;
   --muted: #65747e;
+  --muted-light: #c8d6d7;
   --border: #ccd6d8;
   --accent: #197a68;
+  --accent-soft: rgba(25, 122, 104, 0.2);
   --error: #b63b35;
+  --content-max-width: 1200px;
+  --page-gutter: 24px;
+  --control-height: 42px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
   font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
   color: var(--ink);
   background: var(--page-bg);

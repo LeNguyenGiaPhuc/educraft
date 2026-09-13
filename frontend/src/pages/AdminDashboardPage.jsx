@@ -26,7 +26,7 @@ function AdminDashboardPage() {
     return (
       <section className="admin-empty-panel">
         <p className="state-kicker">Quản trị</p>
-        <h1>Bảng điều khiển Admin</h1>
+        <h1>Bảng điều khiển quản trị</h1>
         <p>{snapshot.message}</p>
       </section>
     )
@@ -36,7 +36,7 @@ function AdminDashboardPage() {
     <section className="admin-page">
       <div className="admin-page-header">
         <div>
-          <p className="state-kicker">Admin</p>
+          <p className="state-kicker">Quản trị</p>
           <h1>Tổng quan</h1>
         </div>
       </div>

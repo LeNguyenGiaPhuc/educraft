@@ -7,19 +7,19 @@ import { getRoleHome, ROLES } from '../data/mockAuthStore.js'
 const demoAccounts = [
   {
     role: ROLES.ADMIN,
-    title: 'Admin',
+    title: 'Quản trị',
     email: 'admin@educraft.test',
     password: 'admin123',
   },
   {
     role: ROLES.TEACHER,
-    title: 'Teacher',
+    title: 'Giáo viên',
     email: 'teacher@educraft.test',
     password: 'teacher123',
   },
   {
     role: ROLES.STUDENT,
-    title: 'Student',
+    title: 'Học sinh',
     email: 'student@educraft.test',
     password: 'student123',
   },
@@ -47,7 +47,7 @@ function LoginPage() {
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setStatus({ tone: 'loading', message: 'Dang dang nhap...' })
+    setStatus({ tone: 'loading', message: 'Đang đăng nhập...' })
 
     await new Promise((resolve) => {
       window.setTimeout(resolve, 350)
@@ -60,7 +60,7 @@ function LoginPage() {
       return
     }
 
-    setStatus({ tone: 'success', message: 'Dang nhap thanh cong.' })
+    setStatus({ tone: 'success', message: 'Đăng nhập thành công.' })
     const from = location.state?.from
     const destination = from && from !== '/login' ? from : getRoleHome(result.data.role)
     navigate(destination, { replace: true })
@@ -82,11 +82,11 @@ function LoginPage() {
           <span className="brand-mark" aria-hidden="true">E</span>
           <span>EduCraft</span>
         </div>
-        <p className="state-kicker">Mock auth</p>
-        <h1 id="login-title">Dang nhap he thong</h1>
-        <p>Chon nhanh mot tai khoan mau hoac nhap dung email va mat khau ben duoi.</p>
+        <p className="state-kicker">Đăng nhập thử nghiệm</p>
+        <h1 id="login-title">Đăng nhập hệ thống</h1>
+        <p>Chọn nhanh một tài khoản mẫu hoặc nhập đúng email và mật khẩu bên dưới.</p>
 
-        <div className="demo-login-grid" aria-label="Tai khoan mau">
+        <div className="demo-login-grid" aria-label="Tài khoản mẫu">
           {demoAccounts.map((account) => (
             <button
               className={`demo-login-button${form.email === account.email ? ' demo-login-button-active' : ''}`}
@@ -112,7 +112,7 @@ function LoginPage() {
             />
           </div>
           <div className="form-field">
-            <label htmlFor="login-password">Mat khau</label>
+            <label htmlFor="login-password">Mật khẩu</label>
             <div className="password-row">
               <input
                 autoComplete="current-password"
@@ -122,10 +122,10 @@ function LoginPage() {
                 value={form.password}
               />
               <button
-                aria-label={showPassword ? 'An mat khau' : 'Hien mat khau'}
+                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 className="password-toggle-button"
                 onClick={() => setShowPassword((value) => !value)}
-                title={showPassword ? 'An mat khau' : 'Hien mat khau'}
+                title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 type="button"
               >
                 <svg aria-hidden="true" className="password-toggle-icon" viewBox="0 0 24 24">
@@ -158,7 +158,7 @@ function LoginPage() {
             disabled={status.tone === 'loading'}
             type="submit"
           >
-            {status.tone === 'loading' ? 'Dang dang nhap...' : 'Dang nhap'}
+            {status.tone === 'loading' ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
       </section>

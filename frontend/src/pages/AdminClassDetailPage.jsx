@@ -20,13 +20,13 @@ function StudentAddModal({ students, onCancel, onAdd }) {
 
   return (
     <div className="admin-modal-backdrop">
-      <div className="admin-modal large">
+      <div aria-labelledby="student-modal-title" aria-modal="true" className="admin-modal large" role="dialog">
         <div className="admin-modal-header">
           <div>
             <span className="panel-subtitle">Học sinh</span>
-            <h2>Thêm học sinh vào lớp</h2>
+            <h2 id="student-modal-title">Thêm học sinh vào lớp</h2>
           </div>
-          <button className="icon-button" type="button" onClick={onCancel}>×</button>
+          <button aria-label="Đóng cửa sổ" className="icon-button" title="Đóng" type="button" onClick={onCancel}>×</button>
         </div>
 
         <div className="admin-filter-row">
