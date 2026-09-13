@@ -63,6 +63,34 @@ export function createStoredSubmission(form, storage = getBrowserStorage()) {
   return submission
 }
 
+export function updateStoredSubmissionStatus(
+  submissionId,
+  status,
+  storage = getBrowserStorage(),
+) {
+  const allowedStatuses = ['submitted', 'processing', 'awaiting_review']
+  if (!allowedStatuses.includes(status)) {
+    throw new Error('Trạng thái bài nộp không hợp lệ.')
+  }
+
+  const submissions = readSubmissions(storage)
+  const submission = submissions.find((item) => item.id === submissionId)
+
+  if (!submission) {
+    throw new Error('Không tìm thấy bài nộp này.')
+  }
+
+  if (submission.status === 'approved') return submission
+
+  const updatedSubmission = { ...submission, status }
+  writeSubmissions(
+    submissions.map((item) => (item.id === submissionId ? updatedSubmission : item)),
+    storage,
+  )
+
+  return updatedSubmission
+}
+
 export function updateStoredSubmissionReview(submissionId, review, storage = getBrowserStorage()) {
   const submissions = readSubmissions(storage)
   const storedSubmission = submissions.find((item) => item.id === submissionId)

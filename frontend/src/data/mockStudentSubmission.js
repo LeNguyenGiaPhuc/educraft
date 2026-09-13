@@ -1,7 +1,16 @@
 import { getAssignmentAvailability } from './assignmentDeadline.js'
 import { getStudentAssignmentSnapshot } from './mockStudentAccess.js'
 import { validateSubmissionForm } from './mockSubmission.js'
-import { createStoredSubmission, getStoredSubmissions } from './mockSubmissionStore.js'
+import {
+  createStoredSubmission,
+  getStoredSubmissions,
+  updateStoredSubmissionStatus,
+} from './mockSubmissionStore.js'
+
+const mockStatusTransitions = Object.freeze({
+  submitted: 'processing',
+  processing: 'awaiting_review',
+})
 
 export function getStudentSubmissionHistory(currentUser, assignmentId, storage) {
   const snapshot = getStudentAssignmentSnapshot(currentUser, assignmentId, storage)
@@ -24,15 +33,58 @@ export function getStudentSubmissionHistory(currentUser, assignmentId, storage) 
 
       return firstTime - secondTime || first.storedIndex - second.storedIndex
     })
-    .map(({ submission }, index) => ({
-      id: submission.id,
-      attemptNumber: index + 1,
-      fileName: submission.fileName,
-      submittedAt: submission.submittedAt,
-      status: submission.status,
-    }))
+    .map(({ submission }, index) => {
+      const item = {
+        id: submission.id,
+        attemptNumber: index + 1,
+        fileName: submission.fileName,
+        submittedAt: submission.submittedAt,
+        status: submission.status,
+      }
+
+      if (submission.status === 'approved') {
+        item.result = {
+          score: submission.score,
+          feedback: submission.feedback,
+          finalizedAt: submission.reviewedAt,
+        }
+      }
+
+      return item
+    })
 
   return { status: 'success', data }
+}
+
+export function advanceMockStudentSubmission(
+  currentUser,
+  assignmentId,
+  submissionId,
+  storage,
+) {
+  const history = getStudentSubmissionHistory(currentUser, assignmentId, storage)
+  if (history.status === 'error') return history
+
+  const submission = history.data.find((item) => item.id === submissionId)
+  const nextStatus = mockStatusTransitions[submission?.status]
+
+  if (!submission || !nextStatus) {
+    return { status: 'unchanged' }
+  }
+
+  const updatedSubmission = updateStoredSubmissionStatus(
+    submissionId,
+    nextStatus,
+    storage,
+  )
+
+  return {
+    status: 'success',
+    data: {
+      id: updatedSubmission.id,
+      submissionStatus: updatedSubmission.status,
+    },
+  }
 }
 
 export async function submitStudentNote(

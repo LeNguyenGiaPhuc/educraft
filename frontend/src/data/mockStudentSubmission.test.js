@@ -8,9 +8,11 @@ import { getMockUser } from './mockSession.js'
 import { getStudentAssignmentSnapshot } from './mockStudentAccess.js'
 import { mergeStudentRows } from './mockStudentStore.js'
 import {
+  advanceMockStudentSubmission,
   getStudentSubmissionHistory,
   submitStudentNote,
 } from './mockStudentSubmission.js'
+import { reviewSubmission } from './mockSubmission.js'
 import {
   createStoredSubmission,
   getStoredSubmissions,
@@ -301,4 +303,165 @@ test('keeps persisted history readable after the deadline', () => {
     submittedAt: saved.submittedAt,
     status: 'submitted',
   }])
+})
+
+test('keeps unfinalized score and feedback hidden while waiting for review', () => {
+  const storage = createMemoryStorage()
+  storage.setItem('educraft.submissions', JSON.stringify([{
+    id: 'waiting-attempt',
+    assignmentId: form.assignmentId,
+    studentId: student.studentId,
+    fileName: 'waiting.png',
+    fileSizeBytes: 1000,
+    submittedAt: '2026-09-17T09:00:00+07:00',
+    status: 'awaiting_review',
+    score: 99,
+    feedback: 'This draft must stay hidden.',
+  }]))
+
+  const item = getStudentSubmissionHistory(student, form.assignmentId, storage).data[0]
+  assert.equal(item.status, 'awaiting_review')
+  assert.equal(Object.hasOwn(item, 'score'), false)
+  assert.equal(Object.hasOwn(item, 'feedback'), false)
+  assert.equal(Object.hasOwn(item, 'result'), false)
+})
+
+test('shows teacher-finalized score and feedback as a result without deriving pass or fail', async () => {
+  const storage = createMemoryStorage()
+  const saved = createStoredSubmission({ ...form, studentId: student.studentId }, storage)
+  await reviewSubmission({
+    submissionId: saved.id,
+    score: '64',
+    feedback: 'Cần bổ sung phần kết luận.',
+  }, 'success', 0, storage)
+
+  const item = getStudentSubmissionHistory(student, form.assignmentId, storage).data[0]
+  assert.equal(item.status, 'approved')
+  assert.equal(item.result.score, 64)
+  assert.equal(item.result.feedback, 'Cần bổ sung phần kết luận.')
+  assert.equal(typeof item.result.finalizedAt, 'string')
+  assert.equal(Object.hasOwn(item, 'passed'), false)
+  assert.equal(Object.hasOwn(item.result, 'passed'), false)
+})
+
+test('never exposes another student finalized result', async () => {
+  const storage = createMemoryStorage()
+  const own = createStoredSubmission({ ...form, studentId: student.studentId }, storage)
+  const other = createStoredSubmission({
+    ...form,
+    studentId: 'HS260102',
+    fileName: 'other-result.png',
+  }, storage)
+  await reviewSubmission({
+    submissionId: other.id,
+    score: '98',
+    feedback: 'Private feedback for another student.',
+  }, 'success', 0, storage)
+
+  const history = getStudentSubmissionHistory(student, form.assignmentId, storage)
+  assert.equal(history.data.length, 1)
+  assert.equal(history.data[0].id, own.id)
+  assert.equal(Object.hasOwn(history.data[0], 'result'), false)
+  assert.doesNotMatch(JSON.stringify(history), /Private feedback/)
+})
+
+test('keeps finalization independent between attempts', async () => {
+  const storage = createMemoryStorage()
+  const first = createStoredSubmission({
+    ...form,
+    studentId: student.studentId,
+    fileName: 'first.png',
+  }, storage)
+  const second = createStoredSubmission({
+    ...form,
+    studentId: student.studentId,
+    fileName: 'second.png',
+  }, storage)
+  await reviewSubmission({
+    submissionId: first.id,
+    score: '82',
+    feedback: 'Kết quả của lần một.',
+  }, 'success', 0, storage)
+
+  const history = getStudentSubmissionHistory(student, form.assignmentId, storage)
+  assert.equal(history.data[0].id, first.id)
+  assert.equal(history.data[0].status, 'approved')
+  assert.equal(history.data[0].result.score, 82)
+  assert.equal(history.data[1].id, second.id)
+  assert.equal(history.data[1].status, 'submitted')
+  assert.equal(Object.hasOwn(history.data[1], 'result'), false)
+})
+
+test('keeps a finalized result visible through a refresh-style read', async () => {
+  const values = new Map()
+  const firstStorage = createMemoryStorage(values)
+  const saved = createStoredSubmission({ ...form, studentId: student.studentId }, firstStorage)
+  await reviewSubmission({
+    submissionId: saved.id,
+    score: '91',
+    feedback: 'Kết quả đã chốt.',
+  }, 'success', 0, firstStorage)
+
+  const refreshedStorage = createMemoryStorage(values)
+  const item = getStudentSubmissionHistory(
+    student,
+    form.assignmentId,
+    refreshedStorage,
+  ).data[0]
+  assert.equal(item.status, 'approved')
+  assert.equal(item.result.score, 91)
+  assert.equal(item.result.feedback, 'Kết quả đã chốt.')
+})
+
+test('reflects a teacher review in the student next read', async () => {
+  const storage = createMemoryStorage()
+  const saved = createStoredSubmission({ ...form, studentId: student.studentId }, storage)
+  const beforeReview = getStudentSubmissionHistory(student, form.assignmentId, storage).data[0]
+  assert.equal(Object.hasOwn(beforeReview, 'result'), false)
+
+  await reviewSubmission({
+    submissionId: saved.id,
+    score: '77',
+    feedback: 'Giáo viên đã chốt lần nộp này.',
+  }, 'success', 0, storage)
+
+  const afterReview = getStudentSubmissionHistory(student, form.assignmentId, storage).data[0]
+  assert.equal(afterReview.status, 'approved')
+  assert.equal(afterReview.result.score, 77)
+  assert.equal(afterReview.result.feedback, 'Giáo viên đã chốt lần nộp này.')
+})
+
+test('persists mock submitted, processing, and waiting states across reads', () => {
+  const values = new Map()
+  const storage = createMemoryStorage(values)
+  const saved = createStoredSubmission({ ...form, studentId: student.studentId }, storage)
+  assert.equal(getStudentSubmissionHistory(student, form.assignmentId, storage).data[0].status, 'submitted')
+
+  const processing = advanceMockStudentSubmission(
+    student,
+    form.assignmentId,
+    saved.id,
+    storage,
+  )
+  assert.equal(processing.data.submissionStatus, 'processing')
+  assert.equal(
+    getStudentSubmissionHistory(
+      student,
+      form.assignmentId,
+      createMemoryStorage(values),
+    ).data[0].status,
+    'processing',
+  )
+
+  const waiting = advanceMockStudentSubmission(
+    student,
+    form.assignmentId,
+    saved.id,
+    storage,
+  )
+  assert.equal(waiting.data.submissionStatus, 'awaiting_review')
+  assert.equal(
+    getStudentSubmissionHistory(student, form.assignmentId, storage).data[0].status,
+    'awaiting_review',
+  )
 })
