@@ -4,7 +4,10 @@ import { Link, useParams } from 'react-router-dom'
 import PageErrorState from '../components/PageErrorState.jsx'
 import { formatAssignmentDeadline, getAssignmentAvailability } from '../data/assignmentDeadline.js'
 import { getStudentAssignmentSnapshot } from '../data/mockStudentAccess.js'
-import { submitStudentNote } from '../data/mockStudentSubmission.js'
+import {
+  getStudentSubmissionHistory,
+  submitStudentNote,
+} from '../data/mockStudentSubmission.js'
 import { validateSubmissionForm } from '../data/mockSubmission.js'
 
 function requestedSubmissionState() {
@@ -40,7 +43,7 @@ function SubmissionError({ message }) {
   )
 }
 
-function SubmissionSuccess({ assignment, submission }) {
+function SubmissionSuccess({ assignment, canResubmit, onSubmitAnother, submission }) {
   return (
     <section className="assignment-success" role="status" aria-live="polite">
       <p className="state-kicker">Đã nhận bài nộp</p>
@@ -50,8 +53,13 @@ function SubmissionSuccess({ assignment, submission }) {
         “{assignment.title}”.
       </p>
       <div className="assignment-success-actions">
+        {canResubmit && (
+          <button className="button button-primary" type="button" onClick={onSubmitAnother}>
+            Nộp lại
+          </button>
+        )}
         <Link
-          className="button button-primary"
+          className="button button-outline"
           to="/student"
         >
           Về tổng quan học sinh
@@ -61,7 +69,70 @@ function SubmissionSuccess({ assignment, submission }) {
   )
 }
 
-function StudentSubmissionForm({ assignment, availability, form, errors, submission, onFileChange, onSubmit }) {
+function formatSubmissionDate(value) {
+  const submittedAt = Date.parse(value)
+
+  if (!Number.isFinite(submittedAt)) return 'Không xác định'
+
+  return new Intl.DateTimeFormat('vi-VN', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(submittedAt)
+}
+
+function submissionStatusLabel(status) {
+  if (status === 'approved') return 'Đã chốt'
+  if (status === 'processing') return 'Đang xử lý'
+  return status === 'submitted' ? 'Đã nộp' : status
+}
+
+function SubmissionHistory({ submissions }) {
+  return (
+    <section className="student-submission-history" aria-labelledby="submission-history-title">
+      <div className="detail-section-heading">
+        <div>
+          <h2 id="submission-history-title">Lịch sử nộp bài</h2>
+          <p>Mỗi lần nộp được lưu thành một bài riêng.</p>
+        </div>
+      </div>
+
+      {submissions.length === 0 ? (
+        <div className="table-empty">Bạn chưa nộp bài cho hoạt động này.</div>
+      ) : (
+        <div className="data-table-wrap">
+          <table className="data-table student-submission-table">
+            <thead>
+              <tr>
+                <th scope="col">Lần nộp</th>
+                <th scope="col">Tên file</th>
+                <th scope="col">Thời gian nộp</th>
+                <th scope="col">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              {submissions.map((item) => (
+                <tr key={item.id}>
+                  <td className="table-primary-cell">Lần {item.attemptNumber}</td>
+                  <td>{item.fileName}</td>
+                  <td className="table-muted-cell">{formatSubmissionDate(item.submittedAt)}</td>
+                  <td>
+                    <span className="table-status table-status-active">
+                      <span aria-hidden="true" />
+                      {submissionStatusLabel(item.status)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubmissions, errors, submission, onFileChange, onSubmit }) {
   const isSubmitting = submission.status === 'loading'
   const hasValidationErrors = Object.keys(errors).length > 0
 
@@ -104,7 +175,7 @@ function StudentSubmissionForm({ assignment, availability, form, errors, submiss
         <div className="form-fields">
           <div className="form-field form-field-wide">
             <label htmlFor="note-file">
-              Ảnh bài ghi <span aria-hidden="true">*</span>
+              {hasPreviousSubmissions ? 'Ảnh bài ghi mới' : 'Ảnh bài ghi'} <span aria-hidden="true">*</span>
             </label>
             <input
               accept="image/png,image/jpeg"
@@ -136,7 +207,7 @@ function StudentSubmissionForm({ assignment, availability, form, errors, submiss
             disabled={isSubmitting}
             type="submit"
           >
-            {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
+            {isSubmitting ? 'Đang nộp...' : hasPreviousSubmissions ? 'Nộp lại' : 'Nộp bài'}
           </button>
         </div>
       </form>
@@ -156,6 +227,8 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
   const [now, setNow] = useState(Date.now)
   const pending = useRef(false)
   const availability = getAssignmentAvailability(assignment, now)
+  const historySnapshot = getStudentSubmissionHistory(currentUser, assignment.id)
+  const submissionHistory = historySnapshot.status === 'success' ? historySnapshot.data : []
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -210,6 +283,16 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
     }
   }
 
+  function handleSubmitAnother() {
+    setForm((current) => ({
+      ...current,
+      fileName: '',
+      fileSizeBytes: 0,
+    }))
+    setErrors({})
+    setSubmission({ status: 'idle' })
+  }
+
   return (
     <>
       <nav className="breadcrumb" aria-label="Đường dẫn trang">
@@ -218,18 +301,25 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
         <span>Nộp bài ghi</span>
       </nav>
       {submission.status === 'success' ? (
-        <SubmissionSuccess assignment={assignment} submission={submission} />
+        <SubmissionSuccess
+          assignment={assignment}
+          canResubmit={availability.isOpen}
+          onSubmitAnother={handleSubmitAnother}
+          submission={submission}
+        />
       ) : (
         <StudentSubmissionForm
           assignment={assignment}
           availability={availability}
           errors={errors}
           form={form}
+          hasPreviousSubmissions={submissionHistory.length > 0}
           onFileChange={handleFileChange}
           onSubmit={handleSubmit}
           submission={submission}
         />
       )}
+      <SubmissionHistory submissions={submissionHistory} />
     </>
   )
 }

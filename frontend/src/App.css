@@ -852,6 +852,15 @@
   min-width: 620px;
 }
 
+.student-submission-history {
+  max-width: 860px;
+  margin: 32px auto 0;
+}
+
+.student-submission-table {
+  min-width: 620px;
+}
+
 .assignment-page .page-container {
   padding-top: 32px;
 }

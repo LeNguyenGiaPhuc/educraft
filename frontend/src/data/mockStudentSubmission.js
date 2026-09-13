@@ -1,7 +1,39 @@
 import { getAssignmentAvailability } from './assignmentDeadline.js'
 import { getStudentAssignmentSnapshot } from './mockStudentAccess.js'
 import { validateSubmissionForm } from './mockSubmission.js'
-import { createStoredSubmission } from './mockSubmissionStore.js'
+import { createStoredSubmission, getStoredSubmissions } from './mockSubmissionStore.js'
+
+export function getStudentSubmissionHistory(currentUser, assignmentId, storage) {
+  const snapshot = getStudentAssignmentSnapshot(currentUser, assignmentId, storage)
+  if (snapshot.status === 'error') return snapshot
+
+  const data = getStoredSubmissions(assignmentId, storage)
+    .filter((submission) => submission.studentId === currentUser.studentId)
+    .map((submission, storedIndex) => ({
+      submission,
+      storedIndex,
+      submittedTime: Date.parse(submission.submittedAt),
+    }))
+    .sort((first, second) => {
+      const firstTime = Number.isFinite(first.submittedTime)
+        ? first.submittedTime
+        : Number.MAX_SAFE_INTEGER
+      const secondTime = Number.isFinite(second.submittedTime)
+        ? second.submittedTime
+        : Number.MAX_SAFE_INTEGER
+
+      return firstTime - secondTime || first.storedIndex - second.storedIndex
+    })
+    .map(({ submission }, index) => ({
+      id: submission.id,
+      attemptNumber: index + 1,
+      fileName: submission.fileName,
+      submittedAt: submission.submittedAt,
+      status: submission.status,
+    }))
+
+  return { status: 'success', data }
+}
 
 export async function submitStudentNote(
   currentUser, form, outcome = 'success', delay = 0, storage, now = Date.now,
