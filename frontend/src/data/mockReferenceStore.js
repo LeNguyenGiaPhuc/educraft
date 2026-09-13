@@ -41,6 +41,20 @@ export function getStoredReference(assignmentId, storage = getBrowserStorage()) 
   ) ?? null
 }
 
+export function deleteStoredReferences(assignmentIds, storage = getBrowserStorage()) {
+  const ids = new Set(assignmentIds)
+
+  if (ids.size === 0) {
+    return
+  }
+
+  const references = readReferences(storage)
+  writeReferences(
+    references.filter((reference) => !ids.has(reference.assignmentId)),
+    storage,
+  )
+}
+
 export function createStoredReference(form, storage = getBrowserStorage()) {
   const references = readReferences(storage)
   const reference = {
@@ -56,13 +70,4 @@ export function createStoredReference(form, storage = getBrowserStorage()) {
   writeReferences([...nextReferences, reference], storage)
 
   return reference
-}
-
-export function deleteStoredReferences(assignmentIds, storage = getBrowserStorage()) {
-  const references = readReferences(storage)
-
-  writeReferences(
-    references.filter((reference) => !assignmentIds.includes(reference.assignmentId)),
-    storage,
-  )
 }

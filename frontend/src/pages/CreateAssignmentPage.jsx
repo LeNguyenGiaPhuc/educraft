@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import PageErrorState from '../components/PageErrorState.jsx'
 import { getClassDetailSnapshot } from '../data/mockClassDetail.js'
+import { getTeacherClasses } from '../data/mockClassStore.js'
 import {
   getAssignmentClassOptions,
   getDefaultAssignmentForm,
@@ -39,7 +40,7 @@ function FieldError({ id, message }) {
 function FormBreadcrumb({ classroom }) {
   return (
     <nav className="breadcrumb" aria-label="Đường dẫn trang">
-      <Link to="/">Lớp học</Link>
+      <Link to="/">Tổng quan</Link>
       <span aria-hidden="true">/</span>
       <Link to={`/classes/${classroom.id}`}>{classroom.name}</Link>
       <span aria-hidden="true">/</span>
@@ -261,11 +262,16 @@ function CreateAssignmentWorkspace({ classId, classroom }) {
   }
 
   function handleCreateAnother() {
-    setForm(getDefaultAssignmentForm(classId))
+    setForm(getDefaultAssignmentForm(form.classId))
     setErrors({})
     setSubmission({ status: 'idle' })
   }
 
+  const selectedClassroomSnapshot = getClassDetailSnapshot(form.classId)
+  const selectedClassroom =
+    selectedClassroomSnapshot.status === 'success'
+      ? selectedClassroomSnapshot.data
+      : classroom
   const successClassroomSnapshot =
     submission.status === 'success'
       ? getClassDetailSnapshot(submission.data.classId)
@@ -277,7 +283,7 @@ function CreateAssignmentWorkspace({ classId, classroom }) {
 
   return (
     <>
-      <FormBreadcrumb classroom={classroom} />
+      <FormBreadcrumb classroom={selectedClassroom} />
 
       {submission.status === 'success' ? (
         <AssignmentSuccess
@@ -287,7 +293,7 @@ function CreateAssignmentWorkspace({ classId, classroom }) {
         />
       ) : (
         <CreateAssignmentForm
-          classroom={classroom}
+          classroom={selectedClassroom}
           errors={errors}
           form={form}
           onChange={handleChange}
@@ -300,8 +306,14 @@ function CreateAssignmentWorkspace({ classId, classroom }) {
 }
 
 function CreateAssignmentPage() {
-  const { classId = '10A1' } = useParams()
-  const snapshot = getClassDetailSnapshot(classId)
+  const { classId: routeClassId } = useParams()
+  const initialClassId = routeClassId ?? getTeacherClasses()[0]?.id
+  const snapshot = initialClassId
+    ? getClassDetailSnapshot(initialClassId)
+    : {
+        status: 'error',
+        message: 'Chưa có lớp học để tạo bài kiểm tra.',
+      }
 
   if (snapshot.status === 'error') {
     return <CreateAssignmentError message={snapshot.message} />
@@ -311,8 +323,8 @@ function CreateAssignmentPage() {
     <main className="page-content assignment-page">
       <div className="page-container">
         <CreateAssignmentWorkspace
-          key={classId}
-          classId={classId}
+          key={initialClassId ?? 'no-class'}
+          classId={initialClassId}
           classroom={snapshot.data}
         />
       </div>

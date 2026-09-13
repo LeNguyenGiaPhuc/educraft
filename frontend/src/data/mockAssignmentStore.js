@@ -64,6 +64,20 @@ export function getStoredAssignments(classId, storage = getBrowserStorage()) {
     })
 }
 
+export function deleteStoredAssignmentsForClass(classId, storage = getBrowserStorage()) {
+  const assignments = readAssignments(storage)
+  const removedAssignments = assignments.filter((assignment) => assignment.classId === classId)
+
+  if (removedAssignments.length > 0) {
+    writeAssignments(
+      assignments.filter((assignment) => assignment.classId !== classId),
+      storage,
+    )
+  }
+
+  return removedAssignments
+}
+
 export function createStoredAssignment(form, storage = getBrowserStorage()) {
   const assignments = readAssignments(storage)
   const assignment = {
@@ -80,16 +94,4 @@ export function createStoredAssignment(form, storage = getBrowserStorage()) {
 
   writeAssignments([...assignments, assignment], storage)
   return assignment
-}
-
-export function deleteStoredAssignmentsForClass(classId, storage = getBrowserStorage()) {
-  const assignments = readAssignments(storage)
-  const removedAssignments = assignments.filter((assignment) => assignment.classId === classId)
-
-  writeAssignments(
-    assignments.filter((assignment) => assignment.classId !== classId),
-    storage,
-  )
-
-  return removedAssignments
 }

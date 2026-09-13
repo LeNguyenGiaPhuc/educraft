@@ -20,12 +20,9 @@ function AppShell() {
             <NavLink className={navigationClassName} end to="/">
               Tổng quan
             </NavLink>
-            <NavLink className={navigationClassName} end to="/classes/10A1">
-              Lớp học
-            </NavLink>
             <NavLink
               className={navigationClassName}
-              to="/classes/10A1/assignments/new"
+              to="/assignments/new"
             >
               Tạo bài kiểm tra
             </NavLink>
