@@ -2,6 +2,8 @@ import { deleteStoredAssignmentsForClass } from './mockAssignmentStore.js'
 import { deleteStoredReferences } from './mockReferenceStore.js'
 import { deleteStoredSubmissions } from './mockSubmissionStore.js'
 import { deleteStoredStudentsForClass } from './mockStudentStore.js'
+import { removeClassMembershipsForClass } from './mockClassMembershipStore.js'
+import { materializeMockUsers } from './mockAuthStore.js'
 
 const CLASSES_STORAGE_KEY = 'educraft.classes'
 
@@ -120,6 +122,44 @@ export function getTeacherClasses(storage = getBrowserStorage()) {
   return cloneClasses(readClasses(storage))
 }
 
+// Keep the old selector for screens that only need the complete mock list.
+// Teacher screens should use this selector so they only see assigned classes.
+export function getTeacherClassesForUser(user, storage = getBrowserStorage()) {
+  if (!user) {
+    return getTeacherClasses(storage)
+  }
+
+  if (user.role !== 'TEACHER' || user.status !== 'active') {
+    return []
+  }
+
+  const assignedClassIds = new Set(user.classIds ?? [])
+
+  return getTeacherClasses(storage).filter((classroom) => {
+    if (classroom.teacherId) {
+      return classroom.teacherId === user.id
+    }
+
+    return assignedClassIds.has(classroom.id)
+  })
+}
+
+export function canTeacherAccessClass(user, classId, storage = getBrowserStorage()) {
+  const normalizedId = String(classId ?? '').trim().toUpperCase()
+
+  return getTeacherClassesForUser(user, storage).some(
+    (classroom) => classroom.id === normalizedId,
+  )
+}
+
+export function getTeacherClassForUser(user, classId, storage = getBrowserStorage()) {
+  const normalizedId = String(classId ?? '').trim().toUpperCase()
+
+  return getTeacherClassesForUser(user, storage).find(
+    (classroom) => classroom.id === normalizedId,
+  ) ?? null
+}
+
 export function getTeacherClass(classId, storage = getBrowserStorage()) {
   const normalizedId = String(classId ?? '').trim().toUpperCase()
   return getTeacherClasses(storage).find((classroom) => classroom.id === normalizedId) ?? null
@@ -147,6 +187,10 @@ export function createStoredClass(form, storage = getBrowserStorage()) {
     studentCount: 0,
     assignmentCount: 0,
     accent: 'green',
+  }
+
+  if (form.teacherId) {
+    classroom.teacherId = String(form.teacherId)
   }
 
   writeClasses([...classes, classroom], storage)
@@ -178,6 +222,14 @@ export function updateStoredClass(classId, form, storage = getBrowserStorage()) 
     semester: normalizedForm.semester,
     schoolYear: normalizedForm.schoolYear,
   }
+
+  if (Object.prototype.hasOwnProperty.call(form, 'teacherId')) {
+    if (form.teacherId) {
+      classroom.teacherId = String(form.teacherId)
+    } else {
+      delete classroom.teacherId
+    }
+  }
   const updatedClasses = [...classes]
   updatedClasses[index] = classroom
 
@@ -202,6 +254,8 @@ export function deleteStoredClass(classId, storage = getBrowserStorage()) {
   deleteStoredReferences(removedAssignmentIds, storage)
   deleteStoredSubmissions(removedAssignmentIds, storage)
   deleteStoredStudentsForClass(normalizedId, storage)
+  materializeMockUsers(storage)
+  removeClassMembershipsForClass(normalizedId, storage)
 
   writeClasses(
     classes.filter((item) => item.id !== normalizedId),

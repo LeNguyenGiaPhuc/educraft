@@ -1,4 +1,5 @@
 import { getStoredUsers, ROLES } from './mockAuthStore.js'
+import { getClassMemberships } from './mockClassMembershipStore.js'
 
 const STUDENTS_STORAGE_KEY = 'educraft.students'
 const USERS_STORAGE_KEY = 'educraft.users'
@@ -63,19 +64,23 @@ function getAuthStudents(classId, storage = getBrowserStorage()) {
     return []
   }
 
-  return getStoredUsers(storage)
-    .filter((student) => (
-      student.role === ROLES.STUDENT
-      && (student.classIds ?? []).includes(classId)
-    ))
-    .map((student) => ({
-      id: student.id,
-      number: student.importedStudentNumber,
-      name: student.name,
-      code: student.studentCode || student.email,
-      email: student.email,
+  const users = getStoredUsers(storage)
+  const usersById = new Map(users.map((student) => [student.id, student]))
+
+  return getClassMemberships(classId, storage)
+    .map((membership) => ({
+      user: usersById.get(membership.studentId),
+      number: membership.studentNumber,
+    }))
+    .filter(({ user }) => user?.role === ROLES.STUDENT)
+    .map(({ user, number }) => ({
+      id: user.id,
+      number: number || user.importedStudentNumber,
+      name: user.name,
+      code: user.studentCode || user.email,
+      email: user.email,
       latestSubmission: 'Chưa nộp',
-      status: student.status,
+      status: user.status,
     }))
 }
 

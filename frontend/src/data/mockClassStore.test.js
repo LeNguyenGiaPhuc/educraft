@@ -11,6 +11,8 @@ import { createStoredAssignment, getStoredAssignments } from './mockAssignmentSt
 import { createStoredReference, getStoredReference } from './mockReferenceStore.js'
 import { createStoredSubmission, getStoredSubmissions } from './mockSubmissionStore.js'
 import { getStoredStudents, mergeStudentRows } from './mockStudentStore.js'
+import { assignMockClass, createMockAccount, getStoredUsers, ROLES } from './mockAuthStore.js'
+import { getClassMemberships } from './mockClassMembershipStore.js'
 
 function createMemoryStorage() {
   const values = new Map()
@@ -170,4 +172,28 @@ test('deleting a class removes its stored assignments and related submissions', 
   assert.equal(getStoredReference(assignment.id, storage), null)
   assert.deepEqual(getStoredSubmissions(assignment.id, storage), [])
   assert.deepEqual(getStoredStudents('12B1', storage), [])
+})
+
+test('deleting a class removes memberships but keeps student accounts', () => {
+  const storage = createMemoryStorage()
+  const student = createMockAccount({
+    name: 'Le Cẩm Chi',
+    email: 'chi@example.com',
+    password: 'secret1',
+    role: ROLES.STUDENT,
+  }, storage).data
+
+  createStoredClass({
+    id: '12B1',
+    subject: 'Toán',
+    semester: 'Học kỳ 2',
+    schoolYear: 'Năm học 2026–2027',
+  }, storage)
+  assignMockClass('12B1', { studentIds: [student.id] }, storage)
+
+  deleteStoredClass('12B1', storage)
+
+  assert.deepEqual(getClassMemberships('12B1', storage), [])
+  assert.equal(getStoredUsers(storage).some((user) => user.id === student.id), true)
+  assert.deepEqual(getStoredUsers(storage).find((user) => user.id === student.id).classIds, [])
 })

@@ -3,20 +3,25 @@ import test from 'node:test'
 
 import {
   assignMockClass,
+  activateMockAccount,
+  deleteMockAccount,
   canAccessRole,
   createMockAccount,
   getCurrentUser,
   getRoleHome,
   getStoredUsers,
   loginWithMockCredentials,
+  lockMockAccount,
   logoutMockUser,
   previewMockStudentImport,
   provisionMockStudentsForClass,
   ROLES,
   toggleMockAccountStatus,
+  unlockMockAccount,
   updateMockAccount,
 } from './mockAuthStore.js'
 import { toggleAdminAccountStatus } from './mockAdminStore.js'
+import { getClassStudents } from './mockStudentStore.js'
 
 function createMemoryStorage() {
   const values = new Map()
@@ -117,6 +122,28 @@ test('creates, edits, and toggles a mock account', () => {
   assert.equal(toggled.data.status, 'locked')
 })
 
+test('clears old class access when an account changes role', () => {
+  const storage = createMemoryStorage()
+  const created = createMockAccount({
+    name: 'Le Lan',
+    email: 'lan@example.com',
+    password: 'secret1',
+    role: ROLES.STUDENT,
+    classIds: ['10A1'],
+  }, storage).data
+
+  const updated = updateMockAccount(created.id, {
+    name: created.name,
+    email: created.email,
+    password: '',
+    role: ROLES.TEACHER,
+    classIds: ['10A2'],
+  }, storage)
+
+  assert.equal(updated.status, 'success')
+  assert.deepEqual(getStoredUsers(storage).find((user) => user.id === created.id).classIds, [])
+})
+
 test('prevents an admin from locking the account that is currently logged in', () => {
   const storage = createMemoryStorage()
   const login = loginWithMockCredentials('admin@educraft.test', 'admin123', storage)
@@ -161,6 +188,15 @@ test('assigns one teacher and selected students to a class', () => {
   assert.equal(users.find((user) => user.id === student.id).classIds.includes('12B1'), true)
 })
 
+test('uses explicit account lock and unlock transitions', () => {
+  const storage = createMemoryStorage()
+  const student = getStoredUsers(storage).find((user) => user.id === 'student-binh')
+
+  assert.equal(lockMockAccount(student.id, storage).data.status, 'locked')
+  assert.equal(unlockMockAccount(student.id, storage).data.status, 'active')
+  assert.equal(unlockMockAccount(student.id, storage).status, 'error')
+})
+
 test('previews and provisions new student accounts as pending without a password', () => {
   const storage = createMemoryStorage()
   const rows = [{ studentNumber: '01', name: 'Le Cẩm Chi', email: 'chi@example.com' }]
@@ -188,6 +224,40 @@ test('previews and provisions new student accounts as pending without a password
   const login = loginWithMockCredentials('chi@example.com', 'anything', storage)
   assert.equal(login.status, 'error')
   assert.match(login.message, /chưa được kích hoạt/i)
+})
+
+test('keeps pending imported accounts out of the lock toggle until activation', () => {
+  const storage = createMemoryStorage()
+  const result = provisionMockStudentsForClass('10A1', [{
+    studentNumber: '01',
+    name: 'Le Cẩm Chi',
+    email: 'chi@example.com',
+  }], storage)
+  const pending = result.data.addedEntries[0].accountId
+
+  const blocked = toggleMockAccountStatus(pending, storage)
+  assert.equal(blocked.status, 'error')
+
+  const activated = activateMockAccount(pending, 'secret1', storage)
+  assert.equal(activated.status, 'success')
+  assert.equal(activated.data.status, 'active')
+  assert.equal(loginWithMockCredentials('chi@example.com', 'secret1', storage).status, 'success')
+})
+
+test('deletes an account and its class memberships', () => {
+  const storage = createMemoryStorage()
+  const imported = provisionMockStudentsForClass('10A1', [{
+    studentNumber: '01',
+    name: 'Le Cẩm Chi',
+    email: 'chi@example.com',
+  }], storage)
+  const studentId = imported.data.addedEntries[0].accountId
+
+  const result = deleteMockAccount(studentId, storage)
+
+  assert.equal(result.status, 'success')
+  assert.equal(getStoredUsers(storage).some((user) => user.id === studentId), false)
+  assert.equal(getClassStudents('10A1', [], storage).some((student) => student.id === studentId), false)
 })
 
 test('reuses matching student accounts, skips existing memberships, and blocks conflicts', () => {
@@ -225,6 +295,29 @@ test('reuses matching student accounts, skips existing memberships, and blocks c
   assert.equal(conflict.status, 'error')
   assert.match(conflict.errors[0].message, /không khớp/i)
   assert.deepEqual(getStoredUsers(storage).find((user) => user.id === existing.id).classIds, ['10A1'])
+})
+
+test('keeps an imported student number per class', () => {
+  const storage = createMemoryStorage()
+  const rows = [{ studentNumber: '01', name: 'Le Cẩm Chi', email: 'chi@example.com' }]
+
+  provisionMockStudentsForClass('10A1', rows, storage)
+  provisionMockStudentsForClass('10A2', [{ ...rows[0], studentNumber: '09' }], storage)
+
+  assert.equal(getClassStudents('10A1', [], storage).find((student) => student.email === 'chi@example.com').number, '01')
+  assert.equal(getClassStudents('10A2', [], storage).find((student) => student.email === 'chi@example.com').number, '09')
+})
+
+test('does not write any account when one import row has a conflict', () => {
+  const storage = createMemoryStorage()
+  const before = getStoredUsers(storage)
+  const result = provisionMockStudentsForClass('10A1', [
+    { studentNumber: '01', name: 'Le Cẩm Chi', email: 'chi@example.com' },
+    { studentNumber: '02', name: 'Admin giả', email: 'admin@educraft.test' },
+  ], storage)
+
+  assert.equal(result.status, 'error')
+  assert.deepEqual(getStoredUsers(storage), before)
 })
 
 test('rejects an email that belongs to a non-student account', () => {

@@ -1,3 +1,9 @@
+import {
+  getClassMemberships,
+  removeStudentMemberships,
+  saveClassMemberships,
+} from './mockClassMembershipStore.js'
+
 const USERS_STORAGE_KEY = 'educraft.users'
 const SESSION_STORAGE_KEY = 'educraft.session'
 
@@ -11,6 +17,12 @@ export const roleLabels = Object.freeze({
   [ROLES.ADMIN]: 'Quản trị',
   [ROLES.TEACHER]: 'Giáo viên',
   [ROLES.STUDENT]: 'Học sinh',
+})
+
+export const ACCOUNT_STATUS = Object.freeze({
+  ACTIVE: 'active',
+  LOCKED: 'locked',
+  PENDING: 'pending',
 })
 
 const defaultUsers = Object.freeze([
@@ -185,6 +197,33 @@ function writeUsers(users, storage = getBrowserStorage()) {
   storage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
 }
 
+function removeTeacherFromStoredClasses(userId, storage) {
+  if (!storage) {
+    return
+  }
+
+  try {
+    const storedClasses = storage.getItem('educraft.classes')
+    const classes = storedClasses ? JSON.parse(storedClasses) : []
+
+    if (!Array.isArray(classes)) {
+      return
+    }
+
+    storage.setItem('educraft.classes', JSON.stringify(classes.map((classroom) => {
+      if (classroom.teacherId !== userId) {
+        return classroom
+      }
+
+      const updated = { ...classroom }
+      delete updated.teacherId
+      return updated
+    })))
+  } catch {
+    // Class cleanup is optional for the mock account operation.
+  }
+}
+
 function readSession(storage = getBrowserStorage()) {
   if (!storage) {
     return null
@@ -319,6 +358,16 @@ function userWithoutPassword(user) {
 
 export function getStoredUsers(storage = getBrowserStorage()) {
   return cloneUsers(readUsers(storage))
+}
+
+export function materializeMockUsers(storage = getBrowserStorage()) {
+  const users = readUsers(storage)
+
+  if (storage && storage.getItem(USERS_STORAGE_KEY) === null) {
+    writeUsers(users, storage)
+  }
+
+  return cloneUsers(users)
 }
 
 export function getCurrentUser(storage = getBrowserStorage()) {
@@ -562,6 +611,17 @@ export function provisionMockStudentsForClass(classId, rows, storage = getBrowse
 
   writeUsers(nextUsers, storage)
 
+  saveClassMemberships(
+    plan.classId,
+    plan.entries
+      .filter((entry) => entry.kind !== 'skipped' || entry.accountId)
+      .map((entry) => ({
+        studentId: entry.accountId,
+        studentNumber: entry.studentNumber,
+      })),
+    storage,
+  )
+
   return {
     status: 'success',
     data: {
@@ -623,7 +683,7 @@ export function updateMockAccount(userId, form, storage = getBrowserStorage()) {
     name: normalized.name,
     email: normalized.email,
     role: normalized.role,
-    classIds: normalized.classIds,
+    classIds: normalized.role === users[index].role ? normalized.classIds : [],
     studentCode: normalized.studentCode,
   }
 
@@ -634,7 +694,36 @@ export function updateMockAccount(userId, form, storage = getBrowserStorage()) {
   const nextUsers = [...users]
   nextUsers[index] = updated
   writeUsers(nextUsers, storage)
+
+  if (normalized.role !== users[index].role) {
+    if (users[index].role === ROLES.STUDENT) {
+      removeStudentMemberships(userId, storage)
+    }
+
+    if (users[index].role === ROLES.TEACHER) {
+      removeTeacherFromStoredClasses(userId, storage)
+    }
+  }
+
   return { status: 'success', data: cloneUser(updated) }
+}
+
+export function deleteMockAccount(userId, storage = getBrowserStorage()) {
+  const users = readUsers(storage)
+  const user = users.find((item) => item.id === userId)
+
+  if (!user) {
+    return { status: 'error', errors: { form: 'Khong tim thay tai khoan.' } }
+  }
+
+  writeUsers(users.filter((item) => item.id !== userId), storage)
+  removeStudentMemberships(userId, storage)
+
+  if (user.role === ROLES.TEACHER) {
+    removeTeacherFromStoredClasses(userId, storage)
+  }
+
+  return { status: 'success', data: cloneUser(user) }
 }
 
 export function toggleMockAccountStatus(userId, storage = getBrowserStorage()) {
@@ -645,7 +734,71 @@ export function toggleMockAccountStatus(userId, storage = getBrowserStorage()) {
     return { status: 'error', errors: { form: 'Khong tim thay tai khoan.' } }
   }
 
-  user.status = user.status === 'locked' ? 'active' : 'locked'
+  if (user.status === ACCOUNT_STATUS.PENDING) {
+    return {
+      status: 'error',
+      errors: { form: 'Tài khoản đang chờ kích hoạt. Hãy kích hoạt trước.' },
+    }
+  }
+
+  return user.status === ACCOUNT_STATUS.LOCKED
+    ? unlockMockAccount(userId, storage)
+    : lockMockAccount(userId, storage)
+}
+
+export function activateMockAccount(userId, password = 'student123', storage = getBrowserStorage()) {
+  const users = readUsers(storage)
+  const user = users.find((item) => item.id === userId)
+
+  if (!user) {
+    return { status: 'error', errors: { form: 'Khong tim thay tai khoan.' } }
+  }
+
+  if (user.status !== ACCOUNT_STATUS.PENDING) {
+    return { status: 'error', errors: { form: 'Tài khoản này không ở trạng thái chờ kích hoạt.' } }
+  }
+
+  if (String(password ?? '').trim().length < 6) {
+    return { status: 'error', errors: { form: 'Mật khẩu cần tối thiểu 6 ký tự.' } }
+  }
+
+  user.password = String(password).trim()
+  user.status = ACCOUNT_STATUS.ACTIVE
+  writeUsers(users, storage)
+
+  return { status: 'success', data: cloneUser(user) }
+}
+
+export function lockMockAccount(userId, storage = getBrowserStorage()) {
+  const users = readUsers(storage)
+  const user = users.find((item) => item.id === userId)
+
+  if (!user) {
+    return { status: 'error', errors: { form: 'Khong tim thay tai khoan.' } }
+  }
+
+  if (user.status !== ACCOUNT_STATUS.ACTIVE) {
+    return { status: 'error', errors: { form: 'Chỉ tài khoản đang hoạt động mới có thể bị khóa.' } }
+  }
+
+  user.status = ACCOUNT_STATUS.LOCKED
+  writeUsers(users, storage)
+  return { status: 'success', data: cloneUser(user) }
+}
+
+export function unlockMockAccount(userId, storage = getBrowserStorage()) {
+  const users = readUsers(storage)
+  const user = users.find((item) => item.id === userId)
+
+  if (!user) {
+    return { status: 'error', errors: { form: 'Khong tim thay tai khoan.' } }
+  }
+
+  if (user.status !== ACCOUNT_STATUS.LOCKED) {
+    return { status: 'error', errors: { form: 'Chỉ tài khoản bị khóa mới có thể mở khóa.' } }
+  }
+
+  user.status = ACCOUNT_STATUS.ACTIVE
   writeUsers(users, storage)
   return { status: 'success', data: cloneUser(user) }
 }
@@ -679,6 +832,44 @@ export function assignMockClass(classId, { teacherId = '', studentIds = [] } = {
   })
 
   writeUsers(nextUsers, storage)
+  saveClassMemberships(
+    classId,
+    nextUsers
+      .filter((user) => user.role === ROLES.STUDENT && normalizedStudentIds.has(user.id))
+      .map((user) => ({
+        studentId: user.id,
+        studentNumber: user.importedStudentNumber,
+      })),
+    storage,
+  )
+  return { status: 'success', data: cloneUsers(nextUsers) }
+}
+
+export function assignMockTeacher(classId, teacherId = '', storage = getBrowserStorage()) {
+  const normalizedClassId = String(classId ?? '').trim().toUpperCase()
+  const users = readUsers(storage)
+  const teacher = users.find((user) => user.id === teacherId && user.role === ROLES.TEACHER)
+
+  if (teacherId && (!teacher || teacher.status !== ACCOUNT_STATUS.ACTIVE)) {
+    return { status: 'error', errors: { form: 'Giáo viên không hợp lệ hoặc đang bị khóa.' } }
+  }
+
+  const nextUsers = users.map((user) => {
+    if (user.role !== ROLES.TEACHER) {
+      return user
+    }
+
+    const classIds = new Set(user.classIds ?? [])
+    classIds.delete(normalizedClassId)
+
+    if (user.id === teacherId) {
+      classIds.add(normalizedClassId)
+    }
+
+    return { ...user, classIds: [...classIds] }
+  })
+
+  writeUsers(nextUsers, storage)
   return { status: 'success', data: cloneUsers(nextUsers) }
 }
 
@@ -695,6 +886,7 @@ export function getAdminSnapshot(state = 'success', classes = [], storage = getB
   }
 
   const users = getStoredUsers(storage)
+  const usersById = new Map(users.map((user) => [user.id, user]))
 
   if (state === 'empty') {
     return { status: 'success', data: { users: [], classes: [] } }
@@ -704,11 +896,27 @@ export function getAdminSnapshot(state = 'success', classes = [], storage = getB
     status: 'success',
     data: {
       users,
-      classes: classes.map((classroom) => ({
-        ...classroom,
-        teacher: users.find((user) => user.role === ROLES.TEACHER && user.classIds?.includes(classroom.id)) ?? null,
-        students: users.filter((user) => user.role === ROLES.STUDENT && user.classIds?.includes(classroom.id)),
-      })),
+      classes: classes.map((classroom) => {
+        const teacher = classroom.teacherId
+          ? users.find((user) => user.id === classroom.teacherId && user.role === ROLES.TEACHER && user.status === ACCOUNT_STATUS.ACTIVE)
+          : users.find((user) => user.role === ROLES.TEACHER && user.status === ACCOUNT_STATUS.ACTIVE && user.classIds?.includes(classroom.id))
+
+        const memberships = getClassMemberships(classroom.id, storage)
+        const students = memberships.length > 0
+          ? memberships
+              .map((membership) => {
+                const student = usersById.get(membership.studentId)
+                return student ? { ...student, importedStudentNumber: membership.studentNumber || student.importedStudentNumber } : null
+              })
+              .filter(Boolean)
+          : users.filter((user) => user.role === ROLES.STUDENT && user.classIds?.includes(classroom.id))
+
+        return {
+          ...classroom,
+          teacher: teacher ?? null,
+          students,
+        }
+      }),
     },
   }
 }
