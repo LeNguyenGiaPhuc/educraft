@@ -51,6 +51,27 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
   const [errors, setErrors] = useState([])
   const [status, setStatus] = useState('idle')
   const [message, setMessage] = useState('')
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false)
+
+  async function downloadTemplate() {
+    setDownloadingTemplate(true)
+
+    try {
+      const XLSX = await import('xlsx')
+      const worksheet = XLSX.utils.aoa_to_sheet([
+        ['STT', 'Họ và tên', 'Email'],
+        ['', '', ''],
+      ])
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách học sinh')
+      XLSX.writeFile(workbook, 'mau-danh-sach-hoc-sinh.xlsx')
+    } catch {
+      setStatus('error')
+      setMessage('Không thể tạo file Excel mẫu.')
+    } finally {
+      setDownloadingTemplate(false)
+    }
+  }
 
   async function handleFileChange(event) {
     const file = event.target.files?.[0]
@@ -172,6 +193,9 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
         <label className="button button-outline" htmlFor="student-import-file">
           Chọn file Excel
         </label>
+        <button className="button button-outline" disabled={downloadingTemplate} type="button" onClick={downloadTemplate}>
+          {downloadingTemplate ? 'Đang tạo mẫu...' : 'Tải file Excel mẫu'}
+        </button>
         <span>{fileName || 'Chưa chọn file'}</span>
         <small>Tối đa 5 MB · Định dạng .xlsx</small>
       </div>

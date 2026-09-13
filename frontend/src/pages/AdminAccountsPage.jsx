@@ -2,7 +2,9 @@ import { useState } from 'react'
 
 import {
   ADMIN_STATE,
+  activateAdminAccount,
   createAdminAccount,
+  deleteAdminAccount,
   filterAdminAccounts,
   getAccountClassLabel,
   getAdminWorkspace,
@@ -11,7 +13,7 @@ import {
 } from '../data/mockAdminStore.js'
 import { getCurrentUser, roleLabels, ROLES } from '../data/mockAuthStore.js'
 
-function AccountForm({ initialForm, classes, onCancel, onSaved }) {
+function AccountForm({ initialForm, onCancel, onSaved }) {
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
@@ -19,17 +21,6 @@ function AccountForm({ initialForm, classes, onCancel, onSaved }) {
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
     setErrors((current) => ({ ...current, [field]: undefined, form: undefined }))
-  }
-
-  function toggleClass(classId) {
-    const selected = new Set(form.classIds ?? [])
-    if (selected.has(classId)) {
-      selected.delete(classId)
-    } else {
-      selected.add(classId)
-    }
-
-    setForm((current) => ({ ...current, classIds: [...selected] }))
   }
 
   function handleSubmit(event) {
@@ -121,22 +112,13 @@ function AccountForm({ initialForm, classes, onCancel, onSaved }) {
               </select>
             </label>
 
-            <fieldset className="admin-class-picks account-class-checkboxes">
-              <legend>Lớp học</legend>
-              {classes.length === 0 ? (
-                <p>Chưa có lớp nào.</p>
-              ) : classes.map((classroom) => (
-                <label key={classroom.id}>
-                  <input
-                    checked={(form.classIds ?? []).includes(classroom.id)}
-                    type="checkbox"
-                    onChange={() => toggleClass(classroom.id)}
-                  />
-                  {classroom.id}
-                </label>
-              ))}
-            </fieldset>
+            <div className="admin-form-help">
+              <strong>Phân công lớp</strong>
+              <p>Admin phân công giáo viên tại màn hình Quản lý lớp học. Học sinh được thêm bằng danh sách lớp hoặc file Excel.</p>
+            </div>
           </div>
+
+          {errors.form && <p className="form-field-error" role="alert">{errors.form}</p>}
 
           <div className="admin-form-actions">
             <button className="button button-outline" type="button" onClick={onCancel}>Hủy</button>
@@ -182,25 +164,48 @@ function AdminAccountsPage() {
     const currentUser = getCurrentUser()
 
     if (account.id === currentUser?.id) {
-      window.alert('Không thể khóa tài khoản đang đăng nhập.')
+      setNotice('Không thể khóa tài khoản đang đăng nhập.')
       return
     }
 
-    const nextAction = account.status === 'locked' ? 'kích hoạt' : 'khóa'
+    const nextAction = account.status === 'pending'
+      ? 'kích hoạt'
+      : account.status === 'locked' ? 'kích hoạt' : 'khóa'
     const confirmed = window.confirm(`Bạn có chắc chắn muốn ${nextAction} tài khoản ${account.username} không?`)
 
     if (!confirmed) {
       return
     }
 
-    const result = toggleAdminAccountStatus(account.id, currentUser?.id)
+    const result = account.status === 'pending'
+      ? activateAdminAccount(account.id)
+      : toggleAdminAccountStatus(account.id, currentUser?.id)
     if (result.status === 'success') {
       setNotice(`Tài khoản ${account.username} đã đổi trạng thái.`)
-      window.location.reload()
       return
     }
 
     setNotice(result.errors?.form ?? 'Không thể đổi trạng thái tài khoản này.')
+  }
+
+  function handleDelete(account) {
+    const currentUser = getCurrentUser()
+    if (account.id === currentUser?.id) {
+      setNotice('Không thể xóa tài khoản đang đăng nhập.')
+      return
+    }
+
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa tài khoản ${account.username} không?`)) {
+      return
+    }
+
+    const result = deleteAdminAccount(account.id, currentUser?.id)
+    if (result.status === 'success') {
+      setNotice(`Đã xóa tài khoản ${account.username}.`)
+      return
+    }
+
+    setNotice(result.errors?.form ?? 'Không thể xóa tài khoản này.')
   }
 
   if (snapshot.status === 'error') {
@@ -273,7 +278,8 @@ function AdminAccountsPage() {
                 <td>
                   <div className="admin-table-actions">
                     <button className="button button-outline" type="button" onClick={() => openEdit(account)}>Chỉnh sửa</button>
-                    <button className="button button-ghost" type="button" onClick={() => handleToggle(account)}>{account.status === 'locked' ? 'Kích hoạt' : 'Khóa'}</button>
+                    <button className="button button-ghost" type="button" onClick={() => handleToggle(account)}>{account.status === 'locked' || account.status === 'pending' ? 'Kích hoạt' : 'Khóa'}</button>
+                    <button className="button button-danger" type="button" onClick={() => handleDelete(account)}>Xóa</button>
                   </div>
                 </td>
               </tr>
@@ -285,7 +291,6 @@ function AdminAccountsPage() {
       {showAccountForm && (
         <AccountForm
           initialForm={editingAccount ? { email: editingAccount.email ?? '', username: editingAccount.username, password: '', name: editingAccount.name, role: editingAccount.role, classIds: editingAccount.classIds ?? [], id: editingAccount.id } : { email: '', password: '', name: '', role: ROLES.ADMIN, classIds: [], id: '' }}
-          classes={classes}
           onCancel={() => setShowAccountForm(false)}
           onSaved={handleSaved}
         />

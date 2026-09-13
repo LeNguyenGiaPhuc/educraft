@@ -1,83 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import AdminClassForm from '../components/AdminClassForm.jsx'
 import {
   ADMIN_STATE,
-  createAdminClass,
   filterAdminClasses,
   getAdminWorkspace,
   getTeachers,
 } from '../data/mockAdminStore.js'
-
-function ClassCreateModal({ teachers, onCancel, onSaved }) {
-  const [form, setForm] = useState({
-    id: '',
-    name: '',
-    teacherId: teachers[0]?.id ?? '',
-    semester: 'Học kỳ 1',
-    schoolYear: 'Năm học 2026–2027',
-    studentIds: [],
-  })
-
-  function handleSubmit(event) {
-    event.preventDefault()
-
-    const result = createAdminClass({
-      id: form.id,
-      name: form.name,
-      teacherId: form.teacherId,
-      semester: form.semester,
-      schoolYear: form.schoolYear,
-      studentIds: form.studentIds,
-    })
-
-    if (result.status === 'error') {
-      return
-    }
-
-    onSaved(result.data)
-  }
-
-  return (
-    <div className="admin-modal-backdrop">
-      <div aria-labelledby="class-modal-title" aria-modal="true" className="admin-modal" role="dialog">
-        <div className="admin-modal-header">
-          <div>
-            <span className="panel-subtitle">Lớp học</span>
-            <h2 id="class-modal-title">Tạo lớp</h2>
-          </div>
-          <button aria-label="Đóng cửa sổ" className="icon-button" title="Đóng" type="button" onClick={onCancel}>×</button>
-        </div>
-
-        <form className="admin-form" onSubmit={handleSubmit} noValidate>
-          <div className="form-grid">
-            <label className="field-label">
-              <span>Tên lớp</span>
-              <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-            </label>
-
-            <label className="field-label">
-              <span>Mã lớp</span>
-              <input value={form.id} onChange={(event) => setForm({ ...form, id: event.target.value.toUpperCase() })} />
-            </label>
-
-            <label className="field-label">
-              <span>Giáo viên phụ trách</span>
-              <select value={form.teacherId} onChange={(event) => setForm({ ...form, teacherId: event.target.value })}>
-                {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}
-              </select>
-            </label>
-          </div>
-
-          <div className="admin-form-actions">
-            <button className="button button-outline" type="button" onClick={onCancel}>Hủy</button>
-            <button className="button button-primary" type="submit">Tạo lớp</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
 
 function AdminClassesPage() {
   const snapshot = getAdminWorkspace(ADMIN_STATE.SUCCESS)
@@ -98,7 +28,6 @@ function AdminClassesPage() {
   function onCreate(savedClass) {
     setShowClassForm(false)
     setNotice(`Đã tạo lớp ${savedClass.id}.`)
-    window.location.reload()
   }
 
   return (
@@ -155,7 +84,7 @@ function AdminClassesPage() {
       </section>
 
       {showClassForm && (
-        <ClassCreateModal teachers={teachers} onCancel={() => setShowClassForm(false)} onSaved={onCreate} />
+        <AdminClassForm teachers={teachers} onCancel={() => setShowClassForm(false)} onSaved={onCreate} />
       )}
     </section>
   )

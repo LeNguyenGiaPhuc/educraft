@@ -2321,6 +2321,24 @@
   color: var(--error);
 }
 
+.admin-form-help {
+  grid-column: 1 / -1;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.admin-form-help strong {
+  color: var(--ink);
+}
+
+.admin-form-help p {
+  margin: 4px 0 0;
+}
+
 .admin-form-actions {
   display: flex;
   align-items: center;

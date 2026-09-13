@@ -2,7 +2,15 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import StudentImportPanel from '../components/StudentImportPanel.jsx'
-import { ADMIN_STATE, addStudentsToAdminClass, deleteAdminClass, getAdminWorkspace } from '../data/mockAdminStore.js'
+import AdminClassForm from '../components/AdminClassForm.jsx'
+import {
+  ADMIN_STATE,
+  addStudentsToAdminClass,
+  deleteAdminClass,
+  getAdminWorkspace,
+  getTeachers,
+  removeStudentFromAdminClass,
+} from '../data/mockAdminStore.js'
 import { ROLES } from '../data/mockAuthStore.js'
 
 function StudentAddModal({ students, onCancel, onAdd }) {
@@ -62,6 +70,8 @@ function AdminClassDetailPage() {
   const [query, setQuery] = useState('')
   const [showStudentModal, setShowStudentModal] = useState(false)
   const [showImportPanel, setShowImportPanel] = useState(false)
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [notice, setNotice] = useState('')
   const [, setDataVersion] = useState(0)
 
   if (snapshot.status === 'error') {
@@ -98,7 +108,23 @@ function AdminClassDetailPage() {
     const created = result.addedCount ?? 0
     const assigned = result.assignedCount ?? 0
     const skipped = result.skippedCount ?? 0
-    window.alert(`Đã import: ${created} tài khoản mới, ${assigned} tài khoản có sẵn, bỏ qua ${skipped} học sinh.`)
+    setNotice(`Đã import: ${created} tài khoản mới, ${assigned} tài khoản có sẵn, bỏ qua ${skipped} học sinh.`)
+  }
+
+  function handleRemoveStudent(student) {
+    const confirmed = window.confirm(`Xóa ${student.name} khỏi lớp ${classroom.id}?`)
+
+    if (!confirmed) {
+      return
+    }
+
+    const result = removeStudentFromAdminClass(classroom.id, student.id)
+    if (result.status === 'success') {
+      setNotice(`Đã xóa ${student.name} khỏi lớp.`)
+      setDataVersion((version) => version + 1)
+    } else {
+      setNotice(result.errors?.form ?? 'Không thể xóa học sinh khỏi lớp.')
+    }
   }
 
   function handleDeleteClass() {
@@ -106,7 +132,12 @@ function AdminClassDetailPage() {
       return
     }
 
-    const confirmed = window.confirm(`Bạn có chắc chắn muốn xóa lớp ${classroom.id} không?`)
+    const assignmentCount = classroom.assignmentCount ?? classroom.assignments?.length ?? 0
+    const confirmed = window.confirm(
+      `Bạn có chắc chắn muốn xóa lớp ${classroom.id} không?\n\n` +
+      `Sẽ xóa ${students.length} học sinh khỏi lớp và ${assignmentCount} bài kiểm tra liên quan. ` +
+      'Tài khoản học sinh vẫn được giữ lại.',
+    )
 
     if (!confirmed) {
       return
@@ -119,7 +150,7 @@ function AdminClassDetailPage() {
       return
     }
 
-    window.alert(result.errors?.form ?? 'Không thể xóa lớp học này.')
+    setNotice(result.errors?.form ?? 'Không thể xóa lớp học này.')
   }
 
   if (!classroom) {
@@ -128,6 +159,7 @@ function AdminClassDetailPage() {
 
   return (
     <section className="admin-page">
+      {notice && <div className="admin notice-bar">{notice}</div>}
       <div className="admin-page-header">
         <div>
           <p className="state-kicker">Chi tiết lớp</p>
@@ -135,6 +167,7 @@ function AdminClassDetailPage() {
         </div>
         <div className="admin-page-actions">
           <Link className="button button-outline" to="/admin/classes">← Quay lại</Link>
+          <button className="button button-outline" type="button" onClick={() => setShowEditForm(true)}>Chỉnh sửa</button>
           <button className="button button-danger" type="button" onClick={handleDeleteClass}>Xóa lớp</button>
           <button className="button button-outline" type="button" onClick={() => setShowImportPanel(true)}>Import Excel</button>
           <button className="button button-primary" type="button" onClick={() => setShowStudentModal(true)}>+ Thêm học sinh</button>
@@ -169,6 +202,7 @@ function AdminClassDetailPage() {
           <table className="admin-data-table">
             <thead>
               <tr>
+                <th>STT</th>
                 <th>Tên tài khoản</th>
                 <th>Họ tên</th>
                 <th>Email</th>
@@ -178,16 +212,19 @@ function AdminClassDetailPage() {
             </thead>
             <tbody>
               {matchingStudents.length === 0 ? (
-                <tr><td colSpan="5" className="empty-row">Lớp này chưa có học sinh.</td></tr>
+                <tr><td colSpan="6" className="empty-row">Lớp này chưa có học sinh.</td></tr>
               ) : matchingStudents.map((student) => (
                 <tr key={student.id}>
+                  <td>{student.importedStudentNumber ?? '—'}</td>
                   <td><strong>{student.username}</strong></td>
                   <td>{student.name}</td>
                   <td>{student.email ?? '—'}</td>
                   <td><span className={`status-badge status-${student.status ?? 'active'}`}>
                     {student.status === 'pending' ? 'Chờ kích hoạt' : student.status === 'locked' ? 'Khóa' : 'Hoạt động'}
                   </span></td>
-                  <td><button className="button button-ghost" type="button">Xem</button></td>
+                  <td>
+                    <button className="button button-ghost" type="button" onClick={() => handleRemoveStudent(student)}>Xóa</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -209,6 +246,19 @@ function AdminClassDetailPage() {
 
       {showStudentModal && (
         <StudentAddModal students={availableStudents} onCancel={() => setShowStudentModal(false)} onAdd={addStudents} />
+      )}
+
+      {showEditForm && (
+        <AdminClassForm
+          initialClass={classroom}
+          teachers={getTeachers(allUsers)}
+          onCancel={() => setShowEditForm(false)}
+          onSaved={(savedClass) => {
+            setShowEditForm(false)
+            setNotice(`Đã cập nhật lớp ${savedClass.id}.`)
+            setDataVersion((version) => version + 1)
+          }}
+        />
       )}
     </section>
   )
