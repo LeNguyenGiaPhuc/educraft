@@ -1,5 +1,9 @@
 import { getStoredAssignments } from './mockAssignmentStore.js'
-import { getTeacherClass, getTeacherClasses } from './mockClassStore.js'
+import {
+  getTeacherClass,
+  getTeacherClassForUser,
+  getTeacherClassesForUser,
+} from './mockClassStore.js'
 import { getStoredReference } from './mockReferenceStore.js'
 import { getStoredSubmissions } from './mockSubmissionStore.js'
 import { getClassStudentCount, getClassStudents } from './mockStudentStore.js'
@@ -131,13 +135,17 @@ export function getMockAssignmentSubmissions(assignmentId) {
   }))
 }
 
-export function getClassDetailSnapshot(classId, storage) {
-  const classroom = getTeacherClass(classId, storage)
+export function getClassDetailSnapshot(classId, storage, currentUser) {
+  const classroom = currentUser?.role === 'TEACHER'
+    ? getTeacherClassForUser(currentUser, classId, storage)
+    : getTeacherClass(classId, storage)
 
   if (!classroom) {
     return {
       status: 'error',
-      message: 'Không tìm thấy lớp học này.',
+      message: currentUser?.role === 'TEACHER'
+        ? 'Bạn không được phân công vào lớp học này.'
+        : 'Không tìm thấy lớp học này.',
     }
   }
 
@@ -165,8 +173,8 @@ export function getClassTabView(classroom, tab = 'assignments') {
   return { kind: 'assignments', rows: classroom.assignments }
 }
 
-export function getAssignmentSnapshot(assignmentId, storage) {
-  for (const classroom of getTeacherClasses(storage)) {
+export function getAssignmentSnapshot(assignmentId, storage, currentUser) {
+  for (const classroom of getTeacherClassesForUser(currentUser, storage)) {
     const classId = classroom.id
     const assignments = [
       ...(classDetails[classId]?.assignments ?? []),
@@ -198,8 +206,8 @@ export function getAssignmentSnapshot(assignmentId, storage) {
   }
 }
 
-export function getAssignmentDetailSnapshot(assignmentId, storage) {
-  const assignmentSnapshot = getAssignmentSnapshot(assignmentId, storage)
+export function getAssignmentDetailSnapshot(assignmentId, storage, currentUser) {
+  const assignmentSnapshot = getAssignmentSnapshot(assignmentId, storage, currentUser)
 
   if (assignmentSnapshot.status === 'error') {
     return assignmentSnapshot

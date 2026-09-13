@@ -115,10 +115,10 @@ function requestedTab() {
     : 'assignments'
 }
 
-function ClassDetailPage() {
+function ClassDetailPage({ currentUser }) {
   const { classId = '10A1' } = useParams()
   const [activeTab, setActiveTab] = useState(requestedTab)
-  const snapshot = getClassDetailSnapshot(classId)
+  const snapshot = getClassDetailSnapshot(classId, undefined, currentUser)
 
   if (snapshot.status === 'error') {
     return <ClassDetailError message={snapshot.message} />

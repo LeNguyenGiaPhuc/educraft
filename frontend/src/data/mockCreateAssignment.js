@@ -1,11 +1,11 @@
 import { createStoredAssignment } from './mockAssignmentStore.js'
-import { getTeacherClasses } from './mockClassStore.js'
+import { getTeacherClassesForUser } from './mockClassStore.js'
 import { getClassStudentCount } from './mockStudentStore.js'
 
 const defaultDueAt = '2026-09-18T23:59'
 
-export function getAssignmentClassOptions(storage) {
-  return getTeacherClasses(storage).map((classroom) => {
+export function getAssignmentClassOptions(storage, currentUser) {
+  return getTeacherClassesForUser(currentUser, storage).map((classroom) => {
     const studentCount = getClassStudentCount(classroom.id, classroom.studentCount, storage)
 
     return {
@@ -15,8 +15,8 @@ export function getAssignmentClassOptions(storage) {
   })
 }
 
-export function getDefaultAssignmentForm(classId, storage) {
-  const options = getAssignmentClassOptions(storage)
+export function getDefaultAssignmentForm(classId, storage, currentUser) {
+  const options = getAssignmentClassOptions(storage, currentUser)
   const selectedClass = options.some((option) => option.id === classId)
   const defaultClassId = selectedClass ? classId : (options[0]?.id ?? '')
 
@@ -28,7 +28,7 @@ export function getDefaultAssignmentForm(classId, storage) {
   }
 }
 
-export function validateAssignmentForm(form = {}, storage) {
+export function validateAssignmentForm(form = {}, storage, currentUser) {
   const errors = {}
   const title = String(form.title ?? '').trim()
   const classId = String(form.classId ?? '').trim()
@@ -41,7 +41,7 @@ export function validateAssignmentForm(form = {}, storage) {
     errors.title = 'Tên bài kiểm tra không vượt quá 120 ký tự.'
   }
 
-  if (!getAssignmentClassOptions(storage).some((option) => option.id === classId)) {
+  if (!getAssignmentClassOptions(storage, currentUser).some((option) => option.id === classId)) {
     errors.classId = 'Chọn lớp học.'
   }
 

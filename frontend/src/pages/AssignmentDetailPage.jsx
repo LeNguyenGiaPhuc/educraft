@@ -460,10 +460,10 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
   )
 }
 
-function AssignmentDetailPage() {
+function AssignmentDetailPage({ currentUser }) {
   const { assignmentId = 'nam-xuong' } = useParams()
   const [, setRefreshVersion] = useState(0)
-  const snapshot = getAssignmentDetailSnapshot(assignmentId)
+  const snapshot = getAssignmentDetailSnapshot(assignmentId, undefined, currentUser)
 
   function refreshDetail() {
     setRefreshVersion((current) => current + 1)

@@ -110,8 +110,8 @@ function DashboardState({ snapshot }) {
   )
 }
 
-function DashboardPage() {
-  const snapshot = getDashboardSnapshot(requestedDashboardState())
+function DashboardPage({ currentUser }) {
+  const snapshot = getDashboardSnapshot(requestedDashboardState(), undefined, currentUser)
 
   return (
     <main className="page-content">

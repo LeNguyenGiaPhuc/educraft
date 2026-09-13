@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import AdminShell from './components/AdminShell.jsx'
 import AppShell from './components/AppShell.jsx'
 import RequireStudentAssignment from './components/RequireStudentAssignment.jsx'
+import RequireTeacherClass from './components/RequireTeacherClass.jsx'
 import RoleRoute from './components/RoleRoute.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { useAuth } from './contexts/useAuth.js'
@@ -35,9 +36,10 @@ function AppRoutes() {
         id: user.id,
         name: user.name,
         role: 'student',
-        studentId: user.studentCode,
+        studentId: user.studentCode || user.email,
       }
     : null
+  const currentTeacher = user?.role === ROLES.TEACHER ? user : null
 
   return (
     <Routes>
@@ -58,17 +60,19 @@ function AppRoutes() {
 
       <Route element={<RoleRoute allowedRoles={[ROLES.TEACHER]} />}>
         <Route element={<AppShell />}>
-          <Route path="/teacher" element={<DashboardPage />} />
-          <Route path="/assignments/new" element={<CreateAssignmentPage />} />
-          <Route path="/classes/:classId" element={<ClassDetailPage />} />
-          <Route
-            path="/classes/:classId/assignments/new"
-            element={<CreateAssignmentPage />}
-          />
-          <Route
-            path="/classes/:classId/assignments/:assignmentId"
-            element={<AssignmentDetailPage />}
-          />
+          <Route path="/teacher" element={<DashboardPage currentUser={currentTeacher} />} />
+          <Route path="/assignments/new" element={<CreateAssignmentPage currentUser={currentTeacher} />} />
+          <Route element={<RequireTeacherClass />}>
+            <Route path="/classes/:classId" element={<ClassDetailPage currentUser={currentTeacher} />} />
+            <Route
+              path="/classes/:classId/assignments/new"
+              element={<CreateAssignmentPage currentUser={currentTeacher} />}
+            />
+            <Route
+              path="/classes/:classId/assignments/:assignmentId"
+              element={<AssignmentDetailPage currentUser={currentTeacher} />}
+            />
+          </Route>
         </Route>
       </Route>
 

@@ -7,9 +7,10 @@ export function isStudentInClass(user, classId, storage) {
   }
 
   const snapshot = getClassDetailSnapshot(classId, storage)
+  const studentCode = user.studentId || user.studentCode || user.email
 
   return snapshot.status === 'success'
-    && snapshot.data.students.some((student) => student.code === user.studentId)
+    && snapshot.data.students.some((student) => student.code === studentCode)
 }
 
 export function getStudentAssignmentSnapshot(user, assignmentId, storage) {

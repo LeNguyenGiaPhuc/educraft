@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 
 import PageErrorState from '../components/PageErrorState.jsx'
 import { getClassDetailSnapshot } from '../data/mockClassDetail.js'
-import { getTeacherClasses } from '../data/mockClassStore.js'
+import { getTeacherClassesForUser } from '../data/mockClassStore.js'
 import {
   getAssignmentClassOptions,
   getDefaultAssignmentForm,
@@ -80,10 +80,10 @@ function AssignmentSuccess({ classroom, onCreateAnother, submission }) {
   )
 }
 
-function CreateAssignmentForm({ classroom, form, errors, submission, onChange, onSubmit }) {
+function CreateAssignmentForm({ classroom, currentUser, form, errors, submission, onChange, onSubmit }) {
   const isSubmitting = submission.status === 'loading'
   const hasValidationErrors = Object.keys(errors).length > 0
-  const options = getAssignmentClassOptions()
+  const options = getAssignmentClassOptions(undefined, currentUser)
 
   return (
     <section className="assignment-form-card" aria-labelledby="assignment-form-title">
@@ -216,8 +216,8 @@ function CreateAssignmentForm({ classroom, form, errors, submission, onChange, o
   )
 }
 
-function CreateAssignmentWorkspace({ classId, classroom }) {
-  const [form, setForm] = useState(() => getDefaultAssignmentForm(classId))
+function CreateAssignmentWorkspace({ classId, classroom, currentUser }) {
+  const [form, setForm] = useState(() => getDefaultAssignmentForm(classId, undefined, currentUser))
   const [errors, setErrors] = useState({})
   const [submission, setSubmission] = useState({ status: 'idle' })
 
@@ -240,7 +240,7 @@ function CreateAssignmentWorkspace({ classId, classroom }) {
   async function handleSubmit(event) {
     event.preventDefault()
 
-    const nextErrors = validateAssignmentForm(form)
+    const nextErrors = validateAssignmentForm(form, undefined, currentUser)
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length > 0) {
@@ -262,19 +262,19 @@ function CreateAssignmentWorkspace({ classId, classroom }) {
   }
 
   function handleCreateAnother() {
-    setForm(getDefaultAssignmentForm(form.classId))
+    setForm(getDefaultAssignmentForm(form.classId, undefined, currentUser))
     setErrors({})
     setSubmission({ status: 'idle' })
   }
 
-  const selectedClassroomSnapshot = getClassDetailSnapshot(form.classId)
+  const selectedClassroomSnapshot = getClassDetailSnapshot(form.classId, undefined, currentUser)
   const selectedClassroom =
     selectedClassroomSnapshot.status === 'success'
       ? selectedClassroomSnapshot.data
       : classroom
   const successClassroomSnapshot =
     submission.status === 'success'
-      ? getClassDetailSnapshot(submission.data.classId)
+      ? getClassDetailSnapshot(submission.data.classId, undefined, currentUser)
       : null
   const successClassroom =
     successClassroomSnapshot?.status === 'success'
@@ -294,6 +294,7 @@ function CreateAssignmentWorkspace({ classId, classroom }) {
       ) : (
         <CreateAssignmentForm
           classroom={selectedClassroom}
+          currentUser={currentUser}
           errors={errors}
           form={form}
           onChange={handleChange}
@@ -305,9 +306,9 @@ function CreateAssignmentWorkspace({ classId, classroom }) {
   )
 }
 
-function CreateAssignmentPage() {
+function CreateAssignmentPage({ currentUser }) {
   const { classId: routeClassId } = useParams()
-  const initialClassId = routeClassId ?? getTeacherClasses()[0]?.id
+  const initialClassId = routeClassId ?? getTeacherClassesForUser(currentUser)[0]?.id
   const snapshot = initialClassId
     ? getClassDetailSnapshot(initialClassId)
     : {
@@ -326,6 +327,7 @@ function CreateAssignmentPage() {
           key={initialClassId ?? 'no-class'}
           classId={initialClassId}
           classroom={snapshot.data}
+          currentUser={currentUser}
         />
       </div>
     </main>

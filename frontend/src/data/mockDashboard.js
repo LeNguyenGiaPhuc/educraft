@@ -1,8 +1,8 @@
 import { getStoredAssignments } from './mockAssignmentStore.js'
-import { getTeacherClasses } from './mockClassStore.js'
+import { getTeacherClassesForUser } from './mockClassStore.js'
 import { getClassStudentCount } from './mockStudentStore.js'
 
-export function getDashboardSnapshot(state = 'success', storage) {
+export function getDashboardSnapshot(state = 'success', storage, currentUser) {
   if (state === 'loading') {
     return { status: 'loading' }
   }
@@ -18,7 +18,7 @@ export function getDashboardSnapshot(state = 'success', storage) {
     }
   }
 
-  const data = getTeacherClasses(storage).map((classroom) => ({
+  const data = getTeacherClassesForUser(currentUser, storage).map((classroom) => ({
     ...classroom,
     studentCount: getClassStudentCount(classroom.id, classroom.studentCount, storage),
     assignmentCount:
