@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
-function StudentShell() {
+function StudentShell({ currentUser }) {
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -22,7 +22,11 @@ function StudentShell() {
             </NavLink>
           </nav>
 
-          <div className="profile-monogram" aria-label="Góc học sinh">
+          <div
+            className="profile-monogram"
+            aria-label={`Học sinh ${currentUser.name}`}
+            title={currentUser.name}
+          >
             HS
           </div>
         </div>
