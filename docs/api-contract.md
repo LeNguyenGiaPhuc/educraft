@@ -31,6 +31,58 @@ following shape:
 
 ## Endpoints
 
+### Login
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+Example request:
+
+```json
+{
+  "email": "teacher@educraft.test",
+  "password": "teacher123"
+}
+```
+
+The response returns the active user and its role (`ADMIN`, `TEACHER` or
+`STUDENT`). `pending` and `locked` accounts are rejected. The frontend keeps
+the mock session in `educraft.session`.
+
+### Get and manage accounts (Admin)
+
+```http
+GET /api/admin/accounts
+POST /api/admin/accounts
+PATCH /api/admin/accounts/:accountId
+DELETE /api/admin/accounts/:accountId
+PATCH /api/admin/accounts/:accountId/status
+```
+
+Status values are `pending`, `active` and `locked`. Locking is allowed only
+for an active account; unlocking is allowed only for a locked account. A
+pending imported Student must complete a later activation flow before login.
+
+### Assign a teacher to a class (Admin)
+
+```http
+PATCH /api/classes/:classId/teacher
+Content-Type: application/json
+```
+
+Example request:
+
+```json
+{
+  "teacherId": "teacher-phuc"
+}
+```
+
+One class has at most one active `teacherId`. Reassigning the class removes
+the previous teacher's access.
+
 ### Get teacher classes
 
 ```http
@@ -151,6 +203,21 @@ can receive rows such as:
   ]
 }
 ```
+
+The server should persist each row as a class membership, not as a field on
+the account:
+
+```json
+{
+  "classId": "10A1",
+  "studentId": "student-chi",
+  "studentNumber": "01"
+}
+```
+
+The same Student account may be a member of multiple classes, with a
+different `studentNumber` in each class. A conflict in any row returns a
+validation error and must not create partial accounts or memberships.
 
 ### Create an assignment
 
@@ -295,14 +362,17 @@ Example response:
 - `POST /api/classes`, `PATCH /api/classes/:classId` and
   `DELETE /api/classes/:classId` are represented by the class management panel
   and `mockClassStore.js`.
+- The Admin account list and the mock login flow represent the auth and
+  account endpoints. Teacher class access is checked against `teacherId` (or
+  migrated legacy `users.classIds` data).
 - `POST /api/classes/:classId/assignments` is represented by
   `submitAssignmentDraft()` and the `localStorage` mock store.
 - `POST /api/classes/:classId/students/import` is represented by
   `readStudentExcel()`, `previewAdminStudentImport()` and
   `provisionMockStudentsForClass()`. New student accounts are stored in
   `educraft.users` with `role: STUDENT`, `status: pending`, no password, and
-  the selected class in `classIds`; the Admin must confirm a valid preview
-  before any mock account is written.
+  a membership in `educraft.classMemberships`; the Admin must confirm a valid
+  preview before any mock account or membership is written.
 - `POST /api/assignments/:assignmentId/submissions` is represented by
   `submitNote()` and the `educraft.submissions` localStorage mock store; the
   student-facing submit/resubmit screen consumes the same mock contract.
