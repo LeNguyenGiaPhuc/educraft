@@ -31,12 +31,8 @@ function entryLabel(entry) {
     return 'Không hợp lệ'
   }
 
-  if (entry.kind === 'new') {
-    return 'Tạo tài khoản · Chờ kích hoạt'
-  }
-
-  if (entry.kind === 'existing') {
-    return 'Thêm tài khoản hiện có'
+  if (entry.kind === 'ready') {
+    return 'Hợp lệ, sẵn sàng import'
   }
 
   return 'Đã có trong lớp'
@@ -111,15 +107,12 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
         plan = {
           summary: {
             total: result.rows.length,
-            newAccounts: result.rows.length,
-            existingAccounts: 0,
-            alreadyInClass: 0,
           },
           errors: [],
           warnings: [],
           entries: result.rows.map((row) => ({
             email: row.email,
-            kind: 'new',
+            kind: 'ready',
           })),
         }
       }
@@ -259,9 +252,7 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
           <strong>Xem trước danh sách</strong>
           <div className="student-import-summary">
             <span>{preview.summary.total} dòng hợp lệ</span>
-            <span>{preview.summary.newAccounts} tài khoản mới</span>
-            <span>{preview.summary.existingAccounts} tài khoản sẽ được thêm</span>
-            <span>{preview.summary.alreadyInClass} dòng bỏ qua</span>
+            <span>Hệ thống sẽ kiểm tra tài khoản và lớp khi xác nhận import</span>
           </div>
           <div className="student-import-preview-wrap">
             <table>

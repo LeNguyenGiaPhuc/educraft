@@ -16,7 +16,6 @@ function normalizeClass(item) {
 function AccountForm({ initialForm, onCancel, onSaved }) {
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
-  const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   function updateField(field, value) {
@@ -82,37 +81,6 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
             </label>
 
             <label className="field-label">
-              <span>Mật khẩu</span>
-              <div className="password-row">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.password ?? ''}
-                  onChange={(event) => updateField('password', event.target.value)}
-                />
-                <button
-                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                  className="password-toggle-button"
-                  onClick={() => setShowPassword((value) => !value)}
-                  title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                  type="button"
-                >
-                  <svg aria-hidden="true" className="password-toggle-icon" viewBox="0 0 24 24">
-                    {showPassword ? (
-                      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                    ) : (
-                      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                    )}
-                    <path d="M3 3l18 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                    {showPassword ? (
-                      <circle cx="12" cy="12" fill="none" r="3" stroke="currentColor" strokeWidth="2" />
-                    ) : null}
-                  </svg>
-                </button>
-              </div>
-              {errors.password && <small className="field-error">{errors.password}</small>}
-            </label>
-
-            <label className="field-label">
               <span>Họ và tên</span>
               <input value={form.name ?? ''} onChange={(event) => updateField('name', event.target.value)} />
               {errors.full_name && <small className="field-error">{errors.full_name}</small>}
@@ -130,6 +98,7 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
             <div className="admin-form-help">
               <strong>Phân công lớp</strong>
               <p>Admin phân công giáo viên tại màn hình Quản lý lớp học. Học sinh được thêm bằng danh sách lớp hoặc file Excel.</p>
+              <p>Tài khoản mới sẽ ở trạng thái chờ kích hoạt. Mật khẩu sẽ được gửi qua email ở bước triển khai tiếp theo.</p>
             </div>
           </div>
 

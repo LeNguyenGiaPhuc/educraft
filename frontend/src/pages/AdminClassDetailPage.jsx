@@ -61,7 +61,7 @@ function normalizeClass(row = {}) {
     semester: row.semester,
     school_year: row.school_year,
     teacher_id: row.teacher_id ?? null,
-    status: row.status,
+    status: String(row.status ?? '').toLowerCase(),
     name: row.subject ?? row.code,
   }
 }
@@ -72,7 +72,7 @@ function normalizeStudent(row = {}) {
     username: row.username ?? row.email ?? 'student',
     name: row.full_name ?? row.name ?? 'Học sinh',
     email: row.email ?? '—',
-    status: row.status,
+    status: String(row.status ?? '').toLowerCase(),
     importedStudentNumber: row.student_number ?? '—',
     student_number: row.student_number ?? '—',
   }
