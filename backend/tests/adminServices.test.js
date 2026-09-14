@@ -8,6 +8,7 @@ import { createClassService } from '../src/modules/classes/classService.js'
 const adminId = '11111111-1111-4111-8111-111111111111'
 const classId = '22222222-2222-4222-8222-222222222222'
 const teacherId = '33333333-3333-4333-8333-333333333333'
+const studentId = '44444444-4444-4444-8444-444444444444'
 
 function chain(result, calls = []) {
   const query = {}
@@ -209,6 +210,40 @@ test('account role changes are blocked by submission history even after class re
     service.updateAccount(adminAuth(userClient), teacherId, { role: 'TEACHER' }),
     (error) => error instanceof AppError && error.code === 'ACCOUNT_ROLE_CONFLICT',
   )
+})
+
+test('account list includes classes assigned to teachers and students', async () => {
+  const client = createClient({
+    plans: {
+      profiles: [{
+        data: [
+          { id: teacherId, role: 'TEACHER', status: 'ACTIVE' },
+          { id: studentId, role: 'STUDENT', status: 'ACTIVE' },
+        ],
+        error: null,
+      }],
+      classes: [{
+        data: [{ id: classId, code: '10A1', teacher_id: teacherId }],
+        error: null,
+      }],
+      class_members: [{
+        data: [{
+          student_id: studentId,
+          classroom: { id: classId, code: '10A1' },
+        }],
+        error: null,
+      }],
+    },
+  })
+
+  const result = await createAccountService().listAccounts(adminAuth(client))
+
+  assert.deepEqual(result.find((row) => row.id === teacherId).classes, [
+    { id: classId, code: '10A1' },
+  ])
+  assert.deepEqual(result.find((row) => row.id === studentId).classes, [
+    { id: classId, code: '10A1' },
+  ])
 })
 
 test('import creates Auth users then uses one transactional RPC for profiles and memberships', async () => {

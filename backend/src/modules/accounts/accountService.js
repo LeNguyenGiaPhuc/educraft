@@ -182,6 +182,50 @@ export function createAccountService({ adminClient } = {}) {
     return rows ?? []
   }
 
+  async function attachClasses(supabase, accounts) {
+    if (accounts.length === 0) return []
+
+    const accountIds = accounts.map((account) => account.id)
+    const [teacherResult, studentResult] = await Promise.all([
+      supabase
+        .from('classes')
+        .select('id,code,teacher_id')
+        .in('teacher_id', accountIds),
+      supabase
+        .from('class_members')
+        .select('student_id,classroom:classes!class_members_class_id_fkey(id,code)')
+        .in('student_id', accountIds),
+    ])
+
+    if (teacherResult.error) throw teacherResult.error
+    if (studentResult.error) throw studentResult.error
+
+    const classesByAccount = new Map(accountIds.map((id) => [id, []]))
+
+    for (const classroom of teacherResult.data ?? []) {
+      classesByAccount.get(classroom.teacher_id)?.push({
+        id: classroom.id,
+        code: classroom.code,
+      })
+    }
+
+    for (const membership of studentResult.data ?? []) {
+      const classroom = Array.isArray(membership.classroom)
+        ? membership.classroom[0]
+        : membership.classroom
+
+      if (classroom) {
+        classesByAccount.get(membership.student_id)?.push(classroom)
+      }
+    }
+
+    return accounts.map((account) => ({
+      ...account,
+      classes: (classesByAccount.get(account.id) ?? [])
+        .sort((left, right) => left.code.localeCompare(right.code, 'vi')),
+    }))
+  }
+
   return {
     async listAccounts(auth, query = {}) {
       await requireAdmin(auth)
@@ -202,7 +246,8 @@ export function createAccountService({ adminClient } = {}) {
 
       const result = await request.order('created_at', { ascending: false })
       if (result.error) throw result.error
-      return listAllowed(result.data)
+      const accounts = await listAllowed(result.data)
+      return attachClasses(supabase, accounts)
     },
 
     async getAccount(auth, accountId) {
