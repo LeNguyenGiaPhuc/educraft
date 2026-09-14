@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import StudentImportPanel from '../components/StudentImportPanel.jsx'
 import AdminClassForm from '../components/AdminClassForm.jsx'
+import { getNextStudentNumber } from '../data/adminClassRoster.js'
 import { adminClassService } from '../services/adminClassService.js'
 import { adminAccountService } from '../services/adminAccountService.js'
 import { ApiError } from '../services/apiClient.js'
@@ -10,17 +11,11 @@ import { ROLES } from '../services/authService.js'
 
 function StudentAddModal({ students, onCancel, onAdd }) {
   const [query, setQuery] = useState('')
-  const [selected, setSelected] = useState([])
+  const [selectedId, setSelectedId] = useState('')
 
   const matched = students.filter((student) => (
     (student.username ?? '').toLowerCase().includes(query.toLowerCase()) || (student.name ?? '').toLowerCase().includes(query.toLowerCase())
   ))
-
-  function toggle(studentId) {
-    setSelected((current) => current.includes(studentId)
-      ? current.filter((id) => id !== studentId)
-      : [...current, studentId])
-  }
 
   return (
     <div className="admin-modal-backdrop">
@@ -43,7 +38,7 @@ function StudentAddModal({ students, onCancel, onAdd }) {
         <div className="admin-student-picker">
           {matched.length === 0 ? <div className="empty-row">Không tìm thấy học sinh phù hợp.</div> : matched.map((student) => (
             <label className="student-picker-row" key={student.id}>
-              <input type="checkbox" checked={selected.includes(student.id)} onChange={() => toggle(student.id)} />
+              <input name="student" type="radio" checked={selectedId === student.id} onChange={() => setSelectedId(student.id)} />
               <span><strong>{student.username}</strong><small>{student.name}</small></span>
             </label>
           ))}
@@ -51,7 +46,7 @@ function StudentAddModal({ students, onCancel, onAdd }) {
 
         <div className="admin-form-actions">
           <button className="button button-outline" type="button" onClick={onCancel}>Hủy</button>
-          <button className="button button-primary" type="button" onClick={() => onAdd(selected)}>Thêm vào lớp</button>
+          <button className="button button-primary" disabled={!selectedId} type="button" onClick={() => onAdd(selectedId)}>Thêm vào lớp</button>
         </div>
       </div>
     </div>
@@ -156,17 +151,16 @@ function AdminClassDetailPage() {
     return !searchQuery || (student.username ?? '').toLowerCase().includes(searchQuery) || (student.name ?? '').toLowerCase().includes(searchQuery)
   })
 
-  async function addStudents(ids) {
-    if (!ids.length) {
+  async function addStudent(studentId) {
+    if (!studentId) {
       return
     }
 
     try {
-      const startNumber = Math.max(1, students.length + 1)
-      await Promise.all(ids.map((studentId, index) => adminClassService.addStudent(classId, {
+      await adminClassService.addStudent(classId, {
         student_id: studentId,
-        student_number: String(startNumber + index),
-      })))
+        student_number: getNextStudentNumber(students),
+      })
 
       setShowStudentModal(false)
       setNotice('Đã thêm học sinh vào lớp.')
@@ -330,7 +324,7 @@ function AdminClassDetailPage() {
       )}
 
       {showStudentModal && (
-        <StudentAddModal students={availableStudents} onCancel={() => setShowStudentModal(false)} onAdd={addStudents} />
+        <StudentAddModal students={availableStudents} onCancel={() => setShowStudentModal(false)} onAdd={addStudent} />
       )}
 
       {showEditForm && (
