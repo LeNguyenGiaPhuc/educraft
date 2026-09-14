@@ -1,8 +1,14 @@
+import 'dotenv/config'
+
 import { createApp } from './app.js'
+import { loadEnv } from './config/env.js'
+import { createSupabaseGateway } from './config/supabase.js'
 
-const port = Number(process.env.PORT ?? 3000)
-const app = createApp({ frontendOrigin: process.env.FRONTEND_ORIGIN })
+const config = loadEnv()
+const supabaseGateway = createSupabaseGateway(config)
+const app = createApp({ frontendOrigin: config.FRONTEND_ORIGIN })
 
-app.listen(port, () => {
-  console.log(`EduCraft API listening on port ${port}`)
+app.locals.supabase = supabaseGateway
+app.listen(config.PORT, () => {
+  console.log(`EduCraft API listening on port ${config.PORT}`)
 })
