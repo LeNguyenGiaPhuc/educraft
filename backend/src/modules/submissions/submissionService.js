@@ -1,4 +1,5 @@
 import { AppError } from '../../common/errors.js'
+import { STUDENT_SUBMISSIONS_BUCKET } from '../storage/storageService.js'
 
 const SUBMISSION_FILE_COLUMNS = [
   'id',
@@ -105,33 +106,34 @@ function relatedRecord(value) {
   return value ?? null
 }
 
-function projectFiles(files) {
+async function projectFiles(files, createSignedUrl) {
   if (!Array.isArray(files)) return []
 
-  return files.map((file) => ({
+  return Promise.all(files.map(async (file) => ({
     id: file.id,
     storage_path: file.storage_path,
+    signed_url: await createSignedUrl(file.storage_path),
     original_filename: file.original_filename,
     mime_type: file.mime_type,
     size_bytes: file.size_bytes,
     page_order: file.page_order,
     created_at: file.created_at,
-  }))
+  })))
 }
 
-function projectSubmissionBase(submission) {
+async function projectSubmissionBase(submission, createSignedUrl) {
   return {
     id: submission.id,
     assignment_id: submission.assignment_id,
     attempt_number: submission.attempt_number,
     status: submission.status,
     submitted_at: submission.submitted_at,
-    files: projectFiles(submission.submission_files),
+    files: await projectFiles(submission.submission_files, createSignedUrl),
   }
 }
 
-function projectStudentSubmission(submission) {
-  const projected = projectSubmissionBase(submission)
+async function projectStudentSubmission(submission, createSignedUrl) {
+  const projected = await projectSubmissionBase(submission, createSignedUrl)
   const review = relatedRecord(submission.teacher_reviews)
 
   if (review?.is_finalized === true) {
@@ -147,12 +149,13 @@ function projectStudentSubmission(submission) {
   return projected
 }
 
-function projectTeacherSubmission(submission) {
+async function projectTeacherSubmission(submission, createSignedUrl) {
   const review = relatedRecord(submission.teacher_reviews)
   const student = relatedRecord(submission.student)
+  const base = await projectSubmissionBase(submission, createSignedUrl)
 
   return {
-    ...projectSubmissionBase(submission),
+    ...base,
     student_id: submission.student_id,
     created_at: submission.created_at,
     updated_at: submission.updated_at,
@@ -276,6 +279,14 @@ export function createSubmissionService({
   storageService,
   logger = console,
 }) {
+  function createSubmissionFileSignedUrl(supabase) {
+    return (path) => storageService.createSignedUrl({
+      client: supabase,
+      bucket: STUDENT_SUBMISSIONS_BUCKET,
+      path,
+    })
+  }
+
   async function requireStudentAssignmentAccess(supabase, studentId, assignmentId) {
     const assignmentResult = await supabase
       .from('assignments')
@@ -432,12 +443,17 @@ export function createSubmissionService({
         .order('id', { ascending: true })
 
       throwDatabaseError(result)
-      return (result.data ?? [])
+      const submissions = (result.data ?? [])
         .filter((submission) => (
           submission.assignment_id === assignmentId
           && submission.student_id === studentId
         ))
-        .map(projectStudentSubmission)
+
+      return Promise.all(
+        submissions.map((submission) => (
+          projectStudentSubmission(submission, createSubmissionFileSignedUrl(supabase))
+        )),
+      )
     },
 
     async listAssignmentSubmissions(auth, assignmentId) {
@@ -454,9 +470,14 @@ export function createSubmissionService({
         .order('id', { ascending: true })
 
       throwDatabaseError(result)
-      return (result.data ?? [])
+      const submissions = (result.data ?? [])
         .filter((submission) => submission.assignment_id === assignmentId)
-        .map(projectTeacherSubmission)
+
+      return Promise.all(
+        submissions.map((submission) => (
+          projectTeacherSubmission(submission, createSubmissionFileSignedUrl(supabase))
+        )),
+      )
     },
 
     async getSubmission(auth, submissionId) {
@@ -473,7 +494,10 @@ export function createSubmissionService({
           studentId,
           submission.assignment_id,
         )
-        return projectStudentSubmission(submission)
+        return projectStudentSubmission(
+          submission,
+          createSubmissionFileSignedUrl(supabase),
+        )
       }
 
       if (auth?.profile?.role === 'TEACHER') {
@@ -484,7 +508,10 @@ export function createSubmissionService({
           TEACHER_SUBMISSION_SELECT,
         )
         await assignmentService.getAssignment(auth, submission.assignment_id)
-        return projectTeacherSubmission(submission)
+        return projectTeacherSubmission(
+          submission,
+          createSubmissionFileSignedUrl(supabase),
+        )
       }
 
       throw new AppError(403, 'FORBIDDEN', 'Bạn không có quyền xem lượt nộp bài.')

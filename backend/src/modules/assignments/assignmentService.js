@@ -84,6 +84,42 @@ export function createAssignmentService({ now = Date.now } = {}) {
     return result.data
   }
 
+  async function ensureAssignmentHasNoData(supabase, assignmentId) {
+    const referenceResult = await supabase
+      .from('reference_files')
+      .select('id')
+      .eq('assignment_id', assignmentId)
+      .limit(1)
+      .maybeSingle()
+
+    throwDatabaseError(referenceResult)
+
+    if (referenceResult.data) {
+      throw new AppError(
+        409,
+        'ASSIGNMENT_HAS_DATA',
+        'Không thể xóa bài kiểm tra đã có dữ liệu tham chiếu hoặc bài nộp.',
+      )
+    }
+
+    const submissionResult = await supabase
+      .from('submissions')
+      .select('id')
+      .eq('assignment_id', assignmentId)
+      .limit(1)
+      .maybeSingle()
+
+    throwDatabaseError(submissionResult)
+
+    if (submissionResult.data) {
+      throw new AppError(
+        409,
+        'ASSIGNMENT_HAS_DATA',
+        'Không thể xóa bài kiểm tra đã có dữ liệu tham chiếu hoặc bài nộp.',
+      )
+    }
+  }
+
   return {
     async listAssignmentsForClass(auth, classId) {
       const { supabase, teacherId } = requireTeacherContext(auth)
@@ -147,6 +183,7 @@ export function createAssignmentService({ now = Date.now } = {}) {
     async deleteAssignment(auth, assignmentId) {
       const { supabase, teacherId } = requireTeacherContext(auth)
       await getManagedAssignment(supabase, teacherId, assignmentId)
+      await ensureAssignmentHasNoData(supabase, assignmentId)
 
       const result = await supabase
         .from('assignments')

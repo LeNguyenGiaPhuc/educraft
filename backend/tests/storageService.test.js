@@ -25,7 +25,7 @@ function imageFile(mimeType, originalname = 'student note.jpg') {
   }
 }
 
-function createFakeClient({ uploadError = null, removeError = null } = {}) {
+function createFakeClient({ uploadError = null, removeError = null, signedUrlError = null } = {}) {
   const calls = []
 
   return {
@@ -40,6 +40,13 @@ function createFakeClient({ uploadError = null, removeError = null } = {}) {
           async remove(paths) {
             calls.push({ operation: 'remove', bucket, paths })
             return { data: removeError ? null : paths, error: removeError }
+          },
+          async createSignedUrl(path, expiresIn) {
+            calls.push({ operation: 'createSignedUrl', bucket, path, expiresIn })
+            return {
+              data: signedUrlError ? null : { signedUrl: `https://signed.test/${bucket}/${path}` },
+              error: signedUrlError,
+            }
           },
         }
       },
@@ -153,6 +160,44 @@ test('reference and submission removal use the requested private bucket', async 
     REFERENCE_MATERIALS_BUCKET,
     STUDENT_SUBMISSIONS_BUCKET,
   ])
+})
+
+test('private file access returns a short-lived signed URL', async () => {
+  const client = createFakeClient()
+  const service = buildService()
+  const path = `${submissionId}/${fileId}.webp`
+
+  const signedUrl = await service.createSignedUrl({
+    client,
+    bucket: STUDENT_SUBMISSIONS_BUCKET,
+    path,
+  })
+
+  assert.equal(signedUrl, `https://signed.test/${STUDENT_SUBMISSIONS_BUCKET}/${path}`)
+  assert.deepEqual(client.calls.at(-1), {
+    operation: 'createSignedUrl',
+    bucket: STUDENT_SUBMISSIONS_BUCKET,
+    path,
+    expiresIn: 300,
+  })
+})
+
+test('signed URL failures use a safe storage error', async () => {
+  const client = createFakeClient({ signedUrlError: new Error('provider detail') })
+  const service = buildService()
+
+  await assert.rejects(
+    service.createSignedUrl({
+      client,
+      bucket: STUDENT_SUBMISSIONS_BUCKET,
+      path: `${submissionId}/${fileId}.webp`,
+    }),
+    (error) => (
+      error.status === 500
+      && error.code === 'STORAGE_SIGNED_URL_FAILED'
+      && !error.message.includes('provider')
+    ),
+  )
 })
 
 test('removal failure is surfaced and never reported as successful cleanup', async () => {

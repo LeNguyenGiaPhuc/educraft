@@ -64,6 +64,10 @@ function createQueuedSupabase(results) {
           call.operation = 'delete'
           return builder
         },
+        limit(value) {
+          call.limit = value
+          return builder
+        },
         maybeSingle() {
           return nextResult()
         },
@@ -162,6 +166,8 @@ test('assigned teacher deletes an assignment after ownership is checked', async 
   const supabase = createQueuedSupabase([
     { data: assignment, error: null },
     assignedClass(),
+    { data: null, error: null },
+    { data: null, error: null },
     { data: assignment, error: null },
   ])
   const service = createAssignmentService()
@@ -169,7 +175,38 @@ test('assigned teacher deletes an assignment after ownership is checked', async 
   const result = await service.deleteAssignment(teacherAuth(supabase), assignmentId)
 
   assert.equal(result, assignment)
-  assert.equal(supabase.calls[2].operation, 'delete')
+  assert.equal(supabase.calls[4].operation, 'delete')
+})
+
+test('teacher cannot delete an assignment that already has reference data', async () => {
+  const supabase = createQueuedSupabase([
+    { data: assignment, error: null },
+    assignedClass(),
+    { data: [{ id: 'reference-1' }], error: null },
+  ])
+  const service = createAssignmentService()
+
+  await assert.rejects(
+    service.deleteAssignment(teacherAuth(supabase), assignmentId),
+    (error) => error.status === 409 && error.code === 'ASSIGNMENT_HAS_DATA',
+  )
+  assert.equal(supabase.calls.some((call) => call.operation === 'delete'), false)
+})
+
+test('teacher cannot delete an assignment that already has submissions', async () => {
+  const supabase = createQueuedSupabase([
+    { data: assignment, error: null },
+    assignedClass(),
+    { data: null, error: null },
+    { data: { id: 'submission-1' }, error: null },
+  ])
+  const service = createAssignmentService()
+
+  await assert.rejects(
+    service.deleteAssignment(teacherAuth(supabase), assignmentId),
+    (error) => error.status === 409 && error.code === 'ASSIGNMENT_HAS_DATA',
+  )
+  assert.equal(supabase.calls.some((call) => call.operation === 'delete'), false)
 })
 
 test('teacher not assigned to a visible class receives a forbidden error', async () => {

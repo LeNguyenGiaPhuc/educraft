@@ -43,6 +43,13 @@ function uploaded(fileName = 'new-file.png') {
   }
 }
 
+function withSignedUrl(reference) {
+  return {
+    ...reference,
+    signed_url: `https://signed.test/${reference.storage_path}`,
+  }
+}
+
 function createQueuedSupabase(results, events = []) {
   const calls = []
   let resultIndex = 0
@@ -145,6 +152,10 @@ function createStorageService({
       if (rollbackError) throw rollbackError
       return input
     },
+    async createSignedUrl({ path }) {
+      events.push('storage-signed-url')
+      return `https://signed.test/${path}`
+    },
   }
 }
 
@@ -168,13 +179,19 @@ test('assigned teacher lists every reference for an assignment', async () => {
   const assignmentService = createAssignmentService(events)
   const service = createReferenceService({
     assignmentService,
-    storageService: createStorageService(),
+    storageService: createStorageService({ events }),
   })
 
   const result = await service.listReferences(teacherAuth(supabase), assignmentId)
 
-  assert.deepEqual(result, references)
-  assert.deepEqual(events, ['authorize-assignment', 'db:select:order'])
+  assert.deepEqual(result, references.map(withSignedUrl))
+  assert.deepEqual(events, [
+    'authorize-assignment',
+    'db:select:order',
+    'storage-signed-url',
+    'storage-signed-url',
+    'storage-signed-url',
+  ])
   assert.deepEqual(supabase.calls[0].filters, [['assignment_id', assignmentId]])
 })
 
@@ -194,8 +211,14 @@ test('separate uploads append metadata records without updating existing referen
   })
   const auth = teacherAuth(supabase)
 
-  assert.equal(await service.uploadReference(auth, assignmentId, { name: 'first' }), firstReference)
-  assert.equal(await service.uploadReference(auth, assignmentId, { name: 'second' }), secondReference)
+  assert.deepEqual(
+    await service.uploadReference(auth, assignmentId, { name: 'first' }),
+    withSignedUrl(firstReference),
+  )
+  assert.deepEqual(
+    await service.uploadReference(auth, assignmentId, { name: 'second' }),
+    withSignedUrl(secondReference),
+  )
 
   const metadataWrites = supabase.calls.filter((call) => call.operation === 'insert')
   assert.equal(metadataWrites.length, 2)
@@ -223,13 +246,14 @@ test('replacement switches one row before removing only that row old object', as
     { name: 'replacement' },
   )
 
-  assert.equal(result, replacement)
+  assert.deepEqual(result, withSignedUrl(replacement))
   assert.deepEqual(events, [
     'db:select:maybeSingle',
     'authorize-assignment',
     'storage-upload',
     'db:update:single',
     'storage-remove',
+    'storage-signed-url',
   ])
   const update = supabase.calls.find((call) => call.operation === 'update')
   assert.deepEqual(update.filters, [

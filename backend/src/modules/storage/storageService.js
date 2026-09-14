@@ -5,6 +5,7 @@ import { validateImageFile } from './imageUpload.js'
 
 export const REFERENCE_MATERIALS_BUCKET = 'reference-materials'
 export const STUDENT_SUBMISSIONS_BUCKET = 'student-submissions'
+export const SIGNED_URL_EXPIRES_IN_SECONDS = 300
 
 const extensionsByMimeType = Object.freeze({
   'image/jpeg': 'jpg',
@@ -45,6 +46,14 @@ function validateObjectPath(path) {
   }
 
   return path
+}
+
+function validateBucket(bucket) {
+  if (![REFERENCE_MATERIALS_BUCKET, STUDENT_SUBMISSIONS_BUCKET].includes(bucket)) {
+    throw new AppError(400, 'INVALID_STORAGE_BUCKET', 'Bucket lưu trữ không hợp lệ.')
+  }
+
+  return bucket
 }
 
 export function createStorageService({ adminClient, createFileId = randomUUID } = {}) {
@@ -114,6 +123,35 @@ export function createStorageService({ adminClient, createFileId = randomUUID } 
     return { bucket, path: validatedPath, fullPath: `${bucket}/${validatedPath}` }
   }
 
+  async function createSignedUrl(client, bucket, path) {
+    const storageClient = requireStorageClient(client)
+    const validatedBucket = validateBucket(bucket)
+    const validatedPath = validateObjectPath(path)
+
+    let result
+    try {
+      result = await storageClient.storage
+        .from(validatedBucket)
+        .createSignedUrl(validatedPath, SIGNED_URL_EXPIRES_IN_SECONDS)
+    } catch {
+      throw new AppError(
+        500,
+        'STORAGE_SIGNED_URL_FAILED',
+        'Không thể tạo đường dẫn xem file ảnh.',
+      )
+    }
+
+    if (result.error || !result.data?.signedUrl) {
+      throw new AppError(
+        500,
+        'STORAGE_SIGNED_URL_FAILED',
+        'Không thể tạo đường dẫn xem file ảnh.',
+      )
+    }
+
+    return result.data.signedUrl
+  }
+
   return {
     async uploadReferenceFile({ client, assignmentId, file, ...input }) {
       const details = buildUpload(
@@ -141,6 +179,10 @@ export function createStorageService({ adminClient, createFileId = randomUUID } 
 
     async removeSubmissionFile({ client, path }) {
       return remove(client, STUDENT_SUBMISSIONS_BUCKET, path)
+    },
+
+    async createSignedUrl({ client, bucket, path }) {
+      return createSignedUrl(client, bucket, path)
     },
 
     async rollbackUploadedFile({ bucket, path }) {

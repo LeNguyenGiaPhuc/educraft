@@ -110,7 +110,11 @@ function createService(supabase, assignmentService = createAssignmentService()) 
     service: createSubmissionService({
       adminClient: {},
       assignmentService,
-      storageService: {},
+      storageService: {
+        async createSignedUrl({ path }) {
+          return `https://signed.test/${path}`
+        },
+      },
       logger: { error() {} },
     }),
     studentAuth: {
@@ -148,6 +152,10 @@ test('student history keeps attempts 1, 2, and 3 separate in requested order', a
 
   assert.deepEqual(result.map((item) => item.attempt_number), [1, 2, 3])
   assert.equal(new Set(result.map((item) => item.id)).size, 3)
+  assert.equal(
+    result[0].files[0].signed_url,
+    `https://signed.test/${submissionIds[0]}/attempt-1.png`,
+  )
   const submissionsQuery = supabase.calls[2]
   assert.deepEqual(submissionsQuery.filters, [
     ['assignment_id', assignmentId],

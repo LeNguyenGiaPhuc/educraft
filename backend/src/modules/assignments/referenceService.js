@@ -43,6 +43,16 @@ function referenceMetadata(assignmentId, teacherId, uploaded) {
   }
 }
 
+async function withSignedUrl(storageService, supabase, reference) {
+  const signedUrl = await storageService.createSignedUrl({
+    client: supabase,
+    bucket: REFERENCE_MATERIALS_BUCKET,
+    path: reference.storage_path,
+  })
+
+  return { ...reference, signed_url: signedUrl }
+}
+
 export function createReferenceService({ assignmentService, storageService, logger = console }) {
   async function getReferenceForAssignment(supabase, assignmentId, referenceId) {
     const result = await supabase
@@ -113,7 +123,11 @@ export function createReferenceService({ assignmentService, storageService, logg
         .order('created_at', { ascending: true })
 
       throwDatabaseError(result)
-      return result.data ?? []
+      return Promise.all(
+        (result.data ?? []).map((reference) => (
+          withSignedUrl(storageService, supabase, reference)
+        )),
+      )
     },
 
     async uploadReference(auth, assignmentId, file) {
@@ -135,7 +149,7 @@ export function createReferenceService({ assignmentService, storageService, logg
         return rollbackNewObject(uploaded, result.error)
       }
 
-      return result.data
+      return withSignedUrl(storageService, supabase, result.data)
     },
 
     async replaceReference(auth, assignmentId, referenceId, file) {
@@ -167,7 +181,7 @@ export function createReferenceService({ assignmentService, storageService, logg
         bucket: uploaded.bucket,
         path: previous.storage_path,
       })
-      return result.data
+      return withSignedUrl(storageService, supabase, result.data)
     },
 
     async deleteReference(auth, assignmentId, referenceId) {

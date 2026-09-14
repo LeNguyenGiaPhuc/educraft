@@ -196,6 +196,9 @@ DELETE /api/assignments/:assignmentId
 ```
 
 Returns `204` after deleting an assignment managed by the assigned Teacher.
+Deletion is allowed only when the assignment has no reference files and no student
+submissions. If related data exists, the API returns `409 ASSIGNMENT_HAS_DATA` so
+the submission history and private Storage objects are not orphaned.
 
 ## Reference materials
 
@@ -209,6 +212,7 @@ Reference records have this shape:
   "id": "44444444-4444-4444-8444-444444444444",
   "assignment_id": "11111111-1111-4111-8111-111111111111",
   "storage_path": "11111111-1111-4111-8111-111111111111/generated-file.png",
+  "signed_url": "https://storage.example/signed/reference.png?token=...",
   "original_filename": "bai-mau.png",
   "mime_type": "image/png",
   "size_bytes": 1800000,
@@ -224,7 +228,8 @@ GET /api/assignments/:assignmentId/references
 ```
 
 Returns all reference records for the assignment as an array in `data`, ordered
-by `created_at` ascending.
+by `created_at` ascending. Each record includes a short-lived `signed_url` that
+can be used by the authorized Teacher to display the private image.
 
 ### Upload another reference
 
@@ -298,6 +303,7 @@ Example `201` response:
       "id": "77777777-7777-4777-8777-777777777777",
       "submission_id": "55555555-5555-4555-8555-555555555555",
       "storage_path": "55555555-5555-4555-8555-555555555555/generated-file.jpg",
+      "signed_url": "https://storage.example/signed/submission.jpg?token=...",
       "original_filename": "bai-ghi.jpg",
       "mime_type": "image/jpeg",
       "size_bytes": 2480000,
@@ -322,7 +328,9 @@ ordered by `attempt_number`, then submission time and ID. Closed or expired
 assignments remain readable.
 
 Each student item contains `id`, `assignment_id`, `attempt_number`, `status`,
-`submitted_at`, and `files`. It does not expose another Student's identity or any
+`submitted_at`, and `files`. Each file includes a short-lived `signed_url` that
+can be used by the submitting Student to display the private image. It does not
+expose another Student's identity or any
 AI evaluation. A `teacher_result` is included only when the Teacher review for
 that exact attempt is finalized:
 
