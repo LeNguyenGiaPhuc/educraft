@@ -7,7 +7,7 @@ import RequireTeacherClass from './components/RequireTeacherClass.jsx'
 import RoleRoute from './components/RoleRoute.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { useAuth } from './contexts/useAuth.js'
-import { getRoleHome, ROLES } from './data/mockAuthStore.js'
+import { getRoleHome, ROLES } from './services/authService.js'
 import AdminAccountsPage from './pages/AdminAccountsPage.jsx'
 import AdminClassDetailPage from './pages/AdminClassDetailPage.jsx'
 import AdminClassesPage from './pages/AdminClassesPage.jsx'
@@ -28,7 +28,19 @@ function HomeRedirect() {
 }
 
 function AppRoutes() {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <main className="page-content">
+        <div className="page-container">
+          <section className="state-panel" aria-live="polite">
+            <h1>Đang kiểm tra phiên đăng nhập...</h1>
+          </section>
+        </div>
+      </main>
+    )
+  }
 
   // Chuyển cấu trúc user của Auth sang cấu trúc Student portal đang sử dụng.
   const currentStudent = user?.role === ROLES.STUDENT

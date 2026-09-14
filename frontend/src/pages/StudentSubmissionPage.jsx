@@ -13,6 +13,12 @@ import {
   getFinalReviewStatusLabel,
   validateSubmissionForm,
 } from '../data/mockSubmission.js'
+import { submissionService } from '../services/submissionService.js'
+import {
+  isBackendAssignmentId,
+  mapStudentSubmission,
+  mapStudentSubmissions,
+} from '../services/studentSubmissionAdapter.js'
 
 const MOCK_STATUS_DELAY_MS = 1200
 const submissionDateFormatter = new Intl.DateTimeFormat('vi-VN', {
@@ -91,24 +97,29 @@ function formatSubmissionDate(value) {
 function submissionStatusLabel(status) {
   if (status === 'approved') return 'Kết quả'
   if (status === 'awaiting_review') return 'Chờ giáo viên chốt'
-  if (status === 'processing') return 'Đang xử lý (mô phỏng)'
+  if (status === 'processing') return 'Đang xử lý'
   return status === 'submitted' ? 'Đã nộp' : 'Chưa xác định'
 }
 
-function SubmissionHistory({ submissions }) {
+function SubmissionHistory({ submissions, status, message }) {
   return (
     <section className="student-submission-history" aria-labelledby="submission-history-title">
       <div className="detail-section-heading">
         <div>
           <h2 id="submission-history-title">Lịch sử nộp bài</h2>
           <p>
-            Mỗi lần nộp được lưu riêng. Trạng thái xử lý là mô phỏng;
-            kết quả chỉ xuất hiện sau khi giáo viên chốt.
+            Mỗi lần nộp được lưu riêng. Kết quả chỉ xuất hiện sau khi giáo viên chốt.
           </p>
         </div>
       </div>
 
-      {submissions.length === 0 ? (
+      {status === 'loading' ? (
+        <div className="table-empty" role="status">Đang tải lịch sử nộp bài...</div>
+      ) : status === 'error' ? (
+        <div className="form-submit-message form-submit-error" role="alert">
+          {message}
+        </div>
+      ) : submissions.length === 0 ? (
         <div className="table-empty">Bạn chưa nộp bài cho hoạt động này.</div>
       ) : (
         <div className="data-table-wrap">
@@ -216,7 +227,7 @@ function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubm
               type="file"
             />
             <p className="form-field-help" id="note-file-help">
-              Chọn file JPG, JPEG hoặc PNG, tối đa 5 MB. Đây là luồng mock nên ảnh chưa được tải lên server.
+              Chọn file JPG, JPEG hoặc PNG, tối đa 5 MB. File sẽ được gửi lên hệ thống.
             </p>
             {form.fileName && (
               <p className="form-field-help">Đã chọn: {form.fileName}</p>
@@ -245,23 +256,35 @@ function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubm
 }
 
 function StudentSubmissionWorkspace({ assignment, currentUser }) {
+  const usesBackend = isBackendAssignmentId(assignment.id)
   const [form, setForm] = useState({
     assignmentId: assignment.id,
+    file: null,
     fileName: '',
     fileSizeBytes: 0,
   })
   const [errors, setErrors] = useState({})
   const [submitRequest, setSubmitRequest] = useState({ status: 'idle' })
-  const [, setHistoryVersion] = useState(0)
+  const [historyRequest, setHistoryRequest] = useState(() => {
+    if (usesBackend) {
+      return { status: 'loading', data: [] }
+    }
+
+    const snapshot = getStudentSubmissionHistory(currentUser, assignment.id)
+    return snapshot.status === 'success'
+      ? { status: 'success', data: snapshot.data }
+      : { status: 'error', data: [], message: snapshot.message }
+  })
   const [now, setNow] = useState(Date.now)
   const pending = useRef(false)
   const availability = getAssignmentAvailability(assignment, now)
-  const historySnapshot = getStudentSubmissionHistory(currentUser, assignment.id)
-  const submissionHistory = historySnapshot.status === 'success' ? historySnapshot.data : []
-  const pendingStatusKey = submissionHistory
-    .filter((item) => ['submitted', 'processing'].includes(item.status))
-    .map((item) => `${item.id}:${item.status}`)
-    .join('|')
+  const submissionHistory = historyRequest.status === 'success' ? historyRequest.data : []
+  const pendingStatusKey = usesBackend
+    ? ''
+    : submissionHistory
+      .filter((item) => ['submitted', 'processing'].includes(item.status))
+      .map((item) => `${item.id}:${item.status}`)
+      .join('|')
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -269,7 +292,36 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
   }, [])
 
   useEffect(() => {
-    if (!pendingStatusKey) return undefined
+    let isMounted = true
+
+    if (!usesBackend) {
+      return undefined
+    }
+
+    submissionService
+      .listMySubmissions(assignment.id)
+      .then((items) => {
+        if (isMounted) {
+          setHistoryRequest({ status: 'success', data: mapStudentSubmissions(items) })
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setHistoryRequest({
+            status: 'error',
+            data: [],
+            message: error.message ?? 'Không thể tải lịch sử nộp bài.',
+          })
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [assignment.id, usesBackend])
+
+  useEffect(() => {
+    if (usesBackend || !pendingStatusKey) return undefined
 
     const timer = setTimeout(() => {
       const latestHistory = getStudentSubmissionHistory(currentUser, assignment.id)
@@ -280,17 +332,19 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
         .forEach((item) => {
           advanceMockStudentSubmission(currentUser, assignment.id, item.id)
         })
-      setHistoryVersion((current) => current + 1)
+      const refreshedHistory = getStudentSubmissionHistory(currentUser, assignment.id)
+      setHistoryRequest({ status: 'success', data: refreshedHistory.data })
     }, MOCK_STATUS_DELAY_MS)
 
     return () => clearTimeout(timer)
-  }, [assignment.id, currentUser, pendingStatusKey])
+  }, [assignment.id, currentUser, pendingStatusKey, usesBackend])
 
   function handleFileChange(event) {
     const file = event.target.files?.[0]
 
     setForm((current) => ({
       ...current,
+      file,
       fileName: file?.name ?? '',
       fileSizeBytes: file?.size ?? 0,
     }))
@@ -321,12 +375,38 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
     setSubmitRequest({ status: 'loading' })
 
     try {
-      const result = await submitStudentNote(currentUser, form, requestedSubmissionState(), 650)
-      setSubmitRequest(result)
-    } catch {
+      if (!usesBackend) {
+        const result = await submitStudentNote(
+          currentUser,
+          form,
+          requestedSubmissionState(),
+          650,
+        )
+        setSubmitRequest(result)
+        const refreshedHistory = getStudentSubmissionHistory(currentUser, assignment.id)
+        if (refreshedHistory.status === 'success') {
+          setHistoryRequest({ status: 'success', data: refreshedHistory.data })
+        }
+      } else {
+        const result = await submissionService.createSubmission(
+          assignment.id,
+          form.file,
+          form.fileName,
+        )
+        const savedSubmission = mapStudentSubmission(result)
+        setSubmitRequest({
+          status: 'success',
+          data: { ...savedSubmission, fileName: form.fileName },
+        })
+        setHistoryRequest((current) => ({
+          status: 'success',
+          data: [...(current.status === 'success' ? current.data : []), savedSubmission],
+        }))
+      }
+    } catch (error) {
       setSubmitRequest({
         status: 'error',
-        message: 'Không thể nộp bài lúc này. Vui lòng thử lại.',
+        message: error.message ?? 'Không thể nộp bài lúc này. Vui lòng thử lại.',
       })
     } finally {
       pending.current = false
@@ -338,6 +418,7 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
     setForm((current) => ({
       ...current,
       fileName: '',
+      file: null,
       fileSizeBytes: 0,
     }))
     setErrors({})
@@ -370,7 +451,11 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
           request={submitRequest}
         />
       )}
-      <SubmissionHistory submissions={submissionHistory} />
+      <SubmissionHistory
+        message={historyRequest.message}
+        status={historyRequest.status}
+        submissions={submissionHistory}
+      />
     </>
   )
 }

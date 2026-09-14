@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../contexts/useAuth.js'
-import { getRoleHome, ROLES } from '../data/mockAuthStore.js'
+import { getRoleHome, ROLES } from '../services/authService.js'
 
 const demoAccounts = [
   {
@@ -49,11 +49,7 @@ function LoginPage() {
     event.preventDefault()
     setStatus({ tone: 'loading', message: 'Đang đăng nhập...' })
 
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 350)
-    })
-
-    const result = login(form.email, form.password)
+    const result = await login(form.email, form.password)
 
     if (result.status === 'error') {
       setStatus({ tone: 'error', message: result.message })
