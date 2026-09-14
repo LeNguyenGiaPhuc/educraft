@@ -70,6 +70,7 @@ function createClassService(overrides = {}) {
   return {
     async listClasses() { return [] },
     async getClass() { return { id: classId, code: '10A1' } },
+    async listStudents() { return [] },
     async createClass() { return { id: classId, code: '10A1' } },
     async updateClass() { return { id: classId, code: '10A1' } },
     async deleteClass() { return null },
@@ -112,6 +113,23 @@ test('admin class routes expose the same controller-service shape and overload o
 
   assert.equal(response.status, 201)
   assert.equal(response.body.data.code, '10A1')
+})
+
+test('admin class roster route returns the class member list', async () => {
+  const app = buildClassApp({
+    service: createClassService({
+      listStudents() {
+        return [{ id: '66666666-6666-4666-8666-666666666666', student_number: '01' }]
+      },
+    }),
+  })
+
+  const response = await request(app)
+    .get(`/api/admin/classes/${classId}/students`)
+    .set('Origin', frontendOrigin)
+
+  assert.equal(response.status, 200)
+  assert.equal(response.body.data[0].student_number, '01')
 })
 
 test('admin import route validation rejects unauthenticated and wrong-role calls before controller use', async () => {

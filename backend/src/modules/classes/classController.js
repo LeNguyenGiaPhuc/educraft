@@ -12,6 +12,11 @@ export function createClassController({ classService }) {
       return sendData(response, item)
     },
 
+    async listStudents(request, response) {
+      const students = await classService.listStudents(request.auth, request.validated.params.classId)
+      return sendData(response, students)
+    },
+
     async create(request, response) {
       const item = await classService.createClass(request.auth, request.validated.body)
       return sendData(response, item, 201)

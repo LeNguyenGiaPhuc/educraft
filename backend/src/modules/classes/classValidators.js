@@ -21,7 +21,7 @@ export const createClassSchema = {
     subject: z.string().trim().min(1, 'Môn học không được để trống.').max(120, 'Môn học quá dài.'),
     semester: z.string().trim().min(1, 'Học kỳ không được để trống.').max(30, 'Học kỳ quá dài.'),
     school_year: z.string().trim().min(1, 'Năm học không được để trống.').max(20, 'Năm học quá dài.'),
-    teacher_id: z.string().uuid('ID giáo viên không hợp lệ.').optional(),
+    teacher_id: z.string().uuid('ID giáo viên không hợp lệ.').optional().nullable(),
     status: z.enum(['ACTIVE', 'ARCHIVED'], { error: 'Trạng thái lớp không hợp lệ.' }).default('ACTIVE'),
   }).strict(),
 }
@@ -33,7 +33,7 @@ export const updateClassSchema = {
     subject: z.string().trim().min(1, 'Môn học không được để trống.').max(120, 'Môn học quá dài.').optional(),
     semester: z.string().trim().min(1, 'Học kỳ không được để trống.').max(30, 'Học kỳ quá dài.').optional(),
     school_year: z.string().trim().min(1, 'Năm học không được để trống.').max(20, 'Năm học quá dài.').optional(),
-    teacher_id: z.string().uuid('ID giáo viên không hợp lệ.').optional(),
+    teacher_id: z.string().uuid('ID giáo viên không hợp lệ.').optional().nullable(),
     status: z.enum(['ACTIVE', 'ARCHIVED'], { error: 'Trạng thái lớp không hợp lệ.' }).optional(),
   }).strict().refine((body) => Object.keys(body).length > 0, {
     message: 'Cần cung cấp ít nhất một trường để cập nhật.',

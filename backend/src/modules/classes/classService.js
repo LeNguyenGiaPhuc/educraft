@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 import { AppError } from '../../common/errors.js'
 
 const CLASS_COLUMNS = [
@@ -11,6 +13,13 @@ const CLASS_COLUMNS = [
   'created_at',
   'updated_at',
 ].join(',')
+
+function normalizePersonName(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
 
 export function createClassService({ adminClient } = {}) {
   async function requireAdmin(auth) {
@@ -35,6 +44,8 @@ export function createClassService({ adminClient } = {}) {
   }
 
   async function ensureTeacher(supabase, teacherId) {
+    if (!teacherId) return null
+
     const result = await supabase
       .from('profiles')
       .select('id,role,status')
@@ -86,6 +97,67 @@ export function createClassService({ adminClient } = {}) {
     }
   }
 
+  async function createAuthUser(row) {
+    if (!adminClient?.auth?.admin?.createUser) {
+      throw new AppError(500, 'AUTH_ADMIN_NOT_CONFIGURED', 'Dịch vụ tài khoản chưa sẵn sàng.')
+    }
+
+    let result
+    try {
+      result = await adminClient.auth.admin.createUser({
+        email: row.email,
+        password: randomBytes(18).toString('base64url'),
+        email_confirm: true,
+        user_metadata: { full_name: row.name },
+      })
+    } catch {
+      throw new AppError(500, 'AUTH_CREATE_FAILED', 'Không thể tạo tài khoản đăng nhập.')
+    }
+
+    if (result?.error || !result?.data?.user?.id) {
+      if (result?.error?.code === 'email_exists' || result?.error?.status === 422) {
+        throw new AppError(409, 'ACCOUNT_EMAIL_CONFLICT', 'Email đã được sử dụng.')
+      }
+      throw new AppError(500, 'AUTH_CREATE_FAILED', 'Không thể tạo tài khoản đăng nhập.')
+    }
+
+    return result.data.user
+  }
+
+  async function rollbackAuthUsers(userIds) {
+    if (userIds.length === 0) return
+    if (!adminClient?.auth?.admin?.deleteUser) {
+      throw new AppError(500, 'IMPORT_ROLLBACK_FAILED', 'Không thể hoàn tác tài khoản import.')
+    }
+
+    for (const userId of userIds) {
+      let result
+      try {
+        result = await adminClient.auth.admin.deleteUser(userId)
+      } catch {
+        throw new AppError(500, 'IMPORT_ROLLBACK_FAILED', 'Không thể hoàn tác tài khoản import.')
+      }
+      if (result?.error) {
+        throw new AppError(500, 'IMPORT_ROLLBACK_FAILED', 'Không thể hoàn tác tài khoản import.')
+      }
+    }
+  }
+
+  function mapImportRpcError(error) {
+    const message = String(error?.message ?? '')
+    const knownErrors = {
+      IMPORT_NOT_ADMIN: [403, 'FORBIDDEN', 'Bạn không có quyền import học sinh.'],
+      CLASS_NOT_FOUND: [404, 'CLASS_NOT_FOUND', 'Không tìm thấy lớp học.'],
+      IMPORT_ROLE_CONFLICT: [409, 'IMPORT_ROLE_CONFLICT', 'Email đã thuộc tài khoản không phải học sinh.'],
+      IMPORT_NAME_CONFLICT: [409, 'IMPORT_NAME_CONFLICT', 'Họ tên không khớp với tài khoản học sinh hiện có.'],
+      STUDENT_NUMBER_CONFLICT: [409, 'STUDENT_NUMBER_CONFLICT', 'Số thứ tự học sinh đã tồn tại trong lớp.'],
+      STUDENT_ALREADY_IN_CLASS: [409, 'STUDENT_ALREADY_IN_CLASS', 'Học sinh đã thuộc lớp này.'],
+    }
+    const details = knownErrors[message]
+    if (details) return new AppError(...details)
+    return new AppError(500, 'IMPORT_FAILED', 'Không thể hoàn tất import học sinh.')
+  }
+
   return {
     async listClasses(auth, query = {}) {
       await requireAdmin(auth)
@@ -111,10 +183,37 @@ export function createClassService({ adminClient } = {}) {
       return ensureClassExists(auth.supabase, classId)
     },
 
+    async listStudents(auth, classId) {
+      await requireAdmin(auth)
+      const supabase = auth.supabase
+      await ensureClassExists(supabase, classId)
+
+      const result = await supabase
+        .from('class_members')
+        .select('class_id,student_id,student_number,joined_at,student:profiles!class_members_student_id_fkey(id,email,username,full_name,role,status,student_code)')
+        .eq('class_id', classId)
+        .order('student_number', { ascending: true })
+
+      if (result.error) throw result.error
+      return (result.data ?? []).map((member) => ({
+        id: member.student_id,
+        email: member.student?.email ?? null,
+        username: member.student?.username ?? null,
+        full_name: member.student?.full_name ?? null,
+        role: member.student?.role ?? null,
+        status: member.student?.status ?? null,
+        student_code: member.student?.student_code ?? null,
+        class_id: member.class_id,
+        student_number: member.student_number,
+        joined_at: member.joined_at,
+      }))
+    },
+
     async createClass(auth, input) {
       await requireAdmin(auth)
       const supabase = auth.supabase
       await ensureClassCodeUnique(supabase, input.code)
+      await ensureTeacher(supabase, input.teacher_id)
       const payload = {
         code: input.code.trim(),
         subject: input.subject.trim(),
@@ -146,6 +245,9 @@ export function createClassService({ adminClient } = {}) {
       await ensureClassExists(supabase, classId)
       if (input.code) {
         await ensureClassCodeUnique(supabase, input.code, classId)
+      }
+      if (Object.hasOwn(input, 'teacher_id')) {
+        await ensureTeacher(supabase, input.teacher_id)
       }
 
       const payload = {}
@@ -289,7 +391,6 @@ export function createClassService({ adminClient } = {}) {
       const seenEmail = new Set()
       const seenNumber = new Set()
       const invalidRows = []
-
       for (const row of normalizedRows) {
         if (!row.studentNumber || row.studentNumber.length > 20) {
           invalidRows.push({ email: row.email, error: 'STUDENT_NUMBER_INVALID' })
@@ -303,13 +404,12 @@ export function createClassService({ adminClient } = {}) {
           invalidRows.push({ email: row.email, error: 'EMAIL_DUPLICATE_IN_FILE' })
           continue
         }
-        if (seenNumber.has(`${classId}:${row.studentNumber}`)) {
+        if (seenNumber.has(row.studentNumber)) {
           invalidRows.push({ email: row.email, error: 'STUDENT_NUMBER_CONFLICT' })
           continue
         }
-
         seenEmail.add(row.email)
-        seenNumber.add(`${classId}:${row.studentNumber}`)
+        seenNumber.add(row.studentNumber)
       }
 
       if (invalidRows.length > 0) {
@@ -318,110 +418,94 @@ export function createClassService({ adminClient } = {}) {
         })
       }
 
-      const authCreatePlan = []
-      const createdProfiles = []
-      const createdMemberships = []
+      const profileResult = await supabase
+        .from('profiles')
+        .select('id,email,role,status,full_name')
+        .in('email', normalizedRows.map((row) => row.email))
+      if (profileResult.error) throw profileResult.error
+
+      const memberResult = await supabase
+        .from('class_members')
+        .select('student_id,student_number')
+        .eq('class_id', classId)
+      if (memberResult.error) throw memberResult.error
+
+      const profilesByEmail = new Map((profileResult.data ?? []).map((profile) => [profile.email.toLowerCase(), profile]))
+      const membersByStudent = new Map((memberResult.data ?? []).map((member) => [member.student_id, member]))
+      const usedNumbers = new Set((memberResult.data ?? []).map((member) => member.student_number))
+      const newRows = []
+      const rowsToAssign = []
+      let skipped = 0
 
       for (const row of normalizedRows) {
-        const existingProfile = await supabase
-          .from('profiles')
-          .select('id,email,role,status,full_name')
-          .eq('email', row.email)
-          .maybeSingle()
-
-        if (existingProfile.error) throw existingProfile.error
-        if (existingProfile.data) {
-          if (existingProfile.data.role !== 'STUDENT') {
-            throw new AppError(409, 'IMPORT_ROLE_CONFLICT', 'Email đã thuộc tài khoản không phải học sinh.')
-          }
-          if (existingProfile.data.status !== 'ACTIVE' && existingProfile.data.status !== 'PENDING') {
-            throw new AppError(409, 'IMPORT_ACCOUNT_STATUS_CONFLICT', 'Tài khoản học sinh không ở trạng thái cho phép.')
-          }
-
-          const memberCheck = await supabase
-            .from('class_members')
-            .select('class_id,student_id')
-            .eq('class_id', classId)
-            .eq('student_id', existingProfile.data.id)
-            .maybeSingle()
-
-          if (memberCheck.error) throw memberCheck.error
-          if (memberCheck.data) {
-            throw new AppError(409, 'STUDENT_ALREADY_IN_CLASS', 'Học sinh đã thuộc lớp này.')
-          }
-
-          const duplicateNumber = await supabase
-            .from('class_members')
-            .select('class_id,student_number')
-            .eq('class_id', classId)
-            .eq('student_number', row.studentNumber)
-            .maybeSingle()
-
-          if (duplicateNumber.error) throw duplicateNumber.error
-          if (duplicateNumber.data) {
-            throw new AppError(409, 'STUDENT_NUMBER_CONFLICT', 'Số thứ tự học sinh đã tồn tại trong lớp.')
-          }
-
-          const inserted = await supabase
-            .from('class_members')
-            .insert({ class_id: classId, student_id: existingProfile.data.id, student_number: row.studentNumber })
-            .select('class_id,student_id,student_number,joined_at')
-            .single()
-
-          if (inserted.error) throw inserted.error
-          createdMemberships.push(inserted.data)
+        const existingProfile = profilesByEmail.get(row.email)
+        if (!existingProfile) {
+          newRows.push(row)
           continue
         }
-
-        let authUser = null
-        if (adminClient?.auth?.admin?.createUser) {
-          authUser = await adminClient.auth.admin.createUser({
-            email: row.email,
-            password: Math.random().toString(36).slice(-12),
-            email_confirm: true,
-            user_metadata: { full_name: row.name },
-          })
-          if (authUser.error) throw authUser.error
-          authCreatePlan.push(authUser.data.user.id)
+        if (existingProfile.role !== 'STUDENT') {
+          throw new AppError(409, 'IMPORT_ROLE_CONFLICT', 'Email đã thuộc tài khoản không phải học sinh.')
         }
-
-        const newProfile = await supabase
-          .from('profiles')
-          .insert({
-            id: authUser?.data?.user?.id ?? crypto.randomUUID(),
-            email: row.email,
-            username: `${row.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${Date.now()}`,
-            full_name: row.name,
-            role: 'STUDENT',
-            status: 'PENDING',
-            student_code: null,
-          })
-          .select('id,email,role,status,full_name')
-          .single()
-
-        if (newProfile.error) {
-          if (newProfile.error.code === '23505') {
-            throw new AppError(409, 'ACCOUNT_EMAIL_CONFLICT', 'Email đã được sử dụng.')
-          }
-          throw newProfile.error
+        if (normalizePersonName(existingProfile.full_name) !== normalizePersonName(row.name)) {
+          throw new AppError(409, 'IMPORT_NAME_CONFLICT', 'Họ tên không khớp với tài khoản học sinh hiện có.')
         }
-
-        createdProfiles.push(newProfile.data)
-
-        const inserted = await supabase
-          .from('class_members')
-          .insert({ class_id: classId, student_id: newProfile.data.id, student_number: row.studentNumber })
-          .select('class_id,student_id,student_number,joined_at')
-          .single()
-
-        if (inserted.error) throw inserted.error
-        createdMemberships.push(inserted.data)
+        if (membersByStudent.has(existingProfile.id)) {
+          skipped += 1
+          continue
+        }
+        if (usedNumbers.has(row.studentNumber)) {
+          throw new AppError(409, 'STUDENT_NUMBER_CONFLICT', 'Số thứ tự học sinh đã tồn tại trong lớp.')
+        }
+        rowsToAssign.push({ row, profileId: existingProfile.id })
       }
 
-      return {
-        created: createdProfiles.length,
-        memberships: createdMemberships,
-        authUserIds: authCreatePlan,
+      for (const row of newRows) {
+        if (usedNumbers.has(row.studentNumber)) {
+          throw new AppError(409, 'STUDENT_NUMBER_CONFLICT', 'Số thứ tự học sinh đã tồn tại trong lớp.')
+        }
+        rowsToAssign.push({ row })
+      }
+
+      const createdAuthUserIds = []
+      try {
+        for (const item of rowsToAssign) {
+          if (!item.profileId) {
+            const authUser = await createAuthUser(item.row)
+            item.profileId = authUser.id
+            createdAuthUserIds.push(authUser.id)
+          }
+        }
+
+        if (rowsToAssign.length === 0) {
+          return { created: 0, assigned: 0, skipped, memberships: [], authUserIds: [] }
+        }
+
+        let rpcResult
+        try {
+          rpcResult = await supabase.rpc('admin_import_students', {
+            target_class_id: classId,
+            target_students: rowsToAssign.map(({ row, profileId }) => ({
+              profile_id: profileId,
+              email: row.email,
+              full_name: row.name,
+              student_number: row.studentNumber,
+            })),
+          })
+        } catch (error) {
+          throw mapImportRpcError(error)
+        }
+        if (rpcResult.error) throw mapImportRpcError(rpcResult.error)
+
+        return {
+          created: rpcResult.data?.created ?? newRows.length,
+          assigned: rpcResult.data?.assigned ?? rowsToAssign.length - newRows.length,
+          skipped: rpcResult.data?.skipped ?? skipped,
+          memberships: rpcResult.data?.memberships ?? [],
+          authUserIds: createdAuthUserIds,
+        }
+      } catch (error) {
+        await rollbackAuthUsers(createdAuthUserIds)
+        throw error
       }
     },
   }
