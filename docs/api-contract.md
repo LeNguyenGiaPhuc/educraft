@@ -104,6 +104,119 @@ profile. Logout revokes the current session and clears both cookies. `GET
 /api/auth/me` returns the profile for the current session. `PENDING` and `LOCKED`
 accounts receive `403 ACCOUNT_NOT_ACTIVE`.
 
+## Admin accounts
+
+Admin account endpoints require an authenticated `ADMIN` whose profile status is `ACTIVE`. They are mounted under `/api/admin` and return the shared `data`/`error` envelope.
+
+### List and search/filter accounts
+
+```http
+GET /api/admin/accounts?search=nguyen&role=STUDENT&status=ACTIVE
+```
+
+The query may include the optional filters `search`, `role`, and `status`. `search` is applied server-side as a database search over `email`, `full_name`, `username`, and `role/status` filters are pushed to the database query path.
+
+### Create account
+
+```http
+POST /api/admin/accounts
+Content-Type: application/json
+```
+
+```json
+{
+  "username": "student_01",
+  "full_name": "Nguyễn Văn An",
+  "email": "student@example.com",
+  "role": "STUDENT",
+  "status": "PENDING",
+  "student_code": "A001"
+}
+```
+
+`email` is normalized by `trim().toLowerCase()` in the validator/service path. Email uniqueness is checked in the database-backed profile table, raising `409 ACCOUNT_EMAIL_CONFLICT` on duplicates. `status` defaults to `PENDING` when omitted.
+
+### Read, update, lock, unlock, and delete account
+
+```http
+GET /api/admin/accounts/:accountId
+PATCH /api/admin/accounts/:accountId
+POST /api/admin/accounts/:accountId/lock
+POST /api/admin/accounts/:accountId/unlock
+DELETE /api/admin/accounts/:accountId
+```
+
+Account updates reject attempts to send immutable fields from the database and identity tables such as `id`, `created_at`, `updated_at`. Lock and unlock operations switch `status` between `LOCKED` and `ACTIVE`. Deleting a profile is allowed only when the account has no historical `submissions`; otherwise the service returns `409 ACCOUNT_HAS_HISTORY` and the contract recommends `LOCKED` instead of hard delete.
+
+## Admin classes
+
+Class endpoints are also under `/api/admin` and require an authenticated `ADMIN` in an `ACTIVE` profile.
+
+### List, create, read, update, delete classes
+
+```http
+GET /api/admin/classes
+GET /api/admin/classes/:classId
+POST /api/admin/classes
+PATCH /api/admin/classes/:classId
+DELETE /api/admin/classes/:classId
+```
+
+Create and update accept normalized `code`, `subject`, `semester`, `school_year`, `teacher_id`, and `status`. `class.code` has a database uniqueness constraint and errors map to `409 CLASS_CODE_CONFLICT`.
+
+### Assign teacher
+
+```http
+POST /api/admin/classes/:classId/teacher
+Content-Type: application/json
+```
+
+```json
+{
+  "teacher_id": "33333333-3333-4333-8333-333333333333"
+}
+```
+
+The target teacher must exist as an `ACTIVE` `TEACHER` account, otherwise the service maps to `404 TEACHER_NOT_FOUND`, `422 INVALID_TEACHER_ROLE`, or `422 TEACHER_NOT_ACTIVE`.
+
+### Add and remove class members
+
+```http
+POST /api/admin/classes/:classId/students
+DELETE /api/admin/classes/:classId/students
+Content-Type: application/json
+```
+
+```json
+{
+  "student_id": "66666666-6666-4666-8666-666666666666",
+  "student_number": "01"
+}
+```
+
+The `student_number` belongs in the `class_members` table, not in `profiles`. A single student may belong to multiple classes and the same class may carry different `student_number` values per membership. Duplicate `student_number` within a class maps to `409 STUDENT_NUMBER_CONFLICT` and duplicate membership maps to `409 STUDENT_ALREADY_IN_CLASS`.
+
+### Import students into a class
+
+```http
+POST /api/admin/classes/:classId/import-students
+Content-Type: application/json
+```
+
+```json
+{
+  "students": [
+    {
+      "studentNumber": "01",
+      "name": "Nguyễn Văn An",
+      "email": "parent@example.com"
+    }
+  ]
+}
+```
+
+The server normalizes `studentNumber`, `name`, and `email` before validation. The import request is validated as a whole and only commits after the validator confirms no duplicate email in the file, no duplicate `student_number` in the class, and no global `profiles.email` conflict. Request validation errors return `400 VALIDATION_ERROR`; all validation and conflict checks happen before any account or membership insert, and the import path is designed around an all-or-nothing atomic transaction that falls back to rollback of any newly created Auth users.
+
 ## Assignment CRUD
 
 All assignment CRUD routes require an authenticated `TEACHER`. The Teacher may
