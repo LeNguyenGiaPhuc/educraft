@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { useAuth } from '../contexts/useAuth.js'
-import { getRoleHome, ROLES } from '../data/mockAuthStore.js'
+import { getRoleHome, ROLES } from '../services/authService.js'
 
 function navigationClassName({ isActive }) {
   return `nav-link${isActive ? ' nav-link-active' : ''}`
