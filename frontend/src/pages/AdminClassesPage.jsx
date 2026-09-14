@@ -28,6 +28,15 @@ function normalizeTeacher(row) {
   }
 }
 
+async function fetchClassesPageData() {
+  const [classRows, teacherRows] = await Promise.all([
+    adminClassService.listClasses(),
+    adminAccountService.listAccounts({ role: ROLES.TEACHER, status: 'ACTIVE' }),
+  ])
+
+  return { classRows, teacherRows }
+}
+
 function AdminClassesPage() {
   const [showClassForm, setShowClassForm] = useState(false)
   const [notice, setNotice] = useState('')
@@ -62,7 +71,26 @@ function AdminClassesPage() {
   }
 
   useEffect(() => {
-    loadData()
+    let active = true
+
+    fetchClassesPageData()
+      .then(({ classRows, teacherRows }) => {
+        if (!active) return
+        setClasses(classRows.map(normalizeClass))
+        setTeachers(teacherRows.map(normalizeTeacher))
+      })
+      .catch((caughtError) => {
+        if (!active) return
+        const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể tải danh sách lớp.'
+        setError(message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const filteredClasses = classes.filter((classroom) => {

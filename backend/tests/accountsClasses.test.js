@@ -99,6 +99,27 @@ test('admin account routes produce a standard data envelope and require an ACTIV
   assert.equal(studentResponse.body.error.code, 'FORBIDDEN')
 })
 
+test('admin account route preserves class assignments in the response', async () => {
+  const app = buildAccountApp({
+    service: createAccountService({
+      async listAccounts() {
+        return [{
+          id: '33333333-3333-4333-8333-333333333333',
+          role: 'TEACHER',
+          classes: [{ id: classId, code: '10A1' }],
+        }]
+      },
+    }),
+  })
+
+  const response = await request(app)
+    .get('/api/admin/accounts')
+    .set('Origin', frontendOrigin)
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(response.body.data[0].classes, [{ id: classId, code: '10A1' }])
+})
+
 test('admin class routes expose the same controller-service shape and overload only the class endpoints', async () => {
   const app = buildClassApp()
   const response = await request(app)

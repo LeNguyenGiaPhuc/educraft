@@ -3,61 +3,29 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '../services/apiClient.js'
 import { adminAccountService } from '../services/adminAccountService.js'
 import { authService, ROLES, roleLabels } from '../services/authService.js'
-
-function getAccountClassLabel(account, classes) {
-  const ids = Array.isArray(account?.classIds) ? account.classIds : []
-
-  if (account?.role === ROLES.STUDENT && ids.length === 0) {
-    return 'Chưa phân lớp'
-  }
-
-  if (ids.length === 0) {
-    return 'Chưa gán'
-  }
-
-  return ids
-    .map((id) => classes.find((classroom) => classroom.id === id)?.id ?? id)
-    .join(', ')
-}
-
-function filterAdminAccounts(accounts, { query = '', role = 'all', classId = 'all' } = {}) {
-  const normalizedQuery = query.trim().toLowerCase()
-
-  return accounts.filter((account) => {
-    const matchesQuery = !normalizedQuery ||
-      account.username?.toLowerCase().includes(normalizedQuery) ||
-      account.name?.toLowerCase().includes(normalizedQuery)
-    const matchesRole = role === 'all' || account.role === role
-    const matchesClass = classId === 'all' || (account.classIds ?? []).includes(classId)
-
-    return matchesQuery && matchesRole && matchesClass
-  })
-}
-
-function normalizeAccount(row) {
-  return {
-    ...row,
-    id: row.id,
-    email: row.email ?? '',
-    username: row.username ?? '',
-    name: row.full_name ?? row.name ?? '',
-    role: String(row.role ?? '').toUpperCase(),
-    status: String(row.status ?? '').toLowerCase(),
-    classIds: Array.isArray(row.classIds) ? row.classIds : [],
-  }
-}
+import { filterAdminAccounts, getAccountClassLabel, normalizeAdminAccount } from '../data/adminAccountView.js'
 
 function normalizeClass(item) {
   return {
     ...item,
-    id: item.code ?? item.id,
+    id: item.id,
+    code: item.code ?? item.id,
   }
+}
+
+async function fetchAccountPageData() {
+  const [accountRows, classRows, me] = await Promise.all([
+    adminAccountService.listAccounts(),
+    adminAccountService.listClasses(),
+    authService.me().catch(() => null),
+  ])
+
+  return { accountRows, classRows, me }
 }
 
 function AccountForm({ initialForm, onCancel, onSaved }) {
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
-  const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   function updateField(field, value) {
@@ -82,7 +50,7 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
         ? await adminAccountService.updateAccount(initialForm.id, payload)
         : await adminAccountService.createAccount(payload)
 
-      onSaved(normalizeAccount(result))
+      onSaved(normalizeAdminAccount(result))
     } catch (error) {
       if (error instanceof ApiError) {
         const fieldErrors = error.fields ?? {}
@@ -123,37 +91,6 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
             </label>
 
             <label className="field-label">
-              <span>Mật khẩu</span>
-              <div className="password-row">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.password ?? ''}
-                  onChange={(event) => updateField('password', event.target.value)}
-                />
-                <button
-                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                  className="password-toggle-button"
-                  onClick={() => setShowPassword((value) => !value)}
-                  title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                  type="button"
-                >
-                  <svg aria-hidden="true" className="password-toggle-icon" viewBox="0 0 24 24">
-                    {showPassword ? (
-                      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                    ) : (
-                      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                    )}
-                    <path d="M3 3l18 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                    {showPassword ? (
-                      <circle cx="12" cy="12" fill="none" r="3" stroke="currentColor" strokeWidth="2" />
-                    ) : null}
-                  </svg>
-                </button>
-              </div>
-              {errors.password && <small className="field-error">{errors.password}</small>}
-            </label>
-
-            <label className="field-label">
               <span>Họ và tên</span>
               <input value={form.name ?? ''} onChange={(event) => updateField('name', event.target.value)} />
               {errors.full_name && <small className="field-error">{errors.full_name}</small>}
@@ -171,6 +108,7 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
             <div className="admin-form-help">
               <strong>Phân công lớp</strong>
               <p>Admin phân công giáo viên tại màn hình Quản lý lớp học. Học sinh được thêm bằng danh sách lớp hoặc file Excel.</p>
+              <p>Tài khoản mới sẽ ở trạng thái chờ kích hoạt. Mật khẩu sẽ được gửi qua email ở bước triển khai tiếp theo.</p>
             </div>
           </div>
 
@@ -209,7 +147,7 @@ function AdminAccountsPage() {
         adminAccountService.listClasses(),
       ])
 
-      setAccounts(accountRows.map(normalizeAccount))
+      setAccounts(accountRows.map(normalizeAdminAccount))
       setClasses(classRows.map(normalizeClass))
 
       try {
@@ -227,7 +165,27 @@ function AdminAccountsPage() {
   }
 
   useEffect(() => {
-    loadData()
+    let active = true
+
+    fetchAccountPageData()
+      .then(({ accountRows, classRows, me }) => {
+        if (!active) return
+        setAccounts(accountRows.map(normalizeAdminAccount))
+        setClasses(classRows.map(normalizeClass))
+        setCurrentUser(me)
+      })
+      .catch((caughtError) => {
+        if (!active) return
+        const details = caughtError instanceof ApiError ? caughtError.message : String(caughtError?.message ?? 'Không thể tải dữ liệu.')
+        setError(details)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const filteredAccounts = filterAdminAccounts(accounts, { query, role, classId })
@@ -336,7 +294,7 @@ function AdminAccountsPage() {
             <span>Lớp học</span>
             <select value={classId} onChange={(event) => setClassId(event.target.value)}>
               <option value="all">Tất cả lớp</option>
-              {classes.map((classroom) => <option key={classroom.id} value={classroom.id}>{classroom.id}</option>)}
+              {classes.map((classroom) => <option key={classroom.id} value={classroom.id}>{classroom.code}</option>)}
             </select>
           </label>
         </div>
@@ -365,7 +323,7 @@ function AdminAccountsPage() {
                   <td><strong>{account.username}</strong></td>
                   <td>{account.name}</td>
                   <td><span className="role-badge">{roleLabels[account.role] ?? account.role}</span></td>
-                  <td>{getAccountClassLabel(account, classes)}</td>
+                  <td>{getAccountClassLabel(account)}</td>
                   <td><span className={`status-badge status-${account.status}`}>
                     {account.status === 'pending' ? 'Chờ kích hoạt' : account.status === 'locked' ? 'Khóa' : 'Hoạt động'}
                   </span></td>
@@ -385,7 +343,7 @@ function AdminAccountsPage() {
 
       {showAccountForm && (
         <AccountForm
-          initialForm={editingAccount ? { email: editingAccount.email ?? '', username: editingAccount.username, password: '', name: editingAccount.name, role: editingAccount.role, classIds: editingAccount.classIds ?? [], id: editingAccount.id } : { email: '', password: '', name: '', role: ROLES.ADMIN, classIds: [], id: '' }}
+          initialForm={editingAccount ? { email: editingAccount.email ?? '', username: editingAccount.username, name: editingAccount.name, role: editingAccount.role, id: editingAccount.id } : { email: '', name: '', role: ROLES.ADMIN, id: '' }}
           onCancel={() => setShowAccountForm(false)}
           onSaved={handleSaved}
         />
