@@ -1,24 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import StudentImportPanel from '../components/StudentImportPanel.jsx'
 import AdminClassForm from '../components/AdminClassForm.jsx'
-import {
-  ADMIN_STATE,
-  addStudentsToAdminClass,
-  deleteAdminClass,
-  getAdminWorkspace,
-  getTeachers,
-  removeStudentFromAdminClass,
-} from '../data/mockAdminStore.js'
-import { ROLES } from '../data/mockAuthStore.js'
+import { adminClassService } from '../services/adminClassService.js'
+import { adminAccountService } from '../services/adminAccountService.js'
+import { ApiError } from '../services/apiClient.js'
+import { ROLES } from '../services/authService.js'
 
 function StudentAddModal({ students, onCancel, onAdd }) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState([])
 
   const matched = students.filter((student) => (
-    student.username.toLowerCase().includes(query.toLowerCase()) || student.name.toLowerCase().includes(query.toLowerCase())
+    (student.username ?? '').toLowerCase().includes(query.toLowerCase()) || (student.name ?? '').toLowerCase().includes(query.toLowerCase())
   ))
 
   function toggle(studentId) {
@@ -63,76 +58,157 @@ function StudentAddModal({ students, onCancel, onAdd }) {
   )
 }
 
+function normalizeClass(row = {}) {
+  return {
+    id: row.id,
+    code: row.code,
+    subject: row.subject,
+    semester: row.semester,
+    school_year: row.school_year,
+    teacher_id: row.teacher_id ?? null,
+    status: row.status,
+    name: row.subject ?? row.code,
+  }
+}
+
+function normalizeStudent(row = {}) {
+  return {
+    id: row.id,
+    username: row.username ?? row.email ?? 'student',
+    name: row.full_name ?? row.name ?? 'Học sinh',
+    email: row.email ?? '—',
+    status: row.status,
+    importedStudentNumber: row.student_number ?? '—',
+    student_number: row.student_number ?? '—',
+  }
+}
+
+function normalizeTeacher(row = {}) {
+  return {
+    id: row.id,
+    full_name: row.full_name ?? row.name ?? '',
+    role: row.role,
+    status: row.status,
+  }
+}
+
+function normalizeAccount(row = {}) {
+  return {
+    id: row.id,
+    username: row.username ?? row.email ?? '',
+    name: row.full_name ?? row.name ?? row.email ?? '',
+    role: row.role,
+    status: row.status,
+    classIds: Array.isArray(row.class_ids) ? row.class_ids : [],
+  }
+}
+
 function AdminClassDetailPage() {
   const { classId } = useParams()
   const navigate = useNavigate()
-  const snapshot = getAdminWorkspace(ADMIN_STATE.SUCCESS)
+  const [classroom, setClassroom] = useState(null)
+  const [students, setStudents] = useState([])
+  const [teachers, setTeachers] = useState([])
+  const [availableStudents, setAvailableStudents] = useState([])
   const [query, setQuery] = useState('')
   const [showStudentModal, setShowStudentModal] = useState(false)
   const [showImportPanel, setShowImportPanel] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
   const [notice, setNotice] = useState('')
-  const [, setDataVersion] = useState(0)
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  if (snapshot.status === 'error') {
-    return <section className="admin-empty-panel"><p className="state-kicker">Chi tiết lớp</p><h1>Không thể mở lớp</h1><p>{snapshot.message}</p></section>
+  async function loadData() {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const [classRow, studentRows, teacherRows, studentAccounts] = await Promise.all([
+        adminClassService.getClass(classId),
+        adminClassService.listStudents(classId),
+        adminAccountService.listAccounts({ role: ROLES.TEACHER, status: 'ACTIVE' }),
+        adminAccountService.listAccounts({ role: ROLES.STUDENT, status: 'ACTIVE' }),
+      ])
+
+      const mappedClass = normalizeClass(classRow)
+      const mappedStudents = (studentRows ?? []).map(normalizeStudent)
+      const mappedTeachers = (teacherRows ?? []).map(normalizeTeacher)
+      const mappedStudentsAccounts = (studentAccounts ?? []).map(normalizeAccount)
+
+      setClassroom(mappedClass)
+      setStudents(mappedStudents)
+      setTeachers(mappedTeachers)
+      setAvailableStudents(mappedStudentsAccounts.filter((student) => !mappedStudents.some((row) => row.id === student.id)))
+    } catch (caughtError) {
+      const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể tải chi tiết lớp.'
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const classroom = snapshot.data?.classes?.find((item) => item.id === classId.toUpperCase())
-  const allUsers = snapshot.data?.users ?? []
-  const teacher = classroom?.teacher ?? null
-  const students = classroom?.students ?? []
+  useEffect(() => {
+    loadData()
+  }, [classId])
 
   const searchQuery = query.trim().toLowerCase()
   const matchingStudents = students.filter((student) => {
-    return !searchQuery || student.username.toLowerCase().includes(searchQuery) || student.name.toLowerCase().includes(searchQuery)
+    return !searchQuery || (student.username ?? '').toLowerCase().includes(searchQuery) || (student.name ?? '').toLowerCase().includes(searchQuery)
   })
 
-  const availableStudents = allUsers.filter((user) => {
-    return user.role === ROLES.STUDENT && !user.classIds?.includes(classId.toUpperCase())
-  })
-
-  function addStudents(ids) {
+  async function addStudents(ids) {
     if (!ids.length) {
       return
     }
 
-    addStudentsToAdminClass(classId.toUpperCase(), ids)
-    setShowStudentModal(false)
-    setDataVersion((version) => version + 1)
+    try {
+      const startNumber = Math.max(1, students.length + 1)
+      await Promise.all(ids.map((studentId, index) => adminClassService.addStudent(classId, {
+        student_id: studentId,
+        student_number: String(startNumber + index),
+      })))
+
+      setShowStudentModal(false)
+      setNotice('Đã thêm học sinh vào lớp.')
+      await loadData()
+    } catch (caughtError) {
+      const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể thêm học sinh.'
+      setNotice(message)
+    }
   }
 
   function handleImported(result) {
     setShowImportPanel(false)
-    setDataVersion((version) => version + 1)
-    const created = result.addedCount ?? 0
-    const assigned = result.assignedCount ?? 0
-    const skipped = result.skippedCount ?? 0
+    const created = result.created ?? result.addedCount ?? 0
+    const assigned = result.assigned ?? result.assignedCount ?? 0
+    const skipped = result.skipped ?? result.skippedCount ?? 0
     setNotice(`Đã import: ${created} tài khoản mới, ${assigned} tài khoản có sẵn, bỏ qua ${skipped} học sinh.`)
+    loadData()
   }
 
-  function handleRemoveStudent(student) {
+  async function handleRemoveStudent(student) {
     const confirmed = window.confirm(`Xóa ${student.name} khỏi lớp ${classroom.id}?`)
 
     if (!confirmed) {
       return
     }
 
-    const result = removeStudentFromAdminClass(classroom.id, student.id)
-    if (result.status === 'success') {
+    try {
+      await adminClassService.removeStudent(classroom.id, { student_id: student.id })
       setNotice(`Đã xóa ${student.name} khỏi lớp.`)
-      setDataVersion((version) => version + 1)
-    } else {
-      setNotice(result.errors?.form ?? 'Không thể xóa học sinh khỏi lớp.')
+      await loadData()
+    } catch (caughtError) {
+      const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể xóa học sinh khỏi lớp.'
+      setNotice(message)
     }
   }
 
-  function handleDeleteClass() {
+  async function handleDeleteClass() {
     if (!classroom) {
       return
     }
 
-    const assignmentCount = classroom.assignmentCount ?? classroom.assignments?.length ?? 0
+    const assignmentCount = classroom.assignmentCount ?? 0
     const confirmed = window.confirm(
       `Bạn có chắc chắn muốn xóa lớp ${classroom.id} không?\n\n` +
       `Sẽ xóa ${students.length} học sinh khỏi lớp và ${assignmentCount} bài kiểm tra liên quan. ` +
@@ -143,19 +219,28 @@ function AdminClassDetailPage() {
       return
     }
 
-    const result = deleteAdminClass(classroom.id)
-
-    if (result.status === 'success') {
+    try {
+      await adminClassService.deleteClass(classroom.id)
       navigate('/admin/classes')
-      return
+    } catch (caughtError) {
+      const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể xóa lớp học này.'
+      setNotice(message)
     }
+  }
 
-    setNotice(result.errors?.form ?? 'Không thể xóa lớp học này.')
+  if (error) {
+    return <section className="admin-empty-panel"><p className="state-kicker">Chi tiết lớp</p><h1>Không thể mở lớp</h1><p>{error}</p></section>
+  }
+
+  if (loading && !classroom) {
+    return <section className="admin-empty-panel"><p className="state-kicker">Chi tiết lớp</p><h1>Đang tải lớp</h1></section>
   }
 
   if (!classroom) {
     return <section className="admin-empty-panel"><p className="state-kicker">Chi tiết lớp</p><h1>Không tìm thấy lớp</h1><Link className="button button-primary" to="/admin/classes">Quay lại</Link></section>
   }
+
+  const teacher = teachers.find((row) => row.id === classroom.teacher_id) ?? null
 
   return (
     <section className="admin-page">
@@ -180,7 +265,7 @@ function AdminClassDetailPage() {
             <span className="panel-subtitle">Thông tin lớp</span>
             <div className="class-detail-title">{classroom.name}</div>
             <p><strong>Mã lớp:</strong> {classroom.id}</p>
-            <p><strong>Giáo viên:</strong> {teacher?.name ?? 'Chưa phân công'}</p>
+            <p><strong>Giáo viên:</strong> {teacher?.full_name ?? 'Chưa phân công'}</p>
             <p><strong>Số lượng học sinh:</strong> {students.length}</p>
           </div>
         </div>
@@ -251,12 +336,12 @@ function AdminClassDetailPage() {
       {showEditForm && (
         <AdminClassForm
           initialClass={classroom}
-          teachers={getTeachers(allUsers)}
+          teachers={teachers}
           onCancel={() => setShowEditForm(false)}
           onSaved={(savedClass) => {
             setShowEditForm(false)
             setNotice(`Đã cập nhật lớp ${savedClass.id}.`)
-            setDataVersion((version) => version + 1)
+            loadData()
           }}
         />
       )}

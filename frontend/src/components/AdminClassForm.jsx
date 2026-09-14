@@ -1,15 +1,16 @@
 import { useState } from 'react'
 
-import { createAdminClass, updateAdminClass } from '../data/mockAdminStore.js'
+import { adminClassService } from '../services/adminClassService.js'
+import { ApiError } from '../services/apiClient.js'
 
 function AdminClassForm({ initialClass = null, teachers = [], onCancel, onSaved }) {
   const isEdit = Boolean(initialClass?.id)
   const [form, setForm] = useState({
-    id: initialClass?.id ?? '',
+    id: initialClass?.code ?? initialClass?.id ?? '',
     name: initialClass?.subject ?? '',
     semester: initialClass?.semester ?? 'Học kỳ 1',
-    schoolYear: initialClass?.schoolYear ?? 'Năm học 2026–2027',
-    teacherId: initialClass?.teacher?.id ?? initialClass?.teacherId ?? '',
+    schoolYear: initialClass?.school_year ?? 'Năm học 2026–2027',
+    teacherId: initialClass?.teacher_id ?? initialClass?.teacher?.id ?? initialClass?.teacherId ?? '',
   })
   const [errors, setErrors] = useState({})
 
@@ -18,19 +19,37 @@ function AdminClassForm({ initialClass = null, teachers = [], onCancel, onSaved 
     setErrors((current) => ({ ...current, [field]: undefined, form: undefined }))
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
+    setErrors({})
 
-    const result = isEdit
-      ? updateAdminClass(initialClass.id, form)
-      : createAdminClass(form)
+    try {
+      const payload = {
+        code: form.id.trim().toUpperCase(),
+        subject: form.name.trim(),
+        semester: form.semester.trim(),
+        school_year: form.schoolYear.trim(),
+        teacher_id: form.teacherId || null,
+        status: 'ACTIVE',
+      }
 
-    if (result.status === 'error') {
-      setErrors(result.errors ?? {})
-      return
+      const result = isEdit
+        ? await adminClassService.updateClass(initialClass.id, payload)
+        : await adminClassService.createClass(payload)
+
+      onSaved(result)
+    } catch (caughtError) {
+      const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể lưu lớp học.'
+      const fieldMessages = {}
+
+      if (caughtError instanceof ApiError && caughtError.fields) {
+        Object.entries(caughtError.fields).forEach(([key, value]) => {
+          fieldMessages[key] = Array.isArray(value) ? value[0] : value
+        })
+      }
+
+      setErrors({ form: message, ...fieldMessages })
     }
-
-    onSaved(result.data)
   }
 
   return (
@@ -76,7 +95,7 @@ function AdminClassForm({ initialClass = null, teachers = [], onCancel, onSaved 
               <span>Giáo viên phụ trách</span>
               <select value={form.teacherId} onChange={(event) => updateField('teacherId', event.target.value)}>
                 <option value="">Chưa phân công</option>
-                {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.name}</option>)}
+                {teachers.map((teacher) => <option key={teacher.id} value={teacher.id}>{teacher.full_name ?? teacher.name}</option>)}
               </select>
               {errors.teacherId && <small className="field-error">{errors.teacherId}</small>}
             </label>
