@@ -1,5 +1,8 @@
 import { createSupabaseGateway } from './config/supabase.js'
 import { createAuthenticate } from './middleware/authenticate.js'
+import { createAiEvaluationController } from './modules/ai-evaluations/aiEvaluationController.js'
+import { createAiEvaluationRouter } from './modules/ai-evaluations/aiEvaluationRoutes.js'
+import { createAiEvaluationService } from './modules/ai-evaluations/aiEvaluationService.js'
 import { createAssignmentController } from './modules/assignments/assignmentController.js'
 import { createAssignmentRouter } from './modules/assignments/assignmentRoutes.js'
 import { createAssignmentService } from './modules/assignments/assignmentService.js'
@@ -44,6 +47,15 @@ export function createDependencies(config) {
     authenticate,
     imageUpload: createRequiredImageUpload(),
   })
+  const aiEvaluationService = createAiEvaluationService({
+    adminClient: gateway.adminClient,
+    submissionService,
+  })
+  const aiEvaluationController = createAiEvaluationController({ aiEvaluationService })
+  const aiEvaluationRouter = createAiEvaluationRouter({
+    controller: aiEvaluationController,
+    authenticate,
+  })
   const authController = createAuthController({
     authService,
     nodeEnv: config.NODE_ENV,
@@ -55,6 +67,7 @@ export function createDependencies(config) {
 
   return {
     assignmentRouter,
+    aiEvaluationRouter,
     authRouter,
     authenticate,
     gateway,

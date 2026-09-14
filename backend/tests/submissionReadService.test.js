@@ -162,6 +162,7 @@ test('student history keeps attempts 1, 2, and 3 separate in requested order', a
 
 test('student projection excludes other students and every AI draft field', async () => {
   const own = submission(1, {
+    status: 'REQUIRES_REVIEW',
     teacher_reviews: [review({ finalized: false })],
   })
   const other = submission(2, {
@@ -179,6 +180,7 @@ test('student projection excludes other students and every AI draft field', asyn
 
   assert.equal(result.length, 1)
   assert.equal(result[0].id, own.id)
+  assert.equal(result[0].status, 'REQUIRES_REVIEW')
   assert.equal(Object.hasOwn(result[0], 'student_id'), false)
   assert.equal(Object.hasOwn(result[0], 'teacher_result'), false)
   assert.equal(JSON.stringify(result).includes('AI draft'), false)
