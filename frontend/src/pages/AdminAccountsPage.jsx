@@ -3,54 +3,13 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '../services/apiClient.js'
 import { adminAccountService } from '../services/adminAccountService.js'
 import { authService, ROLES, roleLabels } from '../services/authService.js'
-
-function getAccountClassLabel(account, classes) {
-  const ids = Array.isArray(account?.classIds) ? account.classIds : []
-
-  if (account?.role === ROLES.STUDENT && ids.length === 0) {
-    return 'Chưa phân lớp'
-  }
-
-  if (ids.length === 0) {
-    return 'Chưa gán'
-  }
-
-  return ids
-    .map((id) => classes.find((classroom) => classroom.id === id)?.id ?? id)
-    .join(', ')
-}
-
-function filterAdminAccounts(accounts, { query = '', role = 'all', classId = 'all' } = {}) {
-  const normalizedQuery = query.trim().toLowerCase()
-
-  return accounts.filter((account) => {
-    const matchesQuery = !normalizedQuery ||
-      account.username?.toLowerCase().includes(normalizedQuery) ||
-      account.name?.toLowerCase().includes(normalizedQuery)
-    const matchesRole = role === 'all' || account.role === role
-    const matchesClass = classId === 'all' || (account.classIds ?? []).includes(classId)
-
-    return matchesQuery && matchesRole && matchesClass
-  })
-}
-
-function normalizeAccount(row) {
-  return {
-    ...row,
-    id: row.id,
-    email: row.email ?? '',
-    username: row.username ?? '',
-    name: row.full_name ?? row.name ?? '',
-    role: String(row.role ?? '').toUpperCase(),
-    status: String(row.status ?? '').toLowerCase(),
-    classIds: Array.isArray(row.classIds) ? row.classIds : [],
-  }
-}
+import { filterAdminAccounts, getAccountClassLabel, normalizeAdminAccount } from '../data/adminAccountView.js'
 
 function normalizeClass(item) {
   return {
     ...item,
-    id: item.code ?? item.id,
+    id: item.id,
+    code: item.code ?? item.id,
   }
 }
 
@@ -209,7 +168,7 @@ function AdminAccountsPage() {
         adminAccountService.listClasses(),
       ])
 
-      setAccounts(accountRows.map(normalizeAccount))
+      setAccounts(accountRows.map(normalizeAdminAccount))
       setClasses(classRows.map(normalizeClass))
 
       try {
@@ -336,7 +295,7 @@ function AdminAccountsPage() {
             <span>Lớp học</span>
             <select value={classId} onChange={(event) => setClassId(event.target.value)}>
               <option value="all">Tất cả lớp</option>
-              {classes.map((classroom) => <option key={classroom.id} value={classroom.id}>{classroom.id}</option>)}
+              {classes.map((classroom) => <option key={classroom.id} value={classroom.id}>{classroom.code}</option>)}
             </select>
           </label>
         </div>
@@ -365,7 +324,7 @@ function AdminAccountsPage() {
                   <td><strong>{account.username}</strong></td>
                   <td>{account.name}</td>
                   <td><span className="role-badge">{roleLabels[account.role] ?? account.role}</span></td>
-                  <td>{getAccountClassLabel(account, classes)}</td>
+                  <td>{getAccountClassLabel(account)}</td>
                   <td><span className={`status-badge status-${account.status}`}>
                     {account.status === 'pending' ? 'Chờ kích hoạt' : account.status === 'locked' ? 'Khóa' : 'Hoạt động'}
                   </span></td>
@@ -385,7 +344,7 @@ function AdminAccountsPage() {
 
       {showAccountForm && (
         <AccountForm
-          initialForm={editingAccount ? { email: editingAccount.email ?? '', username: editingAccount.username, password: '', name: editingAccount.name, role: editingAccount.role, classIds: editingAccount.classIds ?? [], id: editingAccount.id } : { email: '', password: '', name: '', role: ROLES.ADMIN, classIds: [], id: '' }}
+          initialForm={editingAccount ? { email: editingAccount.email ?? '', username: editingAccount.username, name: editingAccount.name, role: editingAccount.role, id: editingAccount.id } : { email: '', name: '', role: ROLES.ADMIN, id: '' }}
           onCancel={() => setShowAccountForm(false)}
           onSaved={handleSaved}
         />
