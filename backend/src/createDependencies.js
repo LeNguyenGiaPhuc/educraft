@@ -1,11 +1,17 @@
 import { createSupabaseGateway } from './config/supabase.js'
 import { createAuthenticate } from './middleware/authenticate.js'
+import { createAccountController } from './modules/accounts/accountController.js'
+import { createAccountRouter } from './modules/accounts/accountRoutes.js'
+import { createAccountService } from './modules/accounts/accountService.js'
 import { createAiEvaluationController } from './modules/ai-evaluations/aiEvaluationController.js'
 import { createAiEvaluationRouter } from './modules/ai-evaluations/aiEvaluationRoutes.js'
 import { createAiEvaluationService } from './modules/ai-evaluations/aiEvaluationService.js'
 import { createAssignmentController } from './modules/assignments/assignmentController.js'
 import { createAssignmentRouter } from './modules/assignments/assignmentRoutes.js'
 import { createAssignmentService } from './modules/assignments/assignmentService.js'
+import { createClassController } from './modules/classes/classController.js'
+import { createClassRouter } from './modules/classes/classRoutes.js'
+import { createClassService } from './modules/classes/classService.js'
 import { createReferenceController } from './modules/assignments/referenceController.js'
 import { createReferenceRouter } from './modules/assignments/referenceRoutes.js'
 import { createReferenceService } from './modules/assignments/referenceService.js'
@@ -22,6 +28,21 @@ export function createDependencies(config) {
   const gateway = createSupabaseGateway(config)
   const authService = createAuthService(gateway)
   const authenticate = createAuthenticate(gateway)
+
+  const accountService = createAccountService({ adminClient: gateway.adminClient })
+  const accountController = createAccountController({ accountService })
+  const accountRouter = createAccountRouter({
+    controller: accountController,
+    authenticate,
+  })
+
+  const classService = createClassService({ adminClient: gateway.adminClient })
+  const classController = createClassController({ classService })
+  const classRouter = createClassRouter({
+    controller: classController,
+    authenticate,
+  })
+
   const assignmentService = createAssignmentService()
   const assignmentController = createAssignmentController({ assignmentService })
   const assignmentRouter = createAssignmentRouter({
@@ -66,10 +87,12 @@ export function createDependencies(config) {
   })
 
   return {
+    accountRouter,
     assignmentRouter,
     aiEvaluationRouter,
     authRouter,
     authenticate,
+    classRouter,
     gateway,
     referenceRouter,
     submissionRouter,
