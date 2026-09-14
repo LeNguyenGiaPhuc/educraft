@@ -17,7 +17,7 @@ Tài liệu này chốt luồng của bản frontend mock trước khi thay bằ
 3. Chọn một giáo viên đang hoạt động để phân công. Khi đổi giáo viên, giáo viên cũ mất quyền truy cập lớp.
 4. Mở chi tiết lớp để import Excel hoặc thêm/xóa học sinh.
 5. File chỉ được lưu sau khi preview không còn lỗi. Mỗi dòng cần `STT`, `Họ và tên`, `Email`; email được chuẩn hóa chữ thường và không được trùng trong file.
-6. Tài khoản học sinh mới giữ trạng thái chờ kích hoạt; nút `Kích hoạt` trong mock đặt mật khẩu demo. Gửi email thật sẽ làm ở backend.
+6. Tài khoản học sinh mới giữ trạng thái chờ kích hoạt. Admin đặt mật khẩu trong form tài khoản rồi dùng nút `Kích hoạt` để cho phép đăng nhập; password không nằm trong file Excel.
 
 ## Luồng giáo viên
 

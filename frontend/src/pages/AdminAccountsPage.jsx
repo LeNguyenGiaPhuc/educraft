@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '../services/apiClient.js'
 import { adminAccountService } from '../services/adminAccountService.js'
 import { authService, ROLES, roleLabels } from '../services/authService.js'
+import { validateAccountPassword } from '../data/accountPassword.js'
 import { filterAdminAccounts, getAccountClassLabel, normalizeAdminAccount } from '../data/adminAccountView.js'
 
 function normalizeClass(item) {
@@ -26,6 +27,7 @@ async function fetchAccountPageData() {
 function AccountForm({ initialForm, onCancel, onSaved }) {
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
+  const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   function updateField(field, value) {
@@ -38,11 +40,22 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
     setErrors({})
     setSubmitting(true)
 
+    const passwordError = validateAccountPassword(form.password, { required: !initialForm?.id })
+    if (passwordError) {
+      setErrors({ password: passwordError })
+      setSubmitting(false)
+      return
+    }
+
     const payload = {
       username: form.username?.trim(),
       email: (form.email ?? '').trim().toLowerCase(),
       full_name: form.name?.trim(),
       role: form.role,
+    }
+
+    if (form.password?.trim()) {
+      payload.password = form.password.trim()
     }
 
     try {
@@ -91,6 +104,34 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
             </label>
 
             <label className="field-label">
+              <span>Tên tài khoản</span>
+              <input value={form.username ?? ''} onChange={(event) => updateField('username', event.target.value)} />
+              {errors.username && <small className="field-error">{errors.username}</small>}
+            </label>
+
+            <label className="field-label">
+              <span>{initialForm?.id ? 'Mật khẩu mới (không bắt buộc)' : 'Mật khẩu'}</span>
+              <div className="password-row">
+                <input
+                  autoComplete="new-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password ?? ''}
+                  onChange={(event) => updateField('password', event.target.value)}
+                />
+                <button
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  className="password-toggle-button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  type="button"
+                >
+                  {showPassword ? 'Ẩn' : 'Hiện'}
+                </button>
+              </div>
+              {errors.password && <small className="field-error">{errors.password}</small>}
+            </label>
+
+            <label className="field-label">
               <span>Họ và tên</span>
               <input value={form.name ?? ''} onChange={(event) => updateField('name', event.target.value)} />
               {errors.full_name && <small className="field-error">{errors.full_name}</small>}
@@ -108,7 +149,7 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
             <div className="admin-form-help">
               <strong>Phân công lớp</strong>
               <p>Admin phân công giáo viên tại màn hình Quản lý lớp học. Học sinh được thêm bằng danh sách lớp hoặc file Excel.</p>
-              <p>Tài khoản mới sẽ ở trạng thái chờ kích hoạt. Mật khẩu sẽ được gửi qua email ở bước triển khai tiếp theo.</p>
+              <p>Tài khoản mới sẽ ở trạng thái chờ kích hoạt. Admin có thể đặt mật khẩu tại đây; mật khẩu không được lưu trong danh sách hoặc file Excel.</p>
             </div>
           </div>
 
@@ -343,7 +384,7 @@ function AdminAccountsPage() {
 
       {showAccountForm && (
         <AccountForm
-          initialForm={editingAccount ? { email: editingAccount.email ?? '', username: editingAccount.username, name: editingAccount.name, role: editingAccount.role, id: editingAccount.id } : { email: '', name: '', role: ROLES.ADMIN, id: '' }}
+          initialForm={editingAccount ? { email: editingAccount.email ?? '', username: editingAccount.username, password: '', name: editingAccount.name, role: editingAccount.role, id: editingAccount.id } : { email: '', username: '', name: '', password: '', role: ROLES.ADMIN, id: '' }}
           onCancel={() => setShowAccountForm(false)}
           onSaved={handleSaved}
         />

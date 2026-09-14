@@ -140,6 +140,23 @@ export function createAccountService({ adminClient } = {}) {
     }
   }
 
+  async function updateAuthPassword(accountId, password) {
+    if (!adminClient?.auth?.admin?.updateUserById) {
+      throw new AppError(500, 'AUTH_ADMIN_NOT_CONFIGURED', 'Dịch vụ tài khoản chưa sẵn sàng.')
+    }
+
+    let result
+    try {
+      result = await adminClient.auth.admin.updateUserById(accountId, { password })
+    } catch {
+      throw new AppError(500, 'AUTH_UPDATE_FAILED', 'Không thể cập nhật mật khẩu đăng nhập.')
+    }
+
+    if (result?.error) {
+      throw new AppError(500, 'AUTH_UPDATE_FAILED', 'Không thể cập nhật mật khẩu đăng nhập.')
+    }
+  }
+
   async function ensureRoleChangeAllowed(supabase, accountId, nextRole, currentRole) {
     if (!nextRole || nextRole === currentRole) {
       return
@@ -260,6 +277,7 @@ export function createAccountService({ adminClient } = {}) {
       const supabase = auth.supabase
       const writeClient = getWriteClient(auth)
       const normalizedEmail = await normalizeEmail(input.email)
+      const normalizedPassword = input.password?.trim()
       const payload = {
         username: input.username.trim(),
         full_name: input.full_name.trim(),
@@ -272,7 +290,7 @@ export function createAccountService({ adminClient } = {}) {
       await conflictIfEmailExists(supabase, normalizedEmail)
       const authUser = await createAuthUser({
         email: normalizedEmail,
-        password: randomBytes(18).toString('base64url'),
+        password: normalizedPassword || randomBytes(18).toString('base64url'),
         email_confirm: true,
         user_metadata: { full_name: payload.full_name },
       })
@@ -302,6 +320,7 @@ export function createAccountService({ adminClient } = {}) {
       const writeClient = getWriteClient(auth)
       const profile = await ensureAccountExists(supabase, accountId)
       const normalizedEmail = input.email ? await normalizeEmail(input.email) : null
+      const normalizedPassword = input.password?.trim()
       const updatePayload = {}
 
       for (const key of Object.keys(input)) {
@@ -313,6 +332,8 @@ export function createAccountService({ adminClient } = {}) {
           updatePayload.full_name = input.full_name.trim()
         } else if (key === 'student_code') {
           updatePayload.student_code = input.student_code ? input.student_code.trim() : null
+        } else if (key === 'password') {
+          continue
         } else {
           updatePayload[key] = input[key]
         }
@@ -324,19 +345,29 @@ export function createAccountService({ adminClient } = {}) {
       await ensureRoleChangeAllowed(writeClient, accountId, input.role, profile.role)
 
       const emailChanged = Boolean(normalizedEmail && normalizedEmail !== profile.email)
+      const passwordChanged = Boolean(normalizedPassword)
       if (emailChanged) {
         await updateAuthEmail(accountId, normalizedEmail)
       }
 
       try {
-        const result = await writeClient
-          .from('profiles')
-          .update(updatePayload)
-          .eq('id', accountId)
-          .select(ACCOUNT_COLUMNS)
-          .single()
+        let result = { data: profile, error: null }
 
-        if (result.error) throw mapProfileError(result.error)
+        if (Object.keys(updatePayload).length > 0) {
+          result = await writeClient
+            .from('profiles')
+            .update(updatePayload)
+            .eq('id', accountId)
+            .select(ACCOUNT_COLUMNS)
+            .single()
+
+          if (result.error) throw mapProfileError(result.error)
+        }
+
+        if (passwordChanged) {
+          await updateAuthPassword(accountId, normalizedPassword)
+        }
+
         return result.data
       } catch (error) {
         if (emailChanged) {

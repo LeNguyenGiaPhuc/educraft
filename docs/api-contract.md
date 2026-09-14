@@ -128,13 +128,14 @@ Content-Type: application/json
   "username": "student_01",
   "full_name": "Nguyễn Văn An",
   "email": "student@example.com",
+  "password": "Student123!",
   "role": "STUDENT",
   "status": "PENDING",
   "student_code": "A001"
 }
 ```
 
-`email` is normalized by `trim().toLowerCase()` in the validator/service path. The backend creates the Supabase Auth user first, then creates the matching profile with the same UUID. If profile creation fails, the new Auth user is removed. Email uniqueness is checked in the database-backed profile table, raising `409 ACCOUNT_EMAIL_CONFLICT` on duplicates. `status` defaults to `PENDING` when omitted.
+`password` is required when an administrator creates an account and must contain at least six characters. It is sent only to Supabase Auth and is never stored in `profiles` or returned by the API. `email` is normalized by `trim().toLowerCase()` in the validator/service path. The backend creates the Supabase Auth user first, then creates the matching profile with the same UUID. If profile creation fails, the new Auth user is removed. Email uniqueness is checked in the database-backed profile table, raising `409 ACCOUNT_EMAIL_CONFLICT` on duplicates. `status` defaults to `PENDING` when omitted.
 
 ### Read, update, lock, unlock, and delete account
 
@@ -146,7 +147,7 @@ POST /api/admin/accounts/:accountId/unlock
 DELETE /api/admin/accounts/:accountId
 ```
 
-Account updates reject attempts to send immutable fields from the database and identity tables such as `id`, `created_at`, `updated_at`. Updating an email synchronizes both Supabase Auth and `profiles.email`. A role change is rejected while the account is linked to a class, membership, submission, or teacher review. Lock and unlock operations switch `status` between `LOCKED` and `ACTIVE`; an administrator cannot lock or delete the currently logged-in account. Deleting an account is allowed only when it has no historical submissions or teacher reviews; otherwise the service returns `409 ACCOUNT_HAS_HISTORY` and the contract recommends `LOCKED` instead of hard delete.
+Account updates reject attempts to send immutable fields from the database and identity tables such as `id`, `created_at`, `updated_at`. Updating an email synchronizes both Supabase Auth and `profiles.email`. Sending `password` changes only the Supabase Auth password; omitting it keeps the current password. A role change is rejected while the account is linked to a class, membership, submission, or teacher review. Lock and unlock operations switch `status` between `LOCKED` and `ACTIVE`; an administrator cannot lock or delete the currently logged-in account. Deleting an account is allowed only when it has no historical submissions or teacher reviews; otherwise the service returns `409 ACCOUNT_HAS_HISTORY` and the contract recommends `LOCKED` instead of hard delete.
 
 ## Admin classes
 

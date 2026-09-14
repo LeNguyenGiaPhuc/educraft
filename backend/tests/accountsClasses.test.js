@@ -186,6 +186,7 @@ test('admin account create returns a successful data envelope and validation rej
       username: 'admin01',
       full_name: 'Admin Test',
       email: 'admin@educraft.test',
+      password: 'Admin123!',
       role: 'ADMIN',
       status: 'PENDING',
     })
@@ -206,6 +207,21 @@ test('admin account create returns a successful data envelope and validation rej
 
   assert.equal(invalidResponse.status, 400)
   assert.equal(invalidResponse.body.error.code, 'VALIDATION_ERROR')
+
+  const shortPasswordResponse = await request(app)
+    .post('/api/admin/accounts')
+    .set('Origin', frontendOrigin)
+    .send({
+      username: 'admin01',
+      full_name: 'Admin Test',
+      email: 'admin@educraft.test',
+      password: '12345',
+      role: 'ADMIN',
+      status: 'PENDING',
+    })
+
+  assert.equal(shortPasswordResponse.status, 400)
+  assert.equal(shortPasswordResponse.body.error.fields.password, 'Mật khẩu phải có ít nhất 6 ký tự.')
 })
 
 test('admin duplicate account email and class code conflicts map to stable conflict errors', async () => {
@@ -224,6 +240,7 @@ test('admin duplicate account email and class code conflicts map to stable confl
       username: 'admin01',
       full_name: 'Admin Test',
       email: 'admin@educraft.test',
+      password: 'Admin123!',
       role: 'ADMIN',
       status: 'PENDING',
     })

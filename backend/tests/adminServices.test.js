@@ -98,6 +98,78 @@ test('creates an Auth user before inserting its profile with the returned id', a
   assert.equal(adminClient.calls.some((call) => call.method === 'insert'), true)
 })
 
+test('creates an Auth user with the password entered by the admin', async () => {
+  const userClient = createClient({
+    plans: { profiles: [{ data: [], error: null }] },
+  })
+  let createdUserInput
+  const adminClient = createClient({
+    plans: {
+      profiles: [{
+        data: {
+          id: teacherId,
+          email: 'teacher@example.com',
+          username: 'teacher01',
+          full_name: 'Teacher One',
+          role: 'TEACHER',
+          status: 'ACTIVE',
+          student_code: null,
+        },
+        error: null,
+      }],
+    },
+    authAdmin: {
+      async createUser(input) {
+        createdUserInput = input
+        return { data: { user: { id: teacherId } }, error: null }
+      },
+    },
+  })
+
+  const service = createAccountService({ adminClient })
+  await service.createAccount(adminAuth(userClient), {
+    username: 'teacher01',
+    full_name: 'Teacher One',
+    email: 'teacher@example.com',
+    role: 'TEACHER',
+    password: 'Teacher123!',
+  })
+
+  assert.equal(createdUserInput.password, 'Teacher123!')
+})
+
+test('updates an account password through Auth without writing it to profiles', async () => {
+  const userClient = createClient({
+    plans: {
+      profiles: [{
+        data: { id: teacherId, email: 'teacher@example.com', role: 'TEACHER', status: 'ACTIVE' },
+        error: null,
+      }],
+    },
+  })
+  let updatedPassword
+  const adminClient = createClient({
+    plans: {
+      profiles: [{
+        data: { id: teacherId, email: 'teacher@example.com', role: 'TEACHER', status: 'ACTIVE' },
+        error: null,
+      }],
+    },
+    authAdmin: {
+      async updateUserById(accountId, input) {
+        updatedPassword = { accountId, password: input.password }
+        return { data: { user: { id: accountId } }, error: null }
+      },
+    },
+  })
+
+  const service = createAccountService({ adminClient })
+  await service.updateAccount(adminAuth(userClient), teacherId, { password: 'NewPass123!' })
+
+  assert.deepEqual(updatedPassword, { accountId: teacherId, password: 'NewPass123!' })
+  assert.equal(adminClient.calls.some((call) => call.method === 'update'), false)
+})
+
 test('deletes a newly created Auth user when profile creation fails', async () => {
   const userClient = createClient({
     plans: { profiles: [{ data: [], error: null }] },
