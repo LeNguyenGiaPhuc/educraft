@@ -13,6 +13,16 @@ function normalizeClass(item) {
   }
 }
 
+async function fetchAccountPageData() {
+  const [accountRows, classRows, me] = await Promise.all([
+    adminAccountService.listAccounts(),
+    adminAccountService.listClasses(),
+    authService.me().catch(() => null),
+  ])
+
+  return { accountRows, classRows, me }
+}
+
 function AccountForm({ initialForm, onCancel, onSaved }) {
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
@@ -40,7 +50,7 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
         ? await adminAccountService.updateAccount(initialForm.id, payload)
         : await adminAccountService.createAccount(payload)
 
-      onSaved(normalizeAccount(result))
+      onSaved(normalizeAdminAccount(result))
     } catch (error) {
       if (error instanceof ApiError) {
         const fieldErrors = error.fields ?? {}
@@ -155,7 +165,27 @@ function AdminAccountsPage() {
   }
 
   useEffect(() => {
-    loadData()
+    let active = true
+
+    fetchAccountPageData()
+      .then(({ accountRows, classRows, me }) => {
+        if (!active) return
+        setAccounts(accountRows.map(normalizeAdminAccount))
+        setClasses(classRows.map(normalizeClass))
+        setCurrentUser(me)
+      })
+      .catch((caughtError) => {
+        if (!active) return
+        const details = caughtError instanceof ApiError ? caughtError.message : String(caughtError?.message ?? 'Không thể tải dữ liệu.')
+        setError(details)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const filteredAccounts = filterAdminAccounts(accounts, { query, role, classId })

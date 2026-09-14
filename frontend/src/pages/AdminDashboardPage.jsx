@@ -5,40 +5,47 @@ import { adminClassService } from '../services/adminClassService.js'
 import { ApiError } from '../services/apiClient.js'
 import { ROLES } from '../services/authService.js'
 
+async function fetchDashboardStats() {
+  const [accounts, classes] = await Promise.all([
+    adminAccountService.listAccounts(),
+    adminClassService.listClasses(),
+  ])
+
+  const users = Array.isArray(accounts) ? accounts : []
+  const classRows = Array.isArray(classes) ? classes : []
+
+  return {
+    users: users.length,
+    teachers: users.filter((user) => user.role === ROLES.TEACHER).length,
+    students: users.filter((user) => user.role === ROLES.STUDENT).length,
+    classes: classRows.length,
+  }
+}
+
 function AdminDashboardPage() {
   const [stats, setStats] = useState({ users: 0, teachers: 0, students: 0, classes: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  async function loadStats() {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const [accounts, classes] = await Promise.all([
-        adminAccountService.listAccounts(),
-        adminClassService.listClasses(),
-      ])
-
-      const users = Array.isArray(accounts) ? accounts : []
-      const classRows = Array.isArray(classes) ? classes : []
-
-      setStats({
-        users: users.length,
-        teachers: users.filter((user) => user.role === ROLES.TEACHER).length,
-        students: users.filter((user) => user.role === ROLES.STUDENT).length,
-        classes: classRows.length,
-      })
-    } catch (caughtError) {
-      const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể tải tổng quan quản trị.'
-      setError(message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    loadStats()
+    let active = true
+
+    fetchDashboardStats()
+      .then((nextStats) => {
+        if (active) setStats(nextStats)
+      })
+      .catch((caughtError) => {
+        if (!active) return
+        const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể tải tổng quan quản trị.'
+        setError(message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   if (error) {

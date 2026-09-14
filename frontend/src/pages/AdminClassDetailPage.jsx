@@ -98,6 +98,27 @@ function normalizeAccount(row = {}) {
   }
 }
 
+async function fetchClassDetailData(classId) {
+  const [classRow, studentRows, teacherRows, studentAccounts] = await Promise.all([
+    adminClassService.getClass(classId),
+    adminClassService.listStudents(classId),
+    adminAccountService.listAccounts({ role: ROLES.TEACHER, status: 'ACTIVE' }),
+    adminAccountService.listAccounts({ role: ROLES.STUDENT, status: 'ACTIVE' }),
+  ])
+
+  const mappedClass = normalizeClass(classRow)
+  const mappedStudents = (studentRows ?? []).map(normalizeStudent)
+  const mappedTeachers = (teacherRows ?? []).map(normalizeTeacher)
+  const mappedStudentAccounts = (studentAccounts ?? []).map(normalizeAccount)
+
+  return {
+    classroom: mappedClass,
+    students: mappedStudents,
+    teachers: mappedTeachers,
+    availableStudents: mappedStudentAccounts.filter((student) => !mappedStudents.some((row) => row.id === student.id)),
+  }
+}
+
 function AdminClassDetailPage() {
   const { classId } = useParams()
   const navigate = useNavigate()
@@ -143,7 +164,28 @@ function AdminClassDetailPage() {
   }
 
   useEffect(() => {
-    loadData()
+    let active = true
+
+    fetchClassDetailData(classId)
+      .then((data) => {
+        if (!active) return
+        setClassroom(data.classroom)
+        setStudents(data.students)
+        setTeachers(data.teachers)
+        setAvailableStudents(data.availableStudents)
+      })
+      .catch((caughtError) => {
+        if (!active) return
+        const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể tải chi tiết lớp.'
+        setError(message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
   }, [classId])
 
   const searchQuery = query.trim().toLowerCase()
