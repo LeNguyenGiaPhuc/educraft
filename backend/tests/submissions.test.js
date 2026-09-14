@@ -26,6 +26,18 @@ const createdSubmission = {
   attempt_number: 1,
   status: 'SUBMITTED',
 }
+const finalizedResult = {
+  submission_id: createdSubmission.id,
+  submission_status: 'FINALIZED',
+  teacher_review: {
+    id: '99999999-9999-4999-8999-999999999999',
+    final_status: 'COMPLETED',
+    final_score: 90,
+    feedback: 'Bài ghi đạt yêu cầu.',
+    is_finalized: true,
+    finalized_at: '2026-09-14T04:00:00Z',
+  },
+}
 
 function authenticatedAs(role = 'STUDENT') {
   return function authenticate(requestValue, _response, next) {
@@ -46,6 +58,7 @@ function createService(overrides = {}) {
     async listOwnSubmissions() { return [createdSubmission] },
     async listAssignmentSubmissions() { return [createdSubmission] },
     async getSubmission() { return createdSubmission },
+    async finalizeSubmission() { return finalizedResult },
     async createSubmission() { return createdSubmission },
     ...overrides,
   }
@@ -202,6 +215,157 @@ test('database read failure uses the shared safe error response', async () => {
   assert.deepEqual(response.body.error, {
     code: 'INTERNAL_ERROR',
     message: 'Hệ thống đang gặp lỗi.',
+  })
+})
+
+test('assigned Teacher finalizes one submission through the review endpoint', async () => {
+  const response = await request(buildSubmissionApp({
+    authenticate: authenticatedAs('TEACHER'),
+  }))
+    .patch(`/api/submissions/${createdSubmission.id}/review`)
+    .set('Origin', frontendOrigin)
+    .send({
+      final_status: 'COMPLETED',
+      final_score: 90,
+      feedback: 'Bài ghi đạt yêu cầu.',
+    })
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(response.body.data, finalizedResult)
+})
+
+test('review endpoint rejects unauthenticated and Student users', async () => {
+  const input = {
+    final_status: 'COMPLETED',
+    feedback: 'Bài ghi đạt yêu cầu.',
+  }
+  const unauthenticatedResponse = await request(buildSubmissionApp({
+    authenticate: unauthenticated,
+  }))
+    .patch(`/api/submissions/${createdSubmission.id}/review`)
+    .set('Origin', frontendOrigin)
+    .send(input)
+  const studentResponse = await request(buildSubmissionApp())
+    .patch(`/api/submissions/${createdSubmission.id}/review`)
+    .set('Origin', frontendOrigin)
+    .send(input)
+
+  assert.equal(unauthenticatedResponse.status, 401)
+  assert.equal(unauthenticatedResponse.body.error.code, 'AUTH_REQUIRED')
+  assert.equal(studentResponse.status, 403)
+  assert.equal(studentResponse.body.error.code, 'FORBIDDEN')
+})
+
+test('review endpoint validates UUID, business fields, and immutable fields', async (context) => {
+  const app = buildSubmissionApp({ authenticate: authenticatedAs('TEACHER') })
+  const valid = {
+    final_status: 'COMPLETED',
+    final_score: 90,
+    feedback: 'Bài ghi đạt yêu cầu.',
+  }
+  const cases = [
+    ['invalid UUID', '/api/submissions/not-an-id/review', valid],
+    ['invalid status', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      final_status: 'approved',
+    }],
+    ['blank feedback', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      feedback: '   ',
+    }],
+    ['score below zero', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      final_score: -1,
+    }],
+    ['score above 100', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      final_score: 101,
+    }],
+    ['non-numeric score', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      final_score: '90',
+    }],
+    ['client Teacher identity', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      teacherId: 'client-teacher',
+    }],
+    ['client finalization flag', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      is_finalized: true,
+    }],
+    ['client timestamp', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      finalized_at: '2026-09-14T04:00:00Z',
+    }],
+    ['client submission status', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      status: 'FINALIZED',
+    }],
+    ['unknown field', `/api/submissions/${createdSubmission.id}/review`, {
+      ...valid,
+      unexpected: true,
+    }],
+  ]
+
+  for (const [name, path, body] of cases) {
+    await context.test(name, async () => {
+      const response = await request(app)
+        .patch(path)
+        .set('Origin', frontendOrigin)
+        .send(body)
+
+      assert.equal(response.status, 400)
+      assert.equal(response.body.error.code, 'VALIDATION_ERROR')
+    })
+  }
+})
+
+test('review controller passes only authenticated context, ID, and validated review fields', async () => {
+  let received
+  const service = createService({
+    async finalizeSubmission(...args) {
+      received = args
+      return finalizedResult
+    },
+  })
+  const response = await request(buildSubmissionApp({
+    service,
+    authenticate: authenticatedAs('TEACHER'),
+  }))
+    .patch(`/api/submissions/${createdSubmission.id}/review`)
+    .set('Origin', frontendOrigin)
+    .send({
+      final_status: 'NEEDS_COMPLETION',
+      feedback: '  Cần bổ sung kết luận.  ',
+    })
+
+  assert.equal(response.status, 200)
+  assert.equal(received.length, 3)
+  assert.equal(received[0].profile.id, studentId)
+  assert.equal(received[1], createdSubmission.id)
+  assert.deepEqual(received[2], {
+    final_status: 'NEEDS_COMPLETION',
+    feedback: 'Cần bổ sung kết luận.',
+  })
+})
+
+test('finalization database failure uses the shared safe error response', async () => {
+  const response = await request(buildSubmissionApp({
+    service: createService({
+      async finalizeSubmission() {
+        throw new AppError(500, 'FINALIZATION_FAILED', 'Không thể chốt kết quả.')
+      },
+    }),
+    authenticate: authenticatedAs('TEACHER'),
+  }))
+    .patch(`/api/submissions/${createdSubmission.id}/review`)
+    .set('Origin', frontendOrigin)
+    .send({ final_status: 'COMPLETED', feedback: 'Kết quả cuối.' })
+
+  assert.equal(response.status, 500)
+  assert.deepEqual(response.body.error, {
+    code: 'FINALIZATION_FAILED',
+    message: 'Không thể chốt kết quả.',
   })
 })
 

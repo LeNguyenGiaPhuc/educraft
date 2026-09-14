@@ -213,10 +213,7 @@ begin
       ('submission_files', 'SELECT'),
       ('submission_files', 'INSERT'),
       ('ai_evaluations', 'SELECT'),
-      ('teacher_reviews', 'SELECT'),
-      ('teacher_reviews', 'INSERT'),
-      ('teacher_reviews', 'UPDATE'),
-      ('teacher_reviews', 'DELETE')
+      ('teacher_reviews', 'SELECT')
   ) as expected(table_name, privilege)
   where not has_table_privilege(
     'authenticated',

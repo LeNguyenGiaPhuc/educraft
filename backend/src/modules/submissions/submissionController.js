@@ -29,6 +29,16 @@ export function createSubmissionController({ submissionService }) {
       return sendData(response, submission)
     },
 
+    async finalize(request, response) {
+      const result = await submissionService.finalizeSubmission(
+        request.auth,
+        request.validated.params.submissionId,
+        request.validated.body,
+      )
+
+      return sendData(response, result)
+    },
+
     async create(request, response) {
       const submission = await submissionService.createSubmission(
         request.auth,

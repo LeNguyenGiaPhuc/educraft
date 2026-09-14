@@ -211,6 +211,31 @@ test('student sees only a finalized teacher result', async () => {
   assert.equal(Object.hasOwn(result.teacher_result, 'private_review_note'), false)
 })
 
+test('only the selected finalized attempt exposes its Teacher result', async () => {
+  const finalizedAttempt = submission(1, {
+    status: 'FINALIZED',
+    teacher_reviews: [review({ finalized: true })],
+  })
+  const laterAttempt = submission(2, {
+    status: 'REQUIRES_REVIEW',
+    teacher_reviews: [review({ finalized: false })],
+  })
+  const supabase = createReadSupabase([
+    accessibleAssignment(),
+    membership(),
+    { data: [finalizedAttempt, laterAttempt], error: null },
+  ])
+  const { service, studentAuth } = createService(supabase)
+
+  const result = await service.listOwnSubmissions(studentAuth, assignmentId)
+
+  assert.equal(result[0].status, 'FINALIZED')
+  assert.equal(result[0].teacher_result.final_status, 'COMPLETED')
+  assert.equal(result[1].status, 'REQUIRES_REVIEW')
+  assert.equal(Object.hasOwn(result[1], 'teacher_result'), false)
+  assert.equal(JSON.stringify(result).includes('AI draft'), false)
+})
+
 test('closed and expired assignments remain readable because reads do not check availability', async () => {
   for (const assignment of [
     accessibleAssignment('CLOSED', '2026-09-20T00:00:00Z'),

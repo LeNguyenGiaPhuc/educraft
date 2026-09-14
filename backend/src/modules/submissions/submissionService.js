@@ -55,6 +55,18 @@ const rpcErrors = Object.freeze({
   ASSIGNMENT_EXPIRED: [409, 'ASSIGNMENT_EXPIRED', 'Đã hết hạn nộp bài.'],
 })
 
+const finalizationRpcErrors = Object.freeze({
+  AUTH_REQUIRED: [401, 'AUTH_REQUIRED', 'Bạn cần đăng nhập.'],
+  REVIEW_ROLE_FORBIDDEN: [403, 'FORBIDDEN', 'Bạn không có quyền chốt kết quả.'],
+  SUBMISSION_NOT_FOUND: [404, 'SUBMISSION_NOT_FOUND', 'Không tìm thấy lượt nộp bài.'],
+  CLASS_FORBIDDEN: [403, 'CLASS_FORBIDDEN', 'Bạn không được phân công cho lớp học này.'],
+  INVALID_FINAL_STATUS: [400, 'INVALID_FINAL_STATUS', 'Trạng thái kết quả không hợp lệ.'],
+  INVALID_FINAL_SCORE: [400, 'INVALID_FINAL_SCORE', 'Điểm cuối phải từ 0 đến 100.'],
+  FEEDBACK_REQUIRED: [400, 'FEEDBACK_REQUIRED', 'Nhận xét cuối không được để trống.'],
+  SUBMISSION_ALREADY_FINALIZED: [409, 'SUBMISSION_ALREADY_FINALIZED', 'Lượt nộp bài đã được chốt kết quả.'],
+  REVIEW_ALREADY_FINALIZED: [409, 'SUBMISSION_ALREADY_FINALIZED', 'Lượt nộp bài đã được chốt kết quả.'],
+})
+
 function requireStudentContext(auth) {
   if (
     auth?.profile?.role !== 'STUDENT'
@@ -166,6 +178,61 @@ function mapRpcError(error) {
   if (mapped) return new AppError(...mapped)
 
   return new AppError(500, 'SUBMISSION_CREATE_FAILED', 'Không thể tạo lượt nộp bài.')
+}
+
+function mapFinalizationRpcError(error) {
+  const mapped = finalizationRpcErrors[error?.message]
+  if (mapped) return new AppError(...mapped)
+
+  return new AppError(500, 'FINALIZATION_FAILED', 'Không thể chốt kết quả lượt nộp bài.')
+}
+
+function normalizeReview(data) {
+  return Array.isArray(data) ? data[0] : data
+}
+
+function validateFinalizedReview(review, submissionId, teacherId, input) {
+  if (
+    !review?.id
+    || review.submission_id !== submissionId
+    || review.teacher_id !== teacherId
+    || review.final_status !== input.final_status
+    || review.feedback !== input.feedback
+    || review.is_finalized !== true
+    || !review.finalized_at
+  ) {
+    throw new AppError(
+      500,
+      'INVALID_FINALIZATION_RESULT',
+      'Không thể xác nhận kết quả đã chốt.',
+    )
+  }
+
+  const expectedScore = input.final_score ?? null
+  if (review.final_score !== expectedScore) {
+    throw new AppError(
+      500,
+      'INVALID_FINALIZATION_RESULT',
+      'Không thể xác nhận kết quả đã chốt.',
+    )
+  }
+
+  return review
+}
+
+function projectFinalization(review) {
+  return {
+    submission_id: review.submission_id,
+    submission_status: 'FINALIZED',
+    teacher_review: {
+      id: review.id,
+      final_status: review.final_status,
+      final_score: review.final_score,
+      feedback: review.feedback,
+      is_finalized: true,
+      finalized_at: review.finalized_at,
+    },
+  }
 }
 
 function toStorageUploadError(error) {
@@ -324,6 +391,33 @@ export function createSubmissionService({
   }
 
   return {
+    async finalizeSubmission(auth, submissionId, input) {
+      const { supabase } = requireTeacherContext(auth)
+      const teacherId = auth.profile.id
+      let rpcResult
+
+      try {
+        rpcResult = await supabase.rpc('finalize_submission_review', {
+          target_submission_id: submissionId,
+          target_final_status: input.final_status,
+          target_final_score: input.final_score ?? null,
+          target_feedback: input.feedback,
+        })
+      } catch (rpcError) {
+        throw mapFinalizationRpcError(rpcError)
+      }
+
+      if (rpcResult.error) throw mapFinalizationRpcError(rpcResult.error)
+
+      const review = validateFinalizedReview(
+        normalizeReview(rpcResult.data),
+        submissionId,
+        teacherId,
+        input,
+      )
+      return projectFinalization(review)
+    },
+
     async listOwnSubmissions(auth, assignmentId) {
       const { studentId, supabase } = requireStudentContext(auth)
       await requireStudentAssignmentAccess(supabase, studentId, assignmentId)

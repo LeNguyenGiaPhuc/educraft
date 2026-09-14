@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { requireRole } from '../../middleware/authorize.js'
 import { validate } from '../../middleware/validate.js'
 import {
+  finalizeSubmissionSchema,
   submissionDetailParamsSchema,
   submissionParamsSchema,
 } from './submissionValidators.js'
@@ -38,6 +39,13 @@ export function createSubmissionRouter({ controller, authenticate, imageUpload }
     requireRole('STUDENT', 'TEACHER'),
     validate(submissionDetailParamsSchema),
     controller.get,
+  )
+  router.patch(
+    '/submissions/:submissionId/review',
+    authenticate,
+    requireRole('TEACHER'),
+    validate(finalizeSubmissionSchema),
+    controller.finalize,
   )
 
   return router
