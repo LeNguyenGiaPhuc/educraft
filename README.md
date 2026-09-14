@@ -16,8 +16,9 @@ Web-based educational platform for teachers to create assignments and students t
 - Responsive trên desktop và mobile.
 - API contract mẫu được lưu tại [`docs/api-contract.md`](docs/api-contract.md).
 
-Giao diện Admin, giáo viên và học sinh hiện dùng mock data để demo; phần
-backend, gửi email kích hoạt và lưu trữ thật sẽ tích hợp ở giai đoạn sau.
+Giao diện Admin, giáo viên và học sinh hiện vẫn dùng mock data cho các module
+chưa nối API. Backend đã có foundation Express, Supabase gateway và Auth API;
+email kích hoạt, lưu trữ thật và các module nghiệp vụ sẽ tích hợp tiếp theo.
 
 ## Công nghệ
 
@@ -43,6 +44,24 @@ Mở địa chỉ được hiển thị trong terminal, thường là:
 http://localhost:5173
 ```
 
+## Chạy backend
+
+```powershell
+cd backend
+npm ci
+Copy-Item .env.example .env
+npm run dev
+```
+
+Điền Supabase URL, anon key và service role key vào `.env`. Không commit file
+này. API mặc định chạy tại `http://localhost:3000`; kiểm tra bằng
+`GET http://localhost:3000/api/health`.
+
+```powershell
+npm test
+npm run lint
+```
+
 ## Kiểm tra code
 
 ```bash
@@ -57,7 +76,8 @@ Dữ liệu prototype được lưu tạm trong `localStorage` với các key
 `educraft.submissions`. Danh sách tài khoản trong
 `educraft.users` là nguồn chính cho roster được Admin import; `educraft.students`
 chỉ được giữ để tương thích với các fixture cũ.
-Project hiện chưa cần chạy backend.
+Các module nghiệp vụ chưa nối backend sẽ tiếp tục dùng mock data trong giai
+đoạn chuyển đổi.
 
 Luồng và tiêu chí phân quyền được chốt tại [`docs/frontend-workflow.md`](docs/frontend-workflow.md).
 Mock API để chuyển sang backend được ghi tại [`docs/api-contract.md`](docs/api-contract.md).

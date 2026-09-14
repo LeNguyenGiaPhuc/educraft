@@ -1,10 +1,9 @@
-# EduCraft Mock API Contract
+# EduCraft API Contract
 
-This document defines the API contract for the EduCraft frontend prototype.
-The current homework uses mock data instead of a running HTTP server. The
-class management, assignment creation, teacher reference, student submission
-and review flows use browser `localStorage` mock stores while the frontend is
-developed.
+This document defines the API contract shared by the EduCraft frontend and
+backend. The class management, assignment creation, teacher reference,
+student submission and review flows are still being moved from browser mocks
+to the API in later modules.
 
 ## Base URL
 
@@ -31,7 +30,7 @@ following shape:
 
 ## Endpoints
 
-### Login
+### Authentication
 
 ```http
 POST /api/auth/login
@@ -47,9 +46,30 @@ Example request:
 }
 ```
 
-The response returns the active user and its role (`ADMIN`, `TEACHER` or
-`STUDENT`). `pending` and `locked` accounts are rejected. The frontend keeps
-the mock session in `educraft.session`.
+The response only returns the active profile. Access and refresh tokens are
+set as HttpOnly cookies; tokens are not returned in JSON.
+
+```http
+POST /api/auth/refresh
+POST /api/auth/logout
+GET /api/auth/me
+```
+
+`POST /api/auth/refresh` uses the refresh cookie, rotates both cookies and
+returns the active profile. `POST /api/auth/logout` revokes the current local
+session, clears both cookies and returns `204`. `GET /api/auth/me` returns the
+profile for the current session. `PENDING` and `LOCKED` accounts receive
+`403 ACCOUNT_NOT_ACTIVE`.
+
+Frontend requests must send cookies with `credentials: 'include'`. The
+frontend must not read or store Supabase tokens in `localStorage`.
+
+Canonical enum values:
+
+| Group | API values |
+| --- | --- |
+| Role | `ADMIN`, `TEACHER`, `STUDENT` |
+| Account status | `PENDING`, `ACTIVE`, `LOCKED` |
 
 ### Get and manage accounts (Admin)
 
