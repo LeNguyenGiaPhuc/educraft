@@ -1,41 +1,20 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 
 import PageErrorState from '../components/PageErrorState.jsx'
 import { formatAssignmentDeadline, getAssignmentAvailability } from '../data/assignmentDeadline.js'
-import { getStudentAssignmentSnapshot } from '../data/mockStudentAccess.js'
-import {
-  advanceMockStudentSubmission,
-  getStudentSubmissionHistory,
-  submitStudentNote,
-} from '../data/mockStudentSubmission.js'
 import {
   getFinalReviewStatusLabel,
   validateSubmissionForm,
 } from '../data/mockSubmission.js'
 import { submissionService } from '../services/submissionService.js'
-import {
-  isBackendAssignmentId,
-  mapStudentSubmission,
-  mapStudentSubmissions,
-} from '../services/studentSubmissionAdapter.js'
+import { mapStudentSubmission, mapStudentSubmissions } from '../services/studentSubmissionAdapter.js'
 
-const MOCK_STATUS_DELAY_MS = 1200
 const submissionDateFormatter = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',
   timeStyle: 'short',
   timeZone: 'Asia/Ho_Chi_Minh',
 })
-
-function requestedSubmissionState() {
-  if (typeof window === 'undefined') {
-    return 'success'
-  }
-
-  return new URLSearchParams(window.location.search).get('state') === 'error'
-    ? 'error'
-    : 'success'
-}
 
 function FieldError({ id, message }) {
   if (!message) {
@@ -255,8 +234,7 @@ function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubm
   )
 }
 
-function StudentSubmissionWorkspace({ assignment, currentUser }) {
-  const usesBackend = isBackendAssignmentId(assignment.id)
+function StudentSubmissionWorkspace({ assignment }) {
   const [form, setForm] = useState({
     assignmentId: assignment.id,
     file: null,
@@ -265,26 +243,11 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
   })
   const [errors, setErrors] = useState({})
   const [submitRequest, setSubmitRequest] = useState({ status: 'idle' })
-  const [historyRequest, setHistoryRequest] = useState(() => {
-    if (usesBackend) {
-      return { status: 'loading', data: [] }
-    }
-
-    const snapshot = getStudentSubmissionHistory(currentUser, assignment.id)
-    return snapshot.status === 'success'
-      ? { status: 'success', data: snapshot.data }
-      : { status: 'error', data: [], message: snapshot.message }
-  })
+  const [historyRequest, setHistoryRequest] = useState({ status: 'loading', data: [] })
   const [now, setNow] = useState(Date.now)
   const pending = useRef(false)
   const availability = getAssignmentAvailability(assignment, now)
   const submissionHistory = historyRequest.status === 'success' ? historyRequest.data : []
-  const pendingStatusKey = usesBackend
-    ? ''
-    : submissionHistory
-      .filter((item) => ['submitted', 'processing'].includes(item.status))
-      .map((item) => `${item.id}:${item.status}`)
-      .join('|')
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -293,10 +256,6 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
 
   useEffect(() => {
     let isMounted = true
-
-    if (!usesBackend) {
-      return undefined
-    }
 
     submissionService
       .listMySubmissions(assignment.id)
@@ -318,26 +277,7 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
     return () => {
       isMounted = false
     }
-  }, [assignment.id, usesBackend])
-
-  useEffect(() => {
-    if (usesBackend || !pendingStatusKey) return undefined
-
-    const timer = setTimeout(() => {
-      const latestHistory = getStudentSubmissionHistory(currentUser, assignment.id)
-      if (latestHistory.status === 'error') return
-
-      latestHistory.data
-        .filter((item) => ['submitted', 'processing'].includes(item.status))
-        .forEach((item) => {
-          advanceMockStudentSubmission(currentUser, assignment.id, item.id)
-        })
-      const refreshedHistory = getStudentSubmissionHistory(currentUser, assignment.id)
-      setHistoryRequest({ status: 'success', data: refreshedHistory.data })
-    }, MOCK_STATUS_DELAY_MS)
-
-    return () => clearTimeout(timer)
-  }, [assignment.id, currentUser, pendingStatusKey, usesBackend])
+  }, [assignment.id])
 
   function handleFileChange(event) {
     const file = event.target.files?.[0]
@@ -375,34 +315,20 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
     setSubmitRequest({ status: 'loading' })
 
     try {
-      if (!usesBackend) {
-        const result = await submitStudentNote(
-          currentUser,
-          form,
-          requestedSubmissionState(),
-          650,
-        )
-        setSubmitRequest(result)
-        const refreshedHistory = getStudentSubmissionHistory(currentUser, assignment.id)
-        if (refreshedHistory.status === 'success') {
-          setHistoryRequest({ status: 'success', data: refreshedHistory.data })
-        }
-      } else {
-        const result = await submissionService.createSubmission(
-          assignment.id,
-          form.file,
-          form.fileName,
-        )
-        const savedSubmission = mapStudentSubmission(result)
-        setSubmitRequest({
-          status: 'success',
-          data: { ...savedSubmission, fileName: form.fileName },
-        })
-        setHistoryRequest((current) => ({
-          status: 'success',
-          data: [...(current.status === 'success' ? current.data : []), savedSubmission],
-        }))
-      }
+      const result = await submissionService.createSubmission(
+        assignment.id,
+        form.file,
+        form.fileName,
+      )
+      const savedSubmission = mapStudentSubmission(result)
+      setSubmitRequest({
+        status: 'success',
+        data: { ...savedSubmission, fileName: form.fileName },
+      })
+      setHistoryRequest((current) => ({
+        status: 'success',
+        data: [...(current.status === 'success' ? current.data : []), savedSubmission],
+      }))
     } catch (error) {
       setSubmitRequest({
         status: 'error',
@@ -461,20 +387,18 @@ function StudentSubmissionWorkspace({ assignment, currentUser }) {
 }
 
 function StudentSubmissionPage({ currentUser }) {
-  const { assignmentId } = useParams()
-  const snapshot = getStudentAssignmentSnapshot(currentUser, assignmentId)
+  const { assignment } = useOutletContext() ?? {}
 
-  if (snapshot.status === 'error') {
-    return <SubmissionError message={snapshot.message} />
+  if (!assignment) {
+    return <SubmissionError message="Bài kiểm tra không khả dụng." />
   }
 
   return (
     <main className="page-content assignment-page">
       <div className="page-container">
         <StudentSubmissionWorkspace
-          key={`${currentUser.id}:${assignmentId}`}
-          assignment={snapshot.data}
-          currentUser={currentUser}
+          key={`${currentUser?.id ?? 'student'}:${assignment.id}`}
+          assignment={assignment}
         />
       </div>
     </main>
