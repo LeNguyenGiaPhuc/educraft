@@ -1,50 +1,106 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import {
-  ADMIN_STATE,
-  activateAdminAccount,
-  createAdminAccount,
-  deleteAdminAccount,
-  filterAdminAccounts,
-  getAccountClassLabel,
-  getAdminWorkspace,
-  toggleAdminAccountStatus,
-  updateAdminAccount,
-} from '../data/mockAdminStore.js'
-import { getCurrentUser, roleLabels, ROLES } from '../data/mockAuthStore.js'
+import { ApiError } from '../services/apiClient.js'
+import { adminAccountService } from '../services/adminAccountService.js'
+import { authService, ROLES, roleLabels } from '../services/authService.js'
+
+function getAccountClassLabel(account, classes) {
+  const ids = Array.isArray(account?.classIds) ? account.classIds : []
+
+  if (account?.role === ROLES.STUDENT && ids.length === 0) {
+    return 'Chưa phân lớp'
+  }
+
+  if (ids.length === 0) {
+    return 'Chưa gán'
+  }
+
+  return ids
+    .map((id) => classes.find((classroom) => classroom.id === id)?.id ?? id)
+    .join(', ')
+}
+
+function filterAdminAccounts(accounts, { query = '', role = 'all', classId = 'all' } = {}) {
+  const normalizedQuery = query.trim().toLowerCase()
+
+  return accounts.filter((account) => {
+    const matchesQuery = !normalizedQuery ||
+      account.username?.toLowerCase().includes(normalizedQuery) ||
+      account.name?.toLowerCase().includes(normalizedQuery)
+    const matchesRole = role === 'all' || account.role === role
+    const matchesClass = classId === 'all' || (account.classIds ?? []).includes(classId)
+
+    return matchesQuery && matchesRole && matchesClass
+  })
+}
+
+function normalizeAccount(row) {
+  return {
+    ...row,
+    id: row.id,
+    email: row.email ?? '',
+    username: row.username ?? '',
+    name: row.full_name ?? row.name ?? '',
+    role: String(row.role ?? '').toUpperCase(),
+    status: String(row.status ?? '').toLowerCase(),
+    classIds: Array.isArray(row.classIds) ? row.classIds : [],
+  }
+}
+
+function normalizeClass(item) {
+  return {
+    ...item,
+    id: item.code ?? item.id,
+  }
+}
 
 function AccountForm({ initialForm, onCancel, onSaved }) {
   const [form, setForm] = useState(initialForm)
   const [errors, setErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
     setErrors((current) => ({ ...current, [field]: undefined, form: undefined }))
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
+    setErrors({})
+    setSubmitting(true)
 
-    const normalized = {
-      username: form.username,
-      password: form.password,
-      name: form.name,
+    const payload = {
+      username: form.username?.trim(),
+      email: (form.email ?? '').trim().toLowerCase(),
+      full_name: form.name?.trim(),
       role: form.role,
-      classIds: Array.isArray(form.classIds) ? form.classIds : [],
-      email: form.email ?? '',
     }
 
-    const result = initialForm?.id
-      ? updateAdminAccount(initialForm.id, { ...normalized, id: initialForm.id })
-      : createAdminAccount(normalized)
+    try {
+      const result = initialForm?.id
+        ? await adminAccountService.updateAccount(initialForm.id, payload)
+        : await adminAccountService.createAccount(payload)
 
-    if (result.status === 'error') {
-      setErrors(result.errors)
-      return
+      onSaved(normalizeAccount(result))
+    } catch (error) {
+      if (error instanceof ApiError) {
+        const fieldErrors = error.fields ?? {}
+        const fieldMap = {}
+        for (const [key, message] of Object.entries(fieldErrors)) {
+          fieldMap[key] = message
+        }
+        if (error.message) {
+          fieldMap.form = error.message
+        }
+        setErrors(fieldMap)
+        return
+      }
+
+      setErrors({ form: error?.message ?? 'Không thể lưu tài khoản này.' })
+    } finally {
+      setSubmitting(false)
     }
-
-    onSaved(result.data)
   }
 
   return (
@@ -71,7 +127,7 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
               <div className="password-row">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  value={form.password}
+                  value={form.password ?? ''}
                   onChange={(event) => updateField('password', event.target.value)}
                 />
                 <button
@@ -99,8 +155,8 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
 
             <label className="field-label">
               <span>Họ và tên</span>
-              <input value={form.name} onChange={(event) => updateField('name', event.target.value)} />
-              {errors.name && <small className="field-error">{errors.name}</small>}
+              <input value={form.name ?? ''} onChange={(event) => updateField('name', event.target.value)} />
+              {errors.full_name && <small className="field-error">{errors.full_name}</small>}
             </label>
 
             <label className="field-label">
@@ -122,7 +178,7 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
 
           <div className="admin-form-actions">
             <button className="button button-outline" type="button" onClick={onCancel}>Hủy</button>
-            <button className="button button-primary" type="submit">Lưu</button>
+            <button className="button button-primary" type="submit" disabled={submitting}>{submitting ? 'Đang lưu...' : 'Lưu'}</button>
           </div>
         </form>
       </div>
@@ -131,16 +187,48 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
 }
 
 function AdminAccountsPage() {
-  const snapshot = getAdminWorkspace(ADMIN_STATE.SUCCESS)
   const [query, setQuery] = useState('')
   const [role, setRole] = useState('all')
   const [classId, setClassId] = useState('all')
   const [showAccountForm, setShowAccountForm] = useState(false)
   const [editingAccount, setEditingAccount] = useState(null)
   const [notice, setNotice] = useState('')
+  const [accounts, setAccounts] = useState([])
+  const [classes, setClasses] = useState([])
+  const [currentUser, setCurrentUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const classes = snapshot.status === 'success' ? snapshot.data.classes ?? [] : []
-  const accounts = snapshot.status === 'success' ? snapshot.data.users ?? [] : []
+  async function loadData() {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const [accountRows, classRows] = await Promise.all([
+        adminAccountService.listAccounts(),
+        adminAccountService.listClasses(),
+      ])
+
+      setAccounts(accountRows.map(normalizeAccount))
+      setClasses(classRows.map(normalizeClass))
+
+      try {
+        const me = await authService.me()
+        setCurrentUser(me)
+      } catch {
+        setCurrentUser(null)
+      }
+    } catch (caughtError) {
+      const details = caughtError instanceof ApiError ? caughtError.message : String(caughtError?.message ?? 'Không thể tải dữ liệu.')
+      setError(details)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [])
 
   const filteredAccounts = filterAdminAccounts(accounts, { query, role, classId })
 
@@ -154,42 +242,41 @@ function AdminAccountsPage() {
     setShowAccountForm(true)
   }
 
-  function handleSaved(user) {
+  async function handleSaved(user) {
     setShowAccountForm(false)
     setEditingAccount(null)
     setNotice(`Đã lưu tài khoản ${user.username}.`)
+    await loadData()
   }
 
-  function handleToggle(account) {
-    const currentUser = getCurrentUser()
-
+  async function handleToggle(account) {
     if (account.id === currentUser?.id) {
       setNotice('Không thể khóa tài khoản đang đăng nhập.')
       return
     }
 
-    const nextAction = account.status === 'pending'
-      ? 'kích hoạt'
-      : account.status === 'locked' ? 'kích hoạt' : 'khóa'
+    const isPendingOrLocked = String(account.status).toLowerCase() === 'pending' || String(account.status).toLowerCase() === 'locked'
+    const nextAction = isPendingOrLocked ? 'kích hoạt' : 'khóa'
     const confirmed = window.confirm(`Bạn có chắc chắn muốn ${nextAction} tài khoản ${account.username} không?`)
 
     if (!confirmed) {
       return
     }
 
-    const result = account.status === 'pending'
-      ? activateAdminAccount(account.id)
-      : toggleAdminAccountStatus(account.id, currentUser?.id)
-    if (result.status === 'success') {
+    try {
+      if (isPendingOrLocked) {
+        await adminAccountService.unlockAccount(account.id)
+      } else {
+        await adminAccountService.lockAccount(account.id)
+      }
       setNotice(`Tài khoản ${account.username} đã đổi trạng thái.`)
-      return
+      await loadData()
+    } catch (caughtError) {
+      setNotice(caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể đổi trạng thái tài khoản này.')
     }
-
-    setNotice(result.errors?.form ?? 'Không thể đổi trạng thái tài khoản này.')
   }
 
-  function handleDelete(account) {
-    const currentUser = getCurrentUser()
+  async function handleDelete(account) {
     if (account.id === currentUser?.id) {
       setNotice('Không thể xóa tài khoản đang đăng nhập.')
       return
@@ -199,17 +286,21 @@ function AdminAccountsPage() {
       return
     }
 
-    const result = deleteAdminAccount(account.id, currentUser?.id)
-    if (result.status === 'success') {
+    try {
+      await adminAccountService.deleteAccount(account.id)
       setNotice(`Đã xóa tài khoản ${account.username}.`)
-      return
+      await loadData()
+    } catch (caughtError) {
+      if (caughtError instanceof ApiError && caughtError.status === 409) {
+        setNotice(caughtError.message)
+        return
+      }
+      setNotice(caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể xóa tài khoản này.')
     }
-
-    setNotice(result.errors?.form ?? 'Không thể xóa tài khoản này.')
   }
 
-  if (snapshot.status === 'error') {
-    return <section className="admin-empty-panel"><p className="state-kicker">Tài khoản</p><h1>Không thể tải danh sách</h1><p>{snapshot.message}</p></section>
+  if (error) {
+    return <section className="admin-empty-panel"><p className="state-kicker">Tài khoản</p><h1>Không thể tải danh sách</h1><p>{error}</p></section>
   }
 
   return (
@@ -251,42 +342,46 @@ function AdminAccountsPage() {
         </div>
       </section>
 
-      <section className="admin-table-wrap">
-        <table className="admin-data-table">
-          <thead>
-            <tr>
-              <th>Tên tài khoản</th>
-              <th>Họ và tên</th>
-              <th>Vai trò</th>
-              <th>Lớp học</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAccounts.length === 0 ? (
-              <tr><td colSpan="6" className="empty-row">Không tìm thấy tài khoản phù hợp.</td></tr>
-            ) : filteredAccounts.map((account) => (
-              <tr key={account.id}>
-                <td><strong>{account.username}</strong></td>
-                <td>{account.name}</td>
-                <td><span className="role-badge">{roleLabels[account.role] ?? account.role}</span></td>
-                <td>{getAccountClassLabel(account, classes)}</td>
-                <td><span className={`status-badge status-${account.status}`}>
-                  {account.status === 'pending' ? 'Chờ kích hoạt' : account.status === 'locked' ? 'Khóa' : 'Hoạt động'}
-                </span></td>
-                <td>
-                  <div className="admin-table-actions">
-                    <button className="button button-outline" type="button" onClick={() => openEdit(account)}>Chỉnh sửa</button>
-                    <button className="button button-ghost" type="button" onClick={() => handleToggle(account)}>{account.status === 'locked' || account.status === 'pending' ? 'Kích hoạt' : 'Khóa'}</button>
-                    <button className="button button-danger" type="button" onClick={() => handleDelete(account)}>Xóa</button>
-                  </div>
-                </td>
+      {loading ? (
+        <section className="admin-empty-panel"><p className="state-kicker">Tài khoản</p><h1>Đang tải danh sách</h1></section>
+      ) : (
+        <section className="admin-table-wrap">
+          <table className="admin-data-table">
+            <thead>
+              <tr>
+                <th>Tên tài khoản</th>
+                <th>Họ và tên</th>
+                <th>Vai trò</th>
+                <th>Lớp học</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+            </thead>
+            <tbody>
+              {filteredAccounts.length === 0 ? (
+                <tr><td colSpan="6" className="empty-row">Không tìm thấy tài khoản phù hợp.</td></tr>
+              ) : filteredAccounts.map((account) => (
+                <tr key={account.id}>
+                  <td><strong>{account.username}</strong></td>
+                  <td>{account.name}</td>
+                  <td><span className="role-badge">{roleLabels[account.role] ?? account.role}</span></td>
+                  <td>{getAccountClassLabel(account, classes)}</td>
+                  <td><span className={`status-badge status-${account.status}`}>
+                    {account.status === 'pending' ? 'Chờ kích hoạt' : account.status === 'locked' ? 'Khóa' : 'Hoạt động'}
+                  </span></td>
+                  <td>
+                    <div className="admin-table-actions">
+                      <button className="button button-outline" type="button" onClick={() => openEdit(account)}>Chỉnh sửa</button>
+                      <button className="button button-ghost" type="button" onClick={() => handleToggle(account)}>{account.status === 'locked' || account.status === 'pending' ? 'Kích hoạt' : 'Khóa'}</button>
+                      <button className="button button-danger" type="button" onClick={() => handleDelete(account)}>Xóa</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
 
       {showAccountForm && (
         <AccountForm

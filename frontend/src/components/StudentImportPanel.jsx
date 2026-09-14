@@ -1,9 +1,7 @@
 import { useRef, useState } from 'react'
 
-import {
-  importStudentsToAdminClass,
-  previewAdminStudentImport,
-} from '../data/mockAdminStore.js'
+import { adminClassService } from '../services/adminClassService.js'
+import { ApiError } from '../services/apiClient.js'
 import { readStudentExcel } from '../data/studentImport.js'
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
@@ -110,9 +108,20 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
 
       let plan = null
       if (validationErrors.length === 0 && result.rows.length > 0) {
-        const planResult = previewAdminStudentImport(classId, result.rows)
-        plan = planResult.data ?? null
-        validationErrors.push(...(plan?.errors ?? planResult.errors ?? []))
+        plan = {
+          summary: {
+            total: result.rows.length,
+            newAccounts: result.rows.length,
+            existingAccounts: 0,
+            alreadyInClass: 0,
+          },
+          errors: [],
+          warnings: [],
+          entries: result.rows.map((row) => ({
+            email: row.email,
+            kind: 'new',
+          })),
+        }
       }
 
       setPreview(plan ? { ...plan, rows: result.rows } : null)
@@ -131,25 +140,39 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
     }
   }
 
-  function handleImport() {
+  async function handleImport() {
     if (!preview || preview.rows.length === 0 || preview.errors.length > 0) {
       return
     }
 
-    const result = importStudentsToAdminClass(classId, preview.rows)
+    try {
+      const result = await adminClassService.importStudents(classId, {
+        students: preview.rows.map((row) => ({
+          studentNumber: row.studentNumber,
+          name: row.name,
+          email: row.email,
+        })),
+      })
 
-    if (result.status === 'error') {
+      setStatus('success')
+      setMessage(
+        `Đã tạo ${result.created ?? 0} tài khoản mới, thêm ${result.assigned ?? 0} tài khoản có sẵn và bỏ qua ${result.skipped ?? 0} học sinh đã có trong lớp.`,
+      )
+      onImported?.(result)
+    } catch (caughtError) {
+      const errorsFromApi = caughtError instanceof ApiError && caughtError.fields?.rows
+        ? caughtError.fields.rows.map((row) => ({
+            rowNumber: row.rowNumber ?? 1,
+            message: row.error ?? row.message ?? 'Không thể import học sinh.',
+          }))
+        : []
+
       setStatus('error')
-      setErrors(result.errors ?? [])
+      setErrors(errorsFromApi.length ? errorsFromApi : [
+        { rowNumber: 1, message: caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể lưu danh sách học sinh.' },
+      ])
       setMessage('Không thể lưu danh sách học sinh.')
-      return
     }
-
-    setStatus('success')
-    setMessage(
-      `Đã tạo ${result.addedCount} tài khoản mới, thêm ${result.assignedCount} tài khoản có sẵn và bỏ qua ${result.skippedCount} học sinh đã có trong lớp.`,
-    )
-    onImported?.(result)
   }
 
   function reset() {

@@ -1,33 +1,62 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 
-import { ADMIN_STATE, getAdminWorkspace } from '../data/mockAdminStore.js'
-import { ROLES } from '../data/mockAuthStore.js'
+import { adminAccountService } from '../services/adminAccountService.js'
+import { adminClassService } from '../services/adminClassService.js'
+import { ApiError } from '../services/apiClient.js'
+import { ROLES } from '../services/authService.js'
 
 function AdminDashboardPage() {
-  const snapshot = getAdminWorkspace(ADMIN_STATE.SUCCESS)
+  const [stats, setStats] = useState({ users: 0, teachers: 0, students: 0, classes: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const stats = useMemo(() => {
-    if (snapshot.status !== 'success') {
-      return { users: 0, teachers: 0, students: 0, classes: 0 }
+  async function loadStats() {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const [accounts, classes] = await Promise.all([
+        adminAccountService.listAccounts(),
+        adminClassService.listClasses(),
+      ])
+
+      const users = Array.isArray(accounts) ? accounts : []
+      const classRows = Array.isArray(classes) ? classes : []
+
+      setStats({
+        users: users.length,
+        teachers: users.filter((user) => user.role === ROLES.TEACHER).length,
+        students: users.filter((user) => user.role === ROLES.STUDENT).length,
+        classes: classRows.length,
+      })
+    } catch (caughtError) {
+      const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể tải tổng quan quản trị.'
+      setError(message)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    const users = snapshot.data.users ?? []
-    const classes = snapshot.data.classes ?? []
+  useEffect(() => {
+    loadStats()
+  }, [])
 
-    return {
-      users: users.length,
-      teachers: users.filter((user) => user.role === ROLES.TEACHER).length,
-      students: users.filter((user) => user.role === ROLES.STUDENT).length,
-      classes: classes.length,
-    }
-  }, [snapshot])
-
-  if (snapshot.status === 'error') {
+  if (error) {
     return (
       <section className="admin-empty-panel">
         <p className="state-kicker">Quản trị</p>
         <h1>Bảng điều khiển quản trị</h1>
-        <p>{snapshot.message}</p>
+        <p>{error}</p>
+      </section>
+    )
+  }
+
+  if (loading) {
+    return (
+      <section className="admin-empty-panel">
+        <p className="state-kicker">Quản trị</p>
+        <h1>Tổng quan</h1>
+        <p>Đang tải tổng quan...</p>
       </section>
     )
   }
