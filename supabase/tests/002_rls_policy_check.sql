@@ -210,7 +210,6 @@ begin
       ('reference_content_units', 'UPDATE'),
       ('reference_content_units', 'DELETE'),
       ('submissions', 'SELECT'),
-      ('submissions', 'INSERT'),
       ('submission_files', 'SELECT'),
       ('submission_files', 'INSERT'),
       ('ai_evaluations', 'SELECT'),

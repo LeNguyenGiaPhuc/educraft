@@ -11,6 +11,9 @@ import { createAuthRouter } from './modules/auth/authRoutes.js'
 import { createAuthService } from './modules/auth/authService.js'
 import { createRequiredImageUpload } from './modules/storage/imageUpload.js'
 import { createStorageService } from './modules/storage/storageService.js'
+import { createSubmissionController } from './modules/submissions/submissionController.js'
+import { createSubmissionRouter } from './modules/submissions/submissionRoutes.js'
+import { createSubmissionService } from './modules/submissions/submissionService.js'
 
 export function createDependencies(config) {
   const gateway = createSupabaseGateway(config)
@@ -30,6 +33,16 @@ export function createDependencies(config) {
     authenticate,
     imageUpload: createRequiredImageUpload(),
   })
+  const submissionService = createSubmissionService({
+    adminClient: gateway.adminClient,
+    storageService,
+  })
+  const submissionController = createSubmissionController({ submissionService })
+  const submissionRouter = createSubmissionRouter({
+    controller: submissionController,
+    authenticate,
+    imageUpload: createRequiredImageUpload(),
+  })
   const authController = createAuthController({
     authService,
     nodeEnv: config.NODE_ENV,
@@ -39,5 +52,12 @@ export function createDependencies(config) {
     authenticate,
   })
 
-  return { assignmentRouter, authRouter, authenticate, gateway, referenceRouter }
+  return {
+    assignmentRouter,
+    authRouter,
+    authenticate,
+    gateway,
+    referenceRouter,
+    submissionRouter,
+  }
 }

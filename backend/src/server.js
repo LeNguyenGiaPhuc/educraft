@@ -12,6 +12,7 @@ const app = createApp({
     expressApp.use('/api/auth', dependencies.authRouter)
     expressApp.use('/api', dependencies.assignmentRouter)
     expressApp.use('/api', dependencies.referenceRouter)
+    expressApp.use('/api', dependencies.submissionRouter)
   },
 })
 
