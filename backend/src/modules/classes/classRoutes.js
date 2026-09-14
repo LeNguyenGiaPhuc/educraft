@@ -21,6 +21,7 @@ export function createClassRouter({ controller, authenticate }) {
 
   router.get('/classes', validate(classListQuerySchema), controller.list)
   router.get('/classes/:classId', validate(classIdParamsSchema), controller.get)
+  router.get('/classes/:classId/students', validate(classIdParamsSchema), controller.listStudents)
   router.post('/classes', validate(createClassSchema), controller.create)
   router.patch('/classes/:classId', validate(updateClassSchema), controller.update)
   router.delete('/classes/:classId', validate(classIdParamsSchema), controller.remove)

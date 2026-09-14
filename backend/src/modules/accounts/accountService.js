@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 import { AppError } from '../../common/errors.js'
 
 const ACCOUNT_COLUMNS = [
@@ -12,11 +14,17 @@ const ACCOUNT_COLUMNS = [
   'updated_at',
 ].join(',')
 
+const HISTORY_MESSAGE = 'Tài khoản đã có lịch sử học tập nên không thể xóa.'
+
 export function createAccountService({ adminClient } = {}) {
   async function requireAdmin(auth) {
     if (!auth?.profile || auth.profile.role !== 'ADMIN' || auth.profile.status !== 'ACTIVE') {
       throw new AppError(403, 'FORBIDDEN', 'Bạn không có quyền thực hiện thao tác này.')
     }
+  }
+
+  function getWriteClient(auth) {
+    return adminClient ?? auth.supabase
   }
 
   async function ensureAccountExists(supabase, accountId) {
@@ -66,6 +74,110 @@ export function createAccountService({ adminClient } = {}) {
     }
   }
 
+  async function createAuthUser(payload) {
+    if (!adminClient?.auth?.admin?.createUser) {
+      throw new AppError(500, 'AUTH_ADMIN_NOT_CONFIGURED', 'Dịch vụ tài khoản chưa sẵn sàng.')
+    }
+
+    let result
+    try {
+      result = await adminClient.auth.admin.createUser(payload)
+    } catch {
+      throw new AppError(500, 'AUTH_CREATE_FAILED', 'Không thể tạo tài khoản đăng nhập.')
+    }
+
+    if (result?.error || !result?.data?.user?.id) {
+      if (result?.error?.code === 'email_exists' || result?.error?.status === 422) {
+        throw new AppError(409, 'ACCOUNT_EMAIL_CONFLICT', 'Email đã được sử dụng.')
+      }
+      throw new AppError(500, 'AUTH_CREATE_FAILED', 'Không thể tạo tài khoản đăng nhập.')
+    }
+
+    return result.data.user
+  }
+
+  async function deleteAuthUser(accountId) {
+    if (!adminClient?.auth?.admin?.deleteUser) {
+      throw new AppError(500, 'AUTH_DELETE_FAILED', 'Không thể xóa tài khoản đăng nhập.')
+    }
+
+    let result
+    try {
+      result = await adminClient.auth.admin.deleteUser(accountId)
+    } catch {
+      throw new AppError(500, 'AUTH_DELETE_FAILED', 'Không thể xóa tài khoản đăng nhập.')
+    }
+
+    if (result?.error) {
+      const errorText = `${result.error.code ?? ''} ${result.error.message ?? ''}`.toLowerCase()
+      if (errorText.includes('foreign key') || errorText.includes('restrict') || errorText.includes('history')) {
+        throw new AppError(409, 'ACCOUNT_HAS_HISTORY', HISTORY_MESSAGE)
+      }
+      throw new AppError(500, 'AUTH_DELETE_FAILED', 'Không thể xóa tài khoản đăng nhập.')
+    }
+  }
+
+  async function updateAuthEmail(accountId, email) {
+    if (!adminClient?.auth?.admin?.updateUserById) {
+      throw new AppError(500, 'AUTH_ADMIN_NOT_CONFIGURED', 'Dịch vụ tài khoản chưa sẵn sàng.')
+    }
+
+    let result
+    try {
+      result = await adminClient.auth.admin.updateUserById(accountId, {
+        email,
+        email_confirm: true,
+      })
+    } catch {
+      throw new AppError(500, 'AUTH_UPDATE_FAILED', 'Không thể cập nhật tài khoản đăng nhập.')
+    }
+
+    if (result?.error) {
+      if (result.error.code === 'email_exists' || result.error.status === 422) {
+        throw new AppError(409, 'ACCOUNT_EMAIL_CONFLICT', 'Email đã được sử dụng.')
+      }
+      throw new AppError(500, 'AUTH_UPDATE_FAILED', 'Không thể cập nhật tài khoản đăng nhập.')
+    }
+  }
+
+  async function ensureRoleChangeAllowed(supabase, accountId, nextRole, currentRole) {
+    if (!nextRole || nextRole === currentRole) {
+      return
+    }
+
+    const [teacherClasses, memberships, submissions, reviews] = await Promise.all([
+      supabase.from('classes').select('id').eq('teacher_id', accountId).limit(1),
+      supabase.from('class_members').select('class_id').eq('student_id', accountId).limit(1),
+      supabase.from('submissions').select('id').eq('student_id', accountId).limit(1),
+      supabase.from('teacher_reviews').select('id').eq('teacher_id', accountId).limit(1),
+    ])
+
+    if (teacherClasses.error) throw teacherClasses.error
+    if (memberships.error) throw memberships.error
+    if (submissions.error) throw submissions.error
+    if (reviews.error) throw reviews.error
+    if (teacherClasses.data?.length || memberships.data?.length || submissions.data?.length || reviews.data?.length) {
+      throw new AppError(
+        409,
+        'ACCOUNT_ROLE_CONFLICT',
+        'Không thể đổi vai trò khi tài khoản còn liên kết với lớp hoặc lịch sử học tập.',
+      )
+    }
+  }
+
+  function ensureNotCurrentAdmin(auth, accountId, code, message) {
+    if (auth.profile.id === accountId) {
+      throw new AppError(409, code, message)
+    }
+  }
+
+  function mapProfileError(error) {
+    if (error?.code === '23505' || error?.message?.includes('profiles_email_unique')) {
+      return new AppError(409, 'ACCOUNT_EMAIL_CONFLICT', 'Email đã được sử dụng.')
+    }
+    return error
+  }
+
   async function listAllowed(rows) {
     return rows ?? []
   }
@@ -101,6 +213,7 @@ export function createAccountService({ adminClient } = {}) {
     async createAccount(auth, input) {
       await requireAdmin(auth)
       const supabase = auth.supabase
+      const writeClient = getWriteClient(auth)
       const normalizedEmail = await normalizeEmail(input.email)
       const payload = {
         username: input.username.trim(),
@@ -112,26 +225,36 @@ export function createAccountService({ adminClient } = {}) {
       }
 
       await conflictIfEmailExists(supabase, normalizedEmail)
+      const authUser = await createAuthUser({
+        email: normalizedEmail,
+        password: randomBytes(18).toString('base64url'),
+        email_confirm: true,
+        user_metadata: { full_name: payload.full_name },
+      })
 
-      const result = await supabase
-        .from('profiles')
-        .insert(payload)
-        .select(ACCOUNT_COLUMNS)
-        .single()
+      try {
+        const result = await writeClient
+          .from('profiles')
+          .insert({ ...payload, id: authUser.id })
+          .select(ACCOUNT_COLUMNS)
+          .single()
 
-      if (result.error) {
-        if (result.error.code === '23505' || result.error.message?.includes('profiles_email_unique')) {
-          throw new AppError(409, 'ACCOUNT_EMAIL_CONFLICT', 'Email đã được sử dụng.')
+        if (result.error) throw mapProfileError(result.error)
+        return result.data
+      } catch (error) {
+        try {
+          await deleteAuthUser(authUser.id)
+        } catch {
+          throw new AppError(500, 'ACCOUNT_ROLLBACK_FAILED', 'Không thể hoàn tác tài khoản vừa tạo.')
         }
-        throw result.error
+        throw error
       }
-
-      return result.data
     },
 
     async updateAccount(auth, accountId, input) {
       await requireAdmin(auth)
       const supabase = auth.supabase
+      const writeClient = getWriteClient(auth)
       const profile = await ensureAccountExists(supabase, accountId)
       const normalizedEmail = input.email ? await normalizeEmail(input.email) : null
       const updatePayload = {}
@@ -153,60 +276,75 @@ export function createAccountService({ adminClient } = {}) {
       if (normalizedEmail && normalizedEmail !== profile.email) {
         await conflictIfEmailExists(supabase, normalizedEmail, accountId)
       }
+      await ensureRoleChangeAllowed(writeClient, accountId, input.role, profile.role)
 
-      const result = await supabase
-        .from('profiles')
-        .update(updatePayload)
-        .eq('id', accountId)
-        .select(ACCOUNT_COLUMNS)
-        .single()
-
-      if (result.error) {
-        if (result.error.code === '23505' || result.error.message?.includes('profiles_email_unique')) {
-          throw new AppError(409, 'ACCOUNT_EMAIL_CONFLICT', 'Email đã được sử dụng.')
-        }
-        throw result.error
+      const emailChanged = Boolean(normalizedEmail && normalizedEmail !== profile.email)
+      if (emailChanged) {
+        await updateAuthEmail(accountId, normalizedEmail)
       }
 
-      return result.data
+      try {
+        const result = await writeClient
+          .from('profiles')
+          .update(updatePayload)
+          .eq('id', accountId)
+          .select(ACCOUNT_COLUMNS)
+          .single()
+
+        if (result.error) throw mapProfileError(result.error)
+        return result.data
+      } catch (error) {
+        if (emailChanged) {
+          try {
+            await updateAuthEmail(accountId, profile.email)
+          } catch {
+            throw new AppError(500, 'ACCOUNT_ROLLBACK_FAILED', 'Không thể đồng bộ lại email đăng nhập.')
+          }
+        }
+        throw error
+      }
     },
 
     async lockAccount(auth, accountId) {
       await requireAdmin(auth)
-      return setStatusById(auth.supabase, accountId, 'LOCKED')
+      ensureNotCurrentAdmin(auth, accountId, 'CANNOT_LOCK_SELF', 'Không thể khóa tài khoản đang đăng nhập.')
+      return setStatusById(getWriteClient(auth), accountId, 'LOCKED')
     },
 
     async unlockAccount(auth, accountId) {
       await requireAdmin(auth)
-      return setStatusById(auth.supabase, accountId, 'ACTIVE')
+      return setStatusById(getWriteClient(auth), accountId, 'ACTIVE')
     },
 
     async deleteAccount(auth, accountId) {
       await requireAdmin(auth)
+      ensureNotCurrentAdmin(auth, accountId, 'CANNOT_DELETE_SELF', 'Không thể xóa tài khoản đang đăng nhập.')
       const supabase = auth.supabase
       await ensureAccountExists(supabase, accountId)
 
-      const submissions = await supabase
-        .from('submissions')
-        .select('id', { count: 'exact', head: true })
-        .eq('student_id', accountId)
+      const historyClient = getWriteClient(auth)
+      const [submissions, reviews] = await Promise.all([
+        historyClient.from('submissions').select('id', { count: 'exact', head: true }).eq('student_id', accountId),
+        historyClient.from('teacher_reviews').select('id', { count: 'exact', head: true }).eq('teacher_id', accountId),
+      ])
 
       if (submissions.error) throw submissions.error
-      if ((submissions.count ?? 0) > 0) {
-        throw new AppError(409, 'ACCOUNT_HAS_HISTORY', 'Tài khoản đã có lịch sử học tập nên không thể xóa.')
+      if (reviews.error) throw reviews.error
+      if ((submissions.count ?? 0) > 0 || (reviews.count ?? 0) > 0) {
+        throw new AppError(409, 'ACCOUNT_HAS_HISTORY', HISTORY_MESSAGE)
       }
 
-      const deleteProfile = await supabase
+      if (adminClient?.auth?.admin?.deleteUser) {
+        await deleteAuthUser(accountId)
+        return null
+      }
+
+      const deleteProfile = await getWriteClient(auth)
         .from('profiles')
         .delete()
         .eq('id', accountId)
 
       if (deleteProfile.error) throw deleteProfile.error
-
-      if (adminClient?.auth?.admin?.deleteUser) {
-        await adminClient.auth.admin.deleteUser(accountId)
-      }
-
       return null
     },
   }

@@ -134,7 +134,7 @@ Content-Type: application/json
 }
 ```
 
-`email` is normalized by `trim().toLowerCase()` in the validator/service path. Email uniqueness is checked in the database-backed profile table, raising `409 ACCOUNT_EMAIL_CONFLICT` on duplicates. `status` defaults to `PENDING` when omitted.
+`email` is normalized by `trim().toLowerCase()` in the validator/service path. The backend creates the Supabase Auth user first, then creates the matching profile with the same UUID. If profile creation fails, the new Auth user is removed. Email uniqueness is checked in the database-backed profile table, raising `409 ACCOUNT_EMAIL_CONFLICT` on duplicates. `status` defaults to `PENDING` when omitted.
 
 ### Read, update, lock, unlock, and delete account
 
@@ -146,7 +146,7 @@ POST /api/admin/accounts/:accountId/unlock
 DELETE /api/admin/accounts/:accountId
 ```
 
-Account updates reject attempts to send immutable fields from the database and identity tables such as `id`, `created_at`, `updated_at`. Lock and unlock operations switch `status` between `LOCKED` and `ACTIVE`. Deleting a profile is allowed only when the account has no historical `submissions`; otherwise the service returns `409 ACCOUNT_HAS_HISTORY` and the contract recommends `LOCKED` instead of hard delete.
+Account updates reject attempts to send immutable fields from the database and identity tables such as `id`, `created_at`, `updated_at`. Updating an email synchronizes both Supabase Auth and `profiles.email`. A role change is rejected while the account is linked to a class, membership, submission, or teacher review. Lock and unlock operations switch `status` between `LOCKED` and `ACTIVE`; an administrator cannot lock or delete the currently logged-in account. Deleting an account is allowed only when it has no historical submissions or teacher reviews; otherwise the service returns `409 ACCOUNT_HAS_HISTORY` and the contract recommends `LOCKED` instead of hard delete.
 
 ## Admin classes
 
@@ -157,12 +157,15 @@ Class endpoints are also under `/api/admin` and require an authenticated `ADMIN`
 ```http
 GET /api/admin/classes
 GET /api/admin/classes/:classId
+GET /api/admin/classes/:classId/students
 POST /api/admin/classes
 PATCH /api/admin/classes/:classId
 DELETE /api/admin/classes/:classId
 ```
 
 Create and update accept normalized `code`, `subject`, `semester`, `school_year`, `teacher_id`, and `status`. `class.code` has a database uniqueness constraint and errors map to `409 CLASS_CODE_CONFLICT`.
+
+`GET /api/admin/classes/:classId/students` returns each class member with the linked student profile and the per-class `student_number`.
 
 ### Assign teacher
 
@@ -215,7 +218,7 @@ Content-Type: application/json
 }
 ```
 
-The server normalizes `studentNumber`, `name`, and `email` before validation. The import request is validated as a whole and only commits after the validator confirms no duplicate email in the file, no duplicate `student_number` in the class, and no global `profiles.email` conflict. Request validation errors return `400 VALIDATION_ERROR`; all validation and conflict checks happen before any account or membership insert, and the import path is designed around an all-or-nothing atomic transaction that falls back to rollback of any newly created Auth users.
+The server normalizes `studentNumber`, `name`, and `email` before validation. The import request is validated as a whole and only commits after the validator confirms no duplicate email or `student_number` in the file. Existing student accounts are reused only when the normalized name also matches; an existing membership is skipped and reported in `skipped`. Request validation errors return `400 VALIDATION_ERROR`. New Auth users are created before a single database RPC inserts all new profiles and memberships in one transaction; if the RPC fails, every Auth user created for this request is removed.
 
 ## Assignment CRUD
 
