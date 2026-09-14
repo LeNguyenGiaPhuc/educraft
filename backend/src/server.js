@@ -10,6 +10,7 @@ const app = createApp({
   frontendOrigin: config.FRONTEND_ORIGIN,
   registerRoutes(expressApp) {
     expressApp.use('/api/auth', dependencies.authRouter)
+    expressApp.use('/api', dependencies.assignmentRouter)
   },
 })
 
