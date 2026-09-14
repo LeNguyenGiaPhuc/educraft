@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import PageErrorState from '../components/PageErrorState.jsx'
-import { getStudentDashboardSnapshot } from '../data/mockStudentDashboard.js'
+import { formatAssignmentDeadline } from '../data/assignmentDeadline.js'
+import { studentService } from '../services/studentService.js'
 
 function StudentActivityCard({ assignment }) {
   return (
@@ -11,18 +13,18 @@ function StudentActivityCard({ assignment }) {
     >
       <div className="class-card-body">
         <div className="class-card-meta">
-          <span className="class-code">{assignment.classId}</span>
+          <span className="class-code">{assignment.classCode ?? assignment.classId}</span>
           {assignment.status && (
             <span className={`table-status table-status-${assignment.statusTone}`}>
               <span aria-hidden="true" />
-              {assignment.status}
+              {assignment.statusLabel ?? assignment.status}
             </span>
           )}
         </div>
         <h3>{assignment.title}</h3>
         <p>{assignment.className}</p>
         <div className="class-card-footer">
-          <span>Hạn nộp: {assignment.dueDate || 'Chưa có hạn nộp'}</span>
+          <span>Hạn nộp: {formatAssignmentDeadline(assignment)}</span>
         </div>
       </div>
     </Link>
@@ -54,14 +56,49 @@ function StudentClassSection({ classroom }) {
 }
 
 function StudentDashboardPage({ currentUser }) {
-  const snapshot = getStudentDashboardSnapshot(currentUser)
+  const [request, setRequest] = useState({ status: 'loading', data: [] })
 
-  if (snapshot.status === 'error') {
+  useEffect(() => {
+    let isMounted = true
+
+    studentService
+      .getDashboard()
+      .then((data) => {
+        if (isMounted) setRequest({ status: 'success', data })
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setRequest({
+            status: 'error',
+            data: [],
+            message: error.message ?? 'Không thể tải lớp học của học sinh.',
+          })
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  if (request.status === 'loading') {
+    return (
+      <main className="page-content">
+        <div className="page-container">
+          <section className="state-panel" role="status">
+            <h1>Đang tải lớp học...</h1>
+          </section>
+        </div>
+      </main>
+    )
+  }
+
+  if (request.status === 'error') {
     return (
       <PageErrorState
         kicker="Góc học sinh"
         title="Không thể mở tổng quan"
-        message={snapshot.message}
+        message={request.message}
       />
     )
   }
@@ -75,13 +112,13 @@ function StudentDashboardPage({ currentUser }) {
             <p>Xem lớp học và các bài kiểm tra bài ghi của bạn.</p>
           </div>
         </div>
-        {snapshot.data.length === 0 ? (
+        {request.data.length === 0 ? (
           <section className="state-panel" aria-live="polite">
             <h2>Chưa có lớp học nào</h2>
             <p>Các lớp bạn tham gia sẽ xuất hiện ở đây.</p>
           </section>
         ) : (
-          snapshot.data.map((classroom) => (
+          request.data.map((classroom) => (
             <StudentClassSection key={classroom.id} classroom={classroom} />
           ))
         )}

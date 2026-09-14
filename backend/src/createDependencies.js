@@ -23,6 +23,9 @@ import { createStorageService } from './modules/storage/storageService.js'
 import { createSubmissionController } from './modules/submissions/submissionController.js'
 import { createSubmissionRouter } from './modules/submissions/submissionRoutes.js'
 import { createSubmissionService } from './modules/submissions/submissionService.js'
+import { createStudentDashboardController } from './modules/students/studentDashboardController.js'
+import { createStudentDashboardRouter } from './modules/students/studentDashboardRoutes.js'
+import { createStudentDashboardService } from './modules/students/studentDashboardService.js'
 
 export function createDependencies(config) {
   const gateway = createSupabaseGateway(config)
@@ -68,6 +71,12 @@ export function createDependencies(config) {
     authenticate,
     imageUpload: createRequiredImageUpload(),
   })
+  const studentService = createStudentDashboardService()
+  const studentController = createStudentDashboardController({ studentService })
+  const studentRouter = createStudentDashboardRouter({
+    controller: studentController,
+    authenticate,
+  })
   const aiEvaluationService = createAiEvaluationService({
     adminClient: gateway.adminClient,
     submissionService,
@@ -95,6 +104,7 @@ export function createDependencies(config) {
     classRouter,
     gateway,
     referenceRouter,
+    studentRouter,
     submissionRouter,
   }
 }
