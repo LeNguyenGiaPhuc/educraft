@@ -11,6 +11,40 @@ const SUBMISSION_FILE_COLUMNS = [
   'created_at',
 ].join(',')
 
+const SUBMISSION_COLUMNS = [
+  'id',
+  'assignment_id',
+  'student_id',
+  'attempt_number',
+  'status',
+  'submitted_at',
+  'created_at',
+  'updated_at',
+].join(',')
+
+const TEACHER_REVIEW_COLUMNS = [
+  'id',
+  'final_status',
+  'final_score',
+  'feedback',
+  'is_finalized',
+  'finalized_at',
+  'updated_at',
+].join(',')
+
+const STUDENT_SUBMISSION_SELECT = [
+  SUBMISSION_COLUMNS,
+  `submission_files(${SUBMISSION_FILE_COLUMNS})`,
+  `teacher_reviews(${TEACHER_REVIEW_COLUMNS})`,
+].join(',')
+
+const TEACHER_SUBMISSION_SELECT = [
+  SUBMISSION_COLUMNS,
+  'student:profiles!submissions_student_id_fkey(id,full_name,student_code)',
+  `submission_files(${SUBMISSION_FILE_COLUMNS})`,
+  `teacher_reviews(${TEACHER_REVIEW_COLUMNS})`,
+].join(',')
+
 const rpcErrors = Object.freeze({
   AUTH_REQUIRED: [401, 'AUTH_REQUIRED', 'Bạn cần đăng nhập.'],
   SUBMISSION_ROLE_FORBIDDEN: [403, 'FORBIDDEN', 'Bạn không có quyền nộp bài.'],
@@ -34,6 +68,96 @@ function requireStudentContext(auth) {
   return {
     studentId: auth.profile.id,
     supabase: auth.supabase,
+  }
+}
+
+function requireTeacherContext(auth) {
+  if (
+    auth?.profile?.role !== 'TEACHER'
+    || typeof auth.profile.id !== 'string'
+    || !auth.profile.id
+    || !auth.supabase
+  ) {
+    throw new AppError(403, 'FORBIDDEN', 'Bạn không có quyền xem lượt nộp bài.')
+  }
+
+  return { supabase: auth.supabase }
+}
+
+function throwDatabaseError(result) {
+  if (result.error) throw result.error
+}
+
+function relatedRecord(value) {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value ?? null
+}
+
+function projectFiles(files) {
+  if (!Array.isArray(files)) return []
+
+  return files.map((file) => ({
+    id: file.id,
+    storage_path: file.storage_path,
+    original_filename: file.original_filename,
+    mime_type: file.mime_type,
+    size_bytes: file.size_bytes,
+    page_order: file.page_order,
+    created_at: file.created_at,
+  }))
+}
+
+function projectSubmissionBase(submission) {
+  return {
+    id: submission.id,
+    assignment_id: submission.assignment_id,
+    attempt_number: submission.attempt_number,
+    status: submission.status,
+    submitted_at: submission.submitted_at,
+    files: projectFiles(submission.submission_files),
+  }
+}
+
+function projectStudentSubmission(submission) {
+  const projected = projectSubmissionBase(submission)
+  const review = relatedRecord(submission.teacher_reviews)
+
+  if (review?.is_finalized === true) {
+    projected.teacher_result = {
+      final_status: review.final_status,
+      final_score: review.final_score,
+      feedback: review.feedback,
+      is_finalized: true,
+      finalized_at: review.finalized_at,
+    }
+  }
+
+  return projected
+}
+
+function projectTeacherSubmission(submission) {
+  const review = relatedRecord(submission.teacher_reviews)
+  const student = relatedRecord(submission.student)
+
+  return {
+    ...projectSubmissionBase(submission),
+    student_id: submission.student_id,
+    created_at: submission.created_at,
+    updated_at: submission.updated_at,
+    student: student ? {
+      id: student.id,
+      full_name: student.full_name,
+      student_code: student.student_code,
+    } : null,
+    teacher_review: review ? {
+      id: review.id,
+      final_status: review.final_status,
+      final_score: review.final_score,
+      feedback: review.feedback,
+      is_finalized: review.is_finalized,
+      finalized_at: review.finalized_at,
+      updated_at: review.updated_at,
+    } : null,
   }
 }
 
@@ -79,7 +203,65 @@ function fileMetadata(submissionId, uploaded) {
   }
 }
 
-export function createSubmissionService({ adminClient, storageService, logger = console }) {
+export function createSubmissionService({
+  adminClient,
+  assignmentService,
+  storageService,
+  logger = console,
+}) {
+  async function requireStudentAssignmentAccess(supabase, studentId, assignmentId) {
+    const assignmentResult = await supabase
+      .from('assignments')
+      .select('id,class_id')
+      .eq('id', assignmentId)
+      .maybeSingle()
+
+    throwDatabaseError(assignmentResult)
+
+    if (!assignmentResult.data) {
+      throw new AppError(404, 'ASSIGNMENT_NOT_FOUND', 'Không tìm thấy bài kiểm tra.')
+    }
+
+    const membershipResult = await supabase
+      .from('class_members')
+      .select('class_id,student_id')
+      .eq('class_id', assignmentResult.data.class_id)
+      .eq('student_id', studentId)
+      .maybeSingle()
+
+    throwDatabaseError(membershipResult)
+
+    if (!membershipResult.data) {
+      throw new AppError(
+        403,
+        'CLASS_MEMBERSHIP_REQUIRED',
+        'Bạn không còn thuộc lớp của bài kiểm tra này.',
+      )
+    }
+  }
+
+  async function findSubmission(supabase, submissionId, select, studentId) {
+    let query = supabase
+      .from('submissions')
+      .select(select)
+      .eq('id', submissionId)
+
+    if (studentId) query = query.eq('student_id', studentId)
+
+    const result = await query.maybeSingle()
+    throwDatabaseError(result)
+
+    if (!result.data) {
+      throw new AppError(404, 'SUBMISSION_NOT_FOUND', 'Không tìm thấy lượt nộp bài.')
+    }
+
+    if (studentId && result.data.student_id !== studentId) {
+      throw new AppError(404, 'SUBMISSION_NOT_FOUND', 'Không tìm thấy lượt nộp bài.')
+    }
+
+    return result.data
+  }
+
   async function deleteTemporarySubmission(submissionId) {
     const result = await adminClient
       .from('submissions')
@@ -142,6 +324,78 @@ export function createSubmissionService({ adminClient, storageService, logger = 
   }
 
   return {
+    async listOwnSubmissions(auth, assignmentId) {
+      const { studentId, supabase } = requireStudentContext(auth)
+      await requireStudentAssignmentAccess(supabase, studentId, assignmentId)
+
+      const result = await supabase
+        .from('submissions')
+        .select(STUDENT_SUBMISSION_SELECT)
+        .eq('assignment_id', assignmentId)
+        .eq('student_id', studentId)
+        .order('attempt_number', { ascending: true })
+        .order('submitted_at', { ascending: true })
+        .order('id', { ascending: true })
+
+      throwDatabaseError(result)
+      return (result.data ?? [])
+        .filter((submission) => (
+          submission.assignment_id === assignmentId
+          && submission.student_id === studentId
+        ))
+        .map(projectStudentSubmission)
+    },
+
+    async listAssignmentSubmissions(auth, assignmentId) {
+      const { supabase } = requireTeacherContext(auth)
+      await assignmentService.getAssignment(auth, assignmentId)
+
+      const result = await supabase
+        .from('submissions')
+        .select(TEACHER_SUBMISSION_SELECT)
+        .eq('assignment_id', assignmentId)
+        .order('submitted_at', { ascending: true })
+        .order('student_id', { ascending: true })
+        .order('attempt_number', { ascending: true })
+        .order('id', { ascending: true })
+
+      throwDatabaseError(result)
+      return (result.data ?? [])
+        .filter((submission) => submission.assignment_id === assignmentId)
+        .map(projectTeacherSubmission)
+    },
+
+    async getSubmission(auth, submissionId) {
+      if (auth?.profile?.role === 'STUDENT') {
+        const { studentId, supabase } = requireStudentContext(auth)
+        const submission = await findSubmission(
+          supabase,
+          submissionId,
+          STUDENT_SUBMISSION_SELECT,
+          studentId,
+        )
+        await requireStudentAssignmentAccess(
+          supabase,
+          studentId,
+          submission.assignment_id,
+        )
+        return projectStudentSubmission(submission)
+      }
+
+      if (auth?.profile?.role === 'TEACHER') {
+        const { supabase } = requireTeacherContext(auth)
+        const submission = await findSubmission(
+          supabase,
+          submissionId,
+          TEACHER_SUBMISSION_SELECT,
+        )
+        await assignmentService.getAssignment(auth, submission.assignment_id)
+        return projectTeacherSubmission(submission)
+      }
+
+      throw new AppError(403, 'FORBIDDEN', 'Bạn không có quyền xem lượt nộp bài.')
+    },
+
     async createSubmission(auth, assignmentId, file) {
       const { studentId, supabase } = requireStudentContext(auth)
       let rpcResult

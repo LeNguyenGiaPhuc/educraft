@@ -35,6 +35,7 @@ export function createDependencies(config) {
   })
   const submissionService = createSubmissionService({
     adminClient: gateway.adminClient,
+    assignmentService,
     storageService,
   })
   const submissionController = createSubmissionController({ submissionService })

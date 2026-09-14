@@ -5,3 +5,9 @@ export const submissionParamsSchema = {
     assignmentId: z.uuid('ID bài kiểm tra không hợp lệ.'),
   }),
 }
+
+export const submissionDetailParamsSchema = {
+  params: z.object({
+    submissionId: z.uuid('ID lượt nộp bài không hợp lệ.'),
+  }),
+}

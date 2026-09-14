@@ -43,6 +43,9 @@ function unauthenticated(_request, _response, next) {
 
 function createService(overrides = {}) {
   return {
+    async listOwnSubmissions() { return [createdSubmission] },
+    async listAssignmentSubmissions() { return [createdSubmission] },
+    async getSubmission() { return createdSubmission },
     async createSubmission() { return createdSubmission },
     ...overrides,
   }
@@ -79,6 +82,127 @@ test('student submission endpoint accepts JPEG, PNG, and WebP', async () => {
     assert.equal(response.body.data.student_id, studentId)
     assert.equal(response.body.data.attempt_number, 1)
   }
+})
+
+test('role-specific history endpoints and shared detail endpoint return data', async () => {
+  const studentHistory = await request(buildSubmissionApp())
+    .get(`/api/assignments/${assignmentId}/my-submissions`)
+  const teacherHistory = await request(buildSubmissionApp({
+    authenticate: authenticatedAs('TEACHER'),
+  }))
+    .get(`/api/assignments/${assignmentId}/submissions`)
+  const studentDetail = await request(buildSubmissionApp())
+    .get(`/api/submissions/${createdSubmission.id}`)
+  const teacherDetail = await request(buildSubmissionApp({
+    authenticate: authenticatedAs('TEACHER'),
+  }))
+    .get(`/api/submissions/${createdSubmission.id}`)
+
+  assert.equal(studentHistory.status, 200)
+  assert.equal(studentHistory.body.data[0].id, createdSubmission.id)
+  assert.equal(teacherHistory.status, 200)
+  assert.equal(teacherHistory.body.data[0].id, createdSubmission.id)
+  assert.equal(studentDetail.status, 200)
+  assert.equal(teacherDetail.status, 200)
+})
+
+test('history routes enforce authentication and their specific role', async () => {
+  const unauthenticatedResponse = await request(buildSubmissionApp({ authenticate: unauthenticated }))
+    .get(`/api/assignments/${assignmentId}/my-submissions`)
+  const teacherOnStudentRoute = await request(buildSubmissionApp({
+    authenticate: authenticatedAs('TEACHER'),
+  }))
+    .get(`/api/assignments/${assignmentId}/my-submissions`)
+  const studentOnTeacherRoute = await request(buildSubmissionApp())
+    .get(`/api/assignments/${assignmentId}/submissions`)
+  const unsupportedDetailRole = await request(buildSubmissionApp({
+    authenticate: authenticatedAs('ADMIN'),
+  }))
+    .get(`/api/submissions/${createdSubmission.id}`)
+
+  assert.equal(unauthenticatedResponse.status, 401)
+  assert.equal(unauthenticatedResponse.body.error.code, 'AUTH_REQUIRED')
+  assert.equal(teacherOnStudentRoute.status, 403)
+  assert.equal(studentOnTeacherRoute.status, 403)
+  assert.equal(unsupportedDetailRole.status, 403)
+})
+
+test('history and detail routes validate UUID parameters', async () => {
+  const invalidStudentHistory = await request(buildSubmissionApp())
+    .get('/api/assignments/not-an-id/my-submissions')
+  const invalidTeacherHistory = await request(buildSubmissionApp({
+    authenticate: authenticatedAs('TEACHER'),
+  }))
+    .get('/api/assignments/not-an-id/submissions')
+  const invalidDetail = await request(buildSubmissionApp())
+    .get('/api/submissions/not-an-id')
+
+  assert.equal(invalidStudentHistory.status, 400)
+  assert.equal(invalidStudentHistory.body.error.code, 'VALIDATION_ERROR')
+  assert.equal(invalidTeacherHistory.status, 400)
+  assert.equal(invalidTeacherHistory.body.error.code, 'VALIDATION_ERROR')
+  assert.equal(invalidDetail.status, 400)
+  assert.equal(invalidDetail.body.error.fields.submissionId, 'ID lượt nộp bài không hợp lệ.')
+})
+
+test('read controllers pass only authenticated context and validated IDs', async () => {
+  const calls = []
+  const service = createService({
+    async listOwnSubmissions(...args) {
+      calls.push(['student-list', ...args])
+      return []
+    },
+    async listAssignmentSubmissions(...args) {
+      calls.push(['teacher-list', ...args])
+      return []
+    },
+    async getSubmission(...args) {
+      calls.push(['detail', ...args])
+      return createdSubmission
+    },
+  })
+
+  await request(buildSubmissionApp({ service }))
+    .get(`/api/assignments/${assignmentId}/my-submissions`)
+    .query({ studentId: 'another-student', teacherId: 'another-teacher' })
+  await request(buildSubmissionApp({ service, authenticate: authenticatedAs('TEACHER') }))
+    .get(`/api/assignments/${assignmentId}/submissions`)
+    .query({ student_id: 'another-student', teacherId: 'another-teacher' })
+  await request(buildSubmissionApp({ service }))
+    .get(`/api/submissions/${createdSubmission.id}`)
+    .query({ studentId: 'another-student' })
+
+  assert.deepEqual(calls.map(([name, auth, id]) => ({
+    name,
+    role: auth.profile.role,
+    authenticatedId: auth.profile.id,
+    id,
+  })), [
+    { name: 'student-list', role: 'STUDENT', authenticatedId: studentId, id: assignmentId },
+    { name: 'teacher-list', role: 'TEACHER', authenticatedId: studentId, id: assignmentId },
+    {
+      name: 'detail',
+      role: 'STUDENT',
+      authenticatedId: studentId,
+      id: createdSubmission.id,
+    },
+  ])
+  assert.equal(calls.every((call) => call.length === 3), true)
+})
+
+test('database read failure uses the shared safe error response', async () => {
+  const response = await request(buildSubmissionApp({
+    service: createService({
+      async listOwnSubmissions() { throw new Error('private Supabase detail') },
+    }),
+  }))
+    .get(`/api/assignments/${assignmentId}/my-submissions`)
+
+  assert.equal(response.status, 500)
+  assert.deepEqual(response.body.error, {
+    code: 'INTERNAL_ERROR',
+    message: 'Hệ thống đang gặp lỗi.',
+  })
 })
 
 test('submission endpoint rejects unauthenticated and TEACHER requests', async () => {
