@@ -44,8 +44,8 @@ test('respects an explicitly closed assignment even before its deadline', () => 
   assert.equal(getAssignmentAvailability({ dueAt, statusTone: 'closed' }, deadline - 1).isOpen, false)
 })
 
-test('normalizes teacher datetime-local values to the school timezone', () => {
-  assert.equal(toCanonicalDeadline('2026-09-18T23:59'), '2026-09-18T23:59+07:00')
+test('normalizes teacher datetime-local values to an API-compatible RFC 3339 deadline', () => {
+  assert.equal(toCanonicalDeadline('2026-09-18T23:59'), '2026-09-18T23:59:00+07:00')
   assert.equal(toCanonicalDeadline(dueAt), dueAt)
   assert.equal(toCanonicalDeadline('2026-02-30T23:59'), null)
   assert.equal(toCanonicalDeadline('18/09/2026, 23:59'), null)
@@ -66,7 +66,7 @@ test('fixtures and newly stored assignments expose canonical deadlines without c
     classId: '10A1', title: 'New note', dueAt: '2026-09-18T23:59', threshold: '80',
   }, storage)
   assert.equal(assignment.dueDate, '18/09/2026, 23:59')
-  assert.equal(assignment.dueAt, '2026-09-18T23:59+07:00')
+  assert.equal(assignment.dueAt, '2026-09-18T23:59:00+07:00')
   assert.equal(JSON.parse(storage.getItem('educraft.assignments'))[0].dueAt, assignment.dueAt)
   assert.equal(getStoredAssignments('10A1', storage)[0].dueAt, assignment.dueAt)
 })
@@ -83,7 +83,7 @@ test('normalizes only known legacy display dates without rewriting storage or ov
   storage.setItem('educraft.assignments', JSON.stringify(records))
   const assignments = getStoredAssignments('10A1', storage)
   assert.deepEqual(assignments.map((assignment) => assignment.dueAt), [
-    '2026-09-18T23:59+07:00', null, null, dueAt, null,
+    '2026-09-18T23:59:00+07:00', null, null, dueAt, null,
   ])
   assert.equal(storage.getItem('educraft.assignments'), JSON.stringify(records))
 })

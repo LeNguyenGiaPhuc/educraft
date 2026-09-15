@@ -22,7 +22,7 @@ function parseCanonicalDeadline(value) {
 export function toCanonicalDeadline(value) {
   const input = String(value ?? '').trim()
   const canonical = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(input)
-    ? `${input}+07:00`
+    ? `${input}:00+07:00`
     : input
 
   return Number.isFinite(parseCanonicalDeadline(canonical)) ? canonical : null

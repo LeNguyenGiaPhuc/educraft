@@ -1,4 +1,4 @@
--- The backend uses the Supabase service_role for server-side database writes.
+  -- The backend uses the Supabase service_role for server-side database writes.
 -- RLS bypass does not replace SQL table privileges, so grant the backend the
 -- permissions it needs explicitly. The service_role key must never be exposed
 -- to the frontend.
