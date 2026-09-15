@@ -1,20 +1,15 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import { getDashboardSnapshot } from '../data/mockDashboard.js'
+import { teacherClassService } from '../services/teacherClassService.js'
 
-function requestedDashboardState() {
-  if (typeof window === 'undefined') {
-    return 'success'
-  }
+function DashboardHeading({ currentUser }) {
+  const name = currentUser?.name || 'giáo viên'
 
-  return new URLSearchParams(window.location.search).get('state') ?? 'success'
-}
-
-function DashboardHeading() {
   return (
     <div className="dashboard-heading">
       <div>
-        <h1>Chào buổi tối, thầy Phúc</h1>
+        <h1>Xin chào, {name}</h1>
         <p>Theo dõi các lớp được phân công và quản lý bài kiểm tra bài ghi tại một nơi.</p>
       </div>
       <div className="dashboard-actions">
@@ -26,7 +21,7 @@ function DashboardHeading() {
   )
 }
 
-function DashboardState({ snapshot }) {
+function DashboardState({ snapshot, onRetry }) {
   if (snapshot.status === 'loading') {
     return (
       <section className="class-section" aria-live="polite" aria-busy="true">
@@ -52,9 +47,7 @@ function DashboardState({ snapshot }) {
         <button
           className="button button-outline"
           type="button"
-          onClick={() => {
-            window.location.href = '/'
-          }}
+          onClick={onRetry}
         >
           Thử lại
         </button>
@@ -76,22 +69,25 @@ function DashboardState({ snapshot }) {
     <section className="class-section">
       <div className="section-heading">
         <h2>Lớp học được phân công</h2>
-        <span>Học kỳ 1 · 2026–2027</span>
+        <span>
+          {snapshot.data[0]?.semester || 'Các lớp đang phụ trách'}
+          {snapshot.data[0]?.schoolYear ? ` · ${snapshot.data[0].schoolYear}` : ''}
+        </span>
       </div>
 
       <div className="class-grid">
-        {snapshot.data.map((classroom) => (
+        {snapshot.data.map((classroom, index) => (
           <Link
-            className={`class-card class-card-accent-${classroom.accent}`}
+            className={`class-card class-card-accent-${classroom.accent ?? ['blue', 'green', 'orange', 'purple'][index % 4]}`}
             key={classroom.id}
             to={`/classes/${classroom.id}`}
           >
             <div className="class-card-body">
               <div className="class-card-meta">
-                <span className="class-code">{classroom.id}</span>
+                <span className="class-code">{classroom.code || classroom.id}</span>
                 <span className="class-status">
                   <span aria-hidden="true" />
-                  Đang hoạt động
+                  {classroom.status === 'ACTIVE' ? 'Đang hoạt động' : 'Không hoạt động'}
                 </span>
               </div>
               <h3>{classroom.name}</h3>
@@ -111,13 +107,49 @@ function DashboardState({ snapshot }) {
 }
 
 function DashboardPage({ currentUser }) {
-  const snapshot = getDashboardSnapshot(requestedDashboardState(), undefined, currentUser)
+  const [snapshot, setSnapshot] = useState({ status: 'loading', data: [] })
+
+  async function loadClasses() {
+    try {
+      const data = await teacherClassService.listClasses()
+      setSnapshot({ status: 'success', data })
+    } catch (error) {
+      setSnapshot({
+        status: 'error',
+        data: [],
+        message: error?.message ?? 'Không thể tải danh sách lớp.',
+      })
+    }
+  }
+
+  useEffect(() => {
+    let isMounted = true
+
+    teacherClassService
+      .listClasses()
+      .then((data) => {
+        if (isMounted) {
+          setSnapshot({ status: 'success', data })
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setSnapshot({
+            status: 'error',
+            data: [],
+            message: error?.message ?? 'Không thể tải danh sách lớp.',
+          })
+        }
+      })
+
+    return () => { isMounted = false }
+  }, [])
 
   return (
     <main className="page-content">
       <div className="page-container">
-        <DashboardHeading />
-        <DashboardState snapshot={snapshot} />
+        <DashboardHeading currentUser={currentUser} />
+        <DashboardState onRetry={loadClasses} snapshot={snapshot} />
       </div>
     </main>
   )

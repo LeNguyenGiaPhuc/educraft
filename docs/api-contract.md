@@ -221,6 +221,30 @@ Content-Type: application/json
 
 The server normalizes `studentNumber`, `name`, and `email` before validation. The import request is validated as a whole and only commits after the validator confirms no duplicate email or `student_number` in the file. Existing student accounts are reused only when the normalized name also matches; an existing membership is skipped and reported in `skipped`. Request validation errors return `400 VALIDATION_ERROR`. New Auth users are created before a single database RPC inserts all new profiles and memberships in one transaction; if the RPC fails, every Auth user created for this request is removed.
 
+## Teacher classes
+
+Teacher class routes require an authenticated `TEACHER` whose profile is
+`ACTIVE`. The server returns only classes currently assigned to that Teacher.
+
+### List assigned classes
+
+```http
+GET /api/teacher/classes
+```
+
+Each class includes `id`, `code`, `subject`, `semester`, `school_year`,
+`status`, `student_count`, and `assignment_count`.
+
+### Read an assigned class and roster
+
+```http
+GET /api/teacher/classes/:classId
+```
+
+The response contains the class fields above and a `students` array. Each
+student includes the linked profile fields and the per-class
+`student_number`. An unassigned Teacher receives `404 CLASS_NOT_FOUND`.
+
 ## Assignment CRUD
 
 All assignment CRUD routes require an authenticated `TEACHER`. The Teacher may

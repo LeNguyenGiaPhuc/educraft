@@ -1,24 +1,58 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import PageErrorState from '../components/PageErrorState.jsx'
-import { getClassDetailSnapshot } from '../data/mockClassDetail.js'
-import { getTeacherClassesForUser } from '../data/mockClassStore.js'
-import {
-  getAssignmentClassOptions,
-  getDefaultAssignmentForm,
-  submitAssignmentDraft,
-  validateAssignmentForm,
-} from '../data/mockCreateAssignment.js'
+import { toCanonicalDeadline } from '../data/assignmentDeadline.js'
+import { assignmentService } from '../services/assignmentService.js'
+import { teacherClassService } from '../services/teacherClassService.js'
 
-function requestedSubmissionState() {
-  if (typeof window === 'undefined') {
-    return 'success'
+function getDefaultAssignmentForm(classId, classrooms) {
+  const selectedClass = classrooms.some((classroom) => classroom.id === classId)
+  return {
+    title: '',
+    classId: selectedClass ? classId : (classrooms[0]?.id ?? ''),
+    dueAt: '',
+    threshold: '80',
+  }
+}
+
+function getAssignmentClassOptions(classrooms) {
+  return classrooms.map((classroom) => ({
+    id: classroom.id,
+    label: `${classroom.name} (${classroom.studentCount} học sinh)`,
+  }))
+}
+
+function validateAssignmentForm(form = {}, classrooms) {
+  const errors = {}
+  const title = String(form.title ?? '').trim()
+  const classId = String(form.classId ?? '').trim()
+  const dueAt = String(form.dueAt ?? '').trim()
+  const threshold = String(form.threshold ?? '').trim()
+
+  if (!title) {
+    errors.title = 'Nhập tên bài kiểm tra.'
+  } else if (title.length > 120) {
+    errors.title = 'Tên bài kiểm tra không vượt quá 120 ký tự.'
   }
 
-  return new URLSearchParams(window.location.search).get('state') === 'error'
-    ? 'error'
-    : 'success'
+  if (!classrooms.some((classroom) => classroom.id === classId)) {
+    errors.classId = 'Chọn lớp học.'
+  }
+
+  if (!dueAt) {
+    errors.dueAt = 'Chọn hạn nộp.'
+  } else if (!toCanonicalDeadline(dueAt)) {
+    errors.dueAt = 'Hạn nộp không hợp lệ.'
+  }
+
+  if (!threshold) {
+    errors.threshold = 'Nhập ngưỡng đạt.'
+  } else if (!Number.isFinite(Number(threshold)) || Number(threshold) < 0 || Number(threshold) > 100) {
+    errors.threshold = 'Ngưỡng đạt phải từ 0 đến 100%.'
+  }
+
+  return errors
 }
 
 function fieldDescribedBy(errorId, helpId, hasError) {
@@ -80,10 +114,10 @@ function AssignmentSuccess({ classroom, onCreateAnother, submission }) {
   )
 }
 
-function CreateAssignmentForm({ classroom, currentUser, form, errors, submission, onChange, onSubmit }) {
+function CreateAssignmentForm({ classroom, classrooms, form, errors, submission, onChange, onSubmit }) {
   const isSubmitting = submission.status === 'loading'
   const hasValidationErrors = Object.keys(errors).length > 0
-  const options = getAssignmentClassOptions(undefined, currentUser)
+  const options = getAssignmentClassOptions(classrooms)
 
   return (
     <section className="assignment-form-card" aria-labelledby="assignment-form-title">
@@ -216,8 +250,8 @@ function CreateAssignmentForm({ classroom, currentUser, form, errors, submission
   )
 }
 
-function CreateAssignmentWorkspace({ classId, classroom, currentUser }) {
-  const [form, setForm] = useState(() => getDefaultAssignmentForm(classId, undefined, currentUser))
+function CreateAssignmentWorkspace({ classId, classroom, classrooms }) {
+  const [form, setForm] = useState(() => getDefaultAssignmentForm(classId, classrooms))
   const [errors, setErrors] = useState({})
   const [submission, setSubmission] = useState({ status: 'idle' })
 
@@ -240,7 +274,7 @@ function CreateAssignmentWorkspace({ classId, classroom, currentUser }) {
   async function handleSubmit(event) {
     event.preventDefault()
 
-    const nextErrors = validateAssignmentForm(form, undefined, currentUser)
+    const nextErrors = validateAssignmentForm(form, classrooms)
     setErrors(nextErrors)
 
     if (Object.keys(nextErrors).length > 0) {
@@ -251,35 +285,35 @@ function CreateAssignmentWorkspace({ classId, classroom, currentUser }) {
     setSubmission({ status: 'loading' })
 
     try {
-      const result = await submitAssignmentDraft(form, requestedSubmissionState(), 650)
-      setSubmission(result)
-    } catch {
+      const result = await assignmentService.createAssignment(form.classId, {
+        title: form.title.trim(),
+        due_at: toCanonicalDeadline(form.dueAt),
+        coverage_threshold: Number(form.threshold),
+        status: 'OPEN',
+      })
+      setSubmission({
+        status: 'success',
+        data: {
+          ...result,
+          classId: result.class_id ?? form.classId,
+        },
+      })
+    } catch (error) {
       setSubmission({
         status: 'error',
-        message: 'Không thể tạo bài kiểm tra lúc này. Vui lòng thử lại.',
+        message: error?.message ?? 'Không thể tạo bài kiểm tra lúc này. Vui lòng thử lại.',
       })
     }
   }
 
   function handleCreateAnother() {
-    setForm(getDefaultAssignmentForm(form.classId, undefined, currentUser))
+    setForm(getDefaultAssignmentForm(form.classId, classrooms))
     setErrors({})
     setSubmission({ status: 'idle' })
   }
 
-  const selectedClassroomSnapshot = getClassDetailSnapshot(form.classId, undefined, currentUser)
-  const selectedClassroom =
-    selectedClassroomSnapshot.status === 'success'
-      ? selectedClassroomSnapshot.data
-      : classroom
-  const successClassroomSnapshot =
-    submission.status === 'success'
-      ? getClassDetailSnapshot(submission.data.classId, undefined, currentUser)
-      : null
-  const successClassroom =
-    successClassroomSnapshot?.status === 'success'
-      ? successClassroomSnapshot.data
-      : classroom
+  const selectedClassroom = classrooms.find((item) => item.id === form.classId) ?? classroom
+  const successClassroom = classrooms.find((item) => item.id === submission.data?.classId) ?? classroom
 
   return (
     <>
@@ -294,7 +328,7 @@ function CreateAssignmentWorkspace({ classId, classroom, currentUser }) {
       ) : (
         <CreateAssignmentForm
           classroom={selectedClassroom}
-          currentUser={currentUser}
+          classrooms={classrooms}
           errors={errors}
           form={form}
           onChange={handleChange}
@@ -306,19 +340,60 @@ function CreateAssignmentWorkspace({ classId, classroom, currentUser }) {
   )
 }
 
-function CreateAssignmentPage({ currentUser }) {
+function CreateAssignmentPage() {
   const { classId: routeClassId } = useParams()
-  const initialClassId = routeClassId ?? getTeacherClassesForUser(currentUser)[0]?.id
-  const snapshot = initialClassId
-    ? getClassDetailSnapshot(initialClassId)
-    : {
-        status: 'error',
-        message: 'Chưa có lớp học để tạo bài kiểm tra.',
-      }
+  const [snapshot, setSnapshot] = useState({ status: 'loading', classrooms: [] })
+
+  useEffect(() => {
+    let isMounted = true
+
+    teacherClassService
+      .listClasses()
+      .then((classrooms) => {
+        if (isMounted) {
+          setSnapshot({ status: 'success', classrooms })
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setSnapshot({
+            status: 'error',
+            classrooms: [],
+            message: error?.message ?? 'Không thể tải danh sách lớp.',
+          })
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  if (snapshot.status === 'loading') {
+    return (
+      <main className="page-content assignment-page">
+        <div className="page-container">
+          <section className="state-panel" aria-live="polite" aria-busy="true">
+            <p className="state-kicker">Tạo bài kiểm tra</p>
+            <h1>Đang tải lớp học...</h1>
+          </section>
+        </div>
+      </main>
+    )
+  }
 
   if (snapshot.status === 'error') {
     return <CreateAssignmentError message={snapshot.message} />
   }
+
+  if (snapshot.classrooms.length === 0) {
+    return <CreateAssignmentError message="Chưa có lớp học để tạo bài kiểm tra." />
+  }
+
+  const initialClassId = snapshot.classrooms.some((classroom) => classroom.id === routeClassId)
+    ? routeClassId
+    : snapshot.classrooms[0].id
+  const initialClassroom = snapshot.classrooms.find((classroom) => classroom.id === initialClassId)
 
   return (
     <main className="page-content assignment-page">
@@ -326,8 +401,8 @@ function CreateAssignmentPage({ currentUser }) {
         <CreateAssignmentWorkspace
           key={initialClassId ?? 'no-class'}
           classId={initialClassId}
-          classroom={snapshot.data}
-          currentUser={currentUser}
+          classroom={initialClassroom}
+          classrooms={snapshot.classrooms}
         />
       </div>
     </main>

@@ -12,6 +12,9 @@ import { createAssignmentService } from './modules/assignments/assignmentService
 import { createClassController } from './modules/classes/classController.js'
 import { createClassRouter } from './modules/classes/classRoutes.js'
 import { createClassService } from './modules/classes/classService.js'
+import { createTeacherClassController } from './modules/classes/teacherClassController.js'
+import { createTeacherClassRouter } from './modules/classes/teacherClassRoutes.js'
+import { createTeacherClassService } from './modules/classes/teacherClassService.js'
 import { createReferenceController } from './modules/assignments/referenceController.js'
 import { createReferenceRouter } from './modules/assignments/referenceRoutes.js'
 import { createReferenceService } from './modules/assignments/referenceService.js'
@@ -43,6 +46,15 @@ export function createDependencies(config) {
   const classController = createClassController({ classService })
   const classRouter = createClassRouter({
     controller: classController,
+    authenticate,
+  })
+
+  const teacherClassService = createTeacherClassService()
+  const teacherClassController = createTeacherClassController({
+    classService: teacherClassService,
+  })
+  const teacherClassRouter = createTeacherClassRouter({
+    controller: teacherClassController,
     authenticate,
   })
 
@@ -106,5 +118,6 @@ export function createDependencies(config) {
     referenceRouter,
     studentRouter,
     submissionRouter,
+    teacherClassRouter,
   }
 }
