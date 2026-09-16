@@ -1,48 +1,34 @@
-# educraft
-Web-based educational platform for teachers to create assignments and students to submit their note.
+# EduCraft
 
-## Chức năng hiện tại
+EduCraft là nền tảng web hỗ trợ giáo viên giao bài ghi, nhận bài nộp của học sinh và chốt kết quả sau khi xem AI phân tích. Dự án gồm frontend React/Vite, backend Express và PostgreSQL/Supabase.
 
-- Xem danh sách lớp học.
-- Xem chi tiết lớp và học sinh.
-- Admin import danh sách học sinh từ file Excel theo mẫu `STT`, `Họ và tên`, `Email`.
-- Tự tạo tài khoản học sinh mock ở trạng thái chờ kích hoạt và thêm vào lớp; email/mật khẩu thật sẽ tích hợp sau.
-- Tạo, chỉnh sửa và xóa lớp học/môn học bằng dữ liệu mock.
-- Admin phân công tối đa một giáo viên đang hoạt động cho mỗi lớp; giáo viên chỉ thấy lớp được giao.
-- Import Excel có preview, kiểm tra toàn bộ dòng và lưu STT theo từng quan hệ học sinh-lớp.
-- Tạo bài kiểm tra có validation.
-- Xem chi tiết bài kiểm tra, lưu bài mẫu giáo viên và chốt bài nộp mock.
-- Hiển thị loading, empty, success và error state.
-- Responsive trên desktop và mobile.
-- API contract mẫu được lưu tại [`docs/api-contract.md`](docs/api-contract.md).
+## Trạng thái hiện tại
 
-Giao diện Admin, giáo viên và học sinh hiện vẫn dùng mock data cho các module
-chưa nối API. Backend đã có foundation Express, Supabase gateway và Auth API;
-email kích hoạt, lưu trữ thật và các module nghiệp vụ sẽ tích hợp tiếp theo.
+Các luồng chính đã kết nối frontend với backend:
 
-## Công nghệ
+- Đăng nhập, làm mới phiên và phân quyền ADMIN, TEACHER, STUDENT.
+- Admin quản lý tài khoản, đặt mật khẩu, khóa/mở khóa tài khoản và xóa khi đủ điều kiện.
+- Admin quản lý lớp, phân công giáo viên, thêm/xóa học sinh và import danh sách Excel.
+- Teacher xem lớp được phân công, tạo/chỉnh sửa/xóa bài kiểm tra và quản lý nhiều bài mẫu.
+- Teacher xem bài nộp theo học sinh và số lần nộp, gọi đánh giá AI, nhập nhận xét và chốt kết quả.
+- Student xem lớp/bài kiểm tra được phép truy cập, nộp ảnh JPG/JPEG/PNG, xem lịch sử nộp và kết quả đã chốt.
+- File bài mẫu và bài nộp được lưu qua Supabase Storage với signed URL.
 
-- React
-- React Router
-- Vite
-- CSS
+AI evaluator hiện là evaluator mô phỏng deterministic để phục vụ prototype. Việc kết nối mô hình AI thật và gửi email tự động là phần mở rộng sau MVP.
 
-## Chạy project
+## Công nghệ và cấu trúc
 
-Yêu cầu Node.js 20.19 trở lên.
+- `frontend/`: React, React Router, Vite, CSS.
+- `backend/`: Express, Zod, Supabase JS.
+- `supabase/migrations/`: schema, quyền truy cập, function và policy của database/storage.
+- `supabase/tests/`: các truy vấn kiểm tra schema, RLS và storage policy.
+- `docs/api-contract.md`: hợp đồng endpoint giữa frontend và backend.
+- `docs/frontend-workflow.md`: workflow và tiêu chí phân quyền của giao diện.
 
-```bash
-git clone https://github.com/LeNguyenGiaPhuc/educraft.git
-cd educraft/frontend
-npm ci
-npm run dev
-```
+## Yêu cầu
 
-Mở địa chỉ được hiển thị trong terminal, thường là:
-
-```text
-http://localhost:5173
-```
+- Node.js 20.19 trở lên.
+- Một project Supabase đã áp dụng các migration trong `supabase/migrations/`.
 
 ## Chạy backend
 
@@ -53,34 +39,61 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-Điền Supabase URL, anon key và service role key vào `.env`. Không commit file
-này. API mặc định chạy tại `http://localhost:3000`; kiểm tra bằng
-`GET http://localhost:3000/api/health`.
+Điền các biến sau vào `backend/.env`:
+
+```text
+NODE_ENV=development
+PORT=3000
+FRONTEND_ORIGIN=http://localhost:5173
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+Kiểm tra backend tại `GET http://localhost:3000/api/health`.
+
+## Chạy frontend
 
 ```powershell
-npm test
-npm run lint
+cd frontend
+npm ci
+Copy-Item .env.example .env
+npm run dev
 ```
+
+Frontend dùng `http://localhost:3000` làm API mặc định. Có thể đổi bằng:
+
+```text
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+Mở địa chỉ Vite hiển thị trong terminal, thường là `http://localhost:5173`.
+
+## Database và Storage
+
+Áp dụng migration theo thứ tự tên file trong `supabase/migrations/`. Có thể chạy bằng Supabase CLI hoặc dán từng migration vào SQL Editor của project nhóm. Sau đó chạy các file kiểm tra trong `supabase/tests/` để xác nhận schema, RLS và storage policy.
+
+Không commit `backend/.env`, service-role key hoặc các thông tin bí mật khác.
 
 ## Kiểm tra code
 
-```bash
+Chạy test và lint riêng cho từng phần:
+
+```powershell
+cd backend
+npm test
+npm run lint
+
+cd ..\frontend
 npm test
 npm run lint
 npm run build
 ```
 
-Dữ liệu prototype được lưu tạm trong `localStorage` với các key
-`educraft.classes`, `educraft.users`, `educraft.classMemberships`,
-`educraft.students`, `educraft.assignments`, `educraft.references` và
-`educraft.submissions`. Danh sách tài khoản trong
-`educraft.users` là nguồn chính cho roster được Admin import; `educraft.students`
-chỉ được giữ để tương thích với các fixture cũ.
-Các module nghiệp vụ chưa nối backend sẽ tiếp tục dùng mock data trong giai
-đoạn chuyển đổi.
+Trạng thái kiểm tra gần nhất trên `main`:
 
-Luồng và tiêu chí phân quyền được chốt tại [`docs/frontend-workflow.md`](docs/frontend-workflow.md).
-Mock API để chuyển sang backend được ghi tại [`docs/api-contract.md`](docs/api-contract.md).
+- Backend: `202/202` test đạt.
+- Frontend: `191/191` test đạt.
+- Backend lint, frontend lint và frontend build đều đạt.
 
-Kiểm tra tự động gần nhất (14/09/2026): `npm test` có 139/139 test đạt,
-`npm run lint` và `npm run build` đều hoàn tất thành công.
+Trước khi bàn giao, vẫn cần chạy smoke test trên Supabase thật cho ba vai trò, upload file thật và các trường hợp bị từ chối quyền truy cập.

@@ -1,4 +1,4 @@
-// The mock school uses UTC+07:00, including the teacher's datetime-local input.
+// The school uses UTC+07:00, including the teacher's datetime-local input.
 const studentDeadlineFormatter = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',
   timeStyle: 'short',

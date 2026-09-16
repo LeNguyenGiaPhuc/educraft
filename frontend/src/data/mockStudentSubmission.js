@@ -1,6 +1,6 @@
 import { getAssignmentAvailability } from './assignmentDeadline.js'
 import { getStudentAssignmentSnapshot } from './mockStudentAccess.js'
-import { validateSubmissionForm } from './mockSubmission.js'
+import { validateSubmissionForm } from './submissionValidation.js'
 import {
   createStoredSubmission,
   getStoredSubmissions,

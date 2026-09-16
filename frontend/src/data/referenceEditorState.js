@@ -6,6 +6,7 @@ export function createReferenceEditorState() {
     error: '',
     status: 'idle',
     message: '',
+    notice: null,
   }
 }
 
@@ -34,8 +35,15 @@ export function referenceEditorReducer(_state, action) {
     case 'REQUEST_ERROR':
       return { ..._state, status: 'error', message: action.message }
     case 'CLOSE':
-    case 'REQUEST_SUCCESS':
       return createReferenceEditorState()
+    case 'REQUEST_SUCCESS':
+      return {
+        ...createReferenceEditorState(),
+        notice: {
+          status: 'success',
+          message: action.message,
+        },
+      }
     default:
       return _state
   }

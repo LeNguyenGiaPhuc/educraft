@@ -221,7 +221,10 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
       } else {
         await referenceService.uploadReference(assignment.id, editor.file, editor.file.name)
       }
-      dispatchEditor({ type: 'REQUEST_SUCCESS' })
+      dispatchEditor({
+        type: 'REQUEST_SUCCESS',
+        message: editor.mode === 'replace' ? 'Đã thay bài mẫu.' : 'Đã thêm bài mẫu.',
+      })
       onChanged()
     } catch (requestError) {
       dispatchEditor({
@@ -264,6 +267,11 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
       <p className="assignment-detail-card-description">
         Upload ảnh bài ghi mẫu để làm tài liệu tham chiếu khi AI phân tích và giáo viên chấm duyệt.
       </p>
+
+      <ReferenceFeedback
+        state={editor.notice ?? { status: 'idle' }}
+        successMessage={editor.notice?.message ?? ''}
+      />
 
       {references.length === 0 ? (
         <div className="reference-empty">Chưa có bài mẫu cho bài kiểm tra này.</div>

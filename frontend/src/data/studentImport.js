@@ -1,4 +1,4 @@
-import { validateStudentRows } from './mockStudentStore.js'
+import { validateStudentRows } from './studentValidation.js'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -52,7 +52,7 @@ export function parseStudentRows(rows = []) {
   }
 
   // The roster import uses STT, Họ và tên and Email. Keep the old
-  // Mã học sinh format readable for existing teacher mock fixtures.
+  // Mã học sinh format for older files.
   if (numberColumn !== -1) {
     if (emailColumn === -1) {
       headerErrors.push({ rowNumber: 1, message: 'File phải có cột Email.' })

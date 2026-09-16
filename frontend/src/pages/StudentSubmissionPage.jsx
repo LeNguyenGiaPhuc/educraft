@@ -6,7 +6,7 @@ import { formatAssignmentDeadline, getAssignmentAvailability } from '../data/ass
 import {
   getFinalReviewStatusLabel,
   validateSubmissionForm,
-} from '../data/mockSubmission.js'
+} from '../data/submissionValidation.js'
 import { submissionService } from '../services/submissionService.js'
 import { mapStudentSubmission, mapStudentSubmissions } from '../services/studentSubmissionAdapter.js'
 

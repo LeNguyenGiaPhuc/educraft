@@ -36,13 +36,22 @@ test('opening add creates one editor and cancel clears its selected file', () =>
   assert.deepEqual(cancelled, createReferenceEditorState())
 })
 
-test('successful add or replacement collapses the editor and clears request state', () => {
+test('successful add or replacement collapses the editor and keeps a success notice', () => {
   const loading = referenceEditorReducer(
     referenceEditorReducer(createReferenceEditorState(), { type: 'OPEN_ADD' }),
     { type: 'REQUEST_START' },
   )
-  const completed = referenceEditorReducer(loading, { type: 'REQUEST_SUCCESS' })
+  const completed = referenceEditorReducer(loading, {
+    type: 'REQUEST_SUCCESS',
+    message: 'Đã thêm bài mẫu.',
+  })
 
   assert.equal(loading.status, 'loading')
-  assert.deepEqual(completed, createReferenceEditorState())
+  assert.deepEqual(completed, {
+    ...createReferenceEditorState(),
+    notice: {
+      status: 'success',
+      message: 'Đã thêm bài mẫu.',
+    },
+  })
 })
