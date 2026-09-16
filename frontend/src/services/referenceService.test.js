@@ -8,9 +8,9 @@ function fakeApi() {
   const api = {}
 
   for (const method of ['get', 'upload', 'delete']) {
-    api[method] = async (path, body) => {
-      calls.push({ method, path, body })
-      return { method, path, body }
+    api[method] = async (path, body, options) => {
+      calls.push({ method, path, body, options })
+      return { method, path, body, options }
     }
   }
 
@@ -46,5 +46,87 @@ test('lists, uploads, replaces, and deletes assignment references', async () => 
     method: 'delete',
     path: '/api/assignments/assignment-1/references/reference-1',
     body: undefined,
+    options: undefined,
   })
+})
+
+test('adding a reference uses POST semantics without changing existing references', async () => {
+  const existing = Object.freeze([
+    Object.freeze({ id: 'reference-a', original_filename: 'a.png' }),
+    Object.freeze({ id: 'reference-b', original_filename: 'b.png' }),
+  ])
+  const before = structuredClone(existing)
+  const { api, calls } = fakeApi()
+  const references = createReferenceService({ api })
+  const file = new Blob(['new'], { type: 'image/webp' })
+
+  await references.uploadReference('assignment-1', file, 'new.webp')
+
+  assert.equal(calls[0].path, '/api/assignments/assignment-1/references')
+  assert.equal(calls[0].options, undefined)
+  assertFileFormData(calls[0], 'new.webp')
+  assert.deepEqual(existing, before)
+})
+
+test('replacing one reference sends its ID and leaves another reference unchanged', async () => {
+  const existing = Object.freeze([
+    Object.freeze({ id: 'reference-a', original_filename: 'a.png' }),
+    Object.freeze({ id: 'reference-b', original_filename: 'b.png' }),
+  ])
+  const before = structuredClone(existing)
+  const { api, calls } = fakeApi()
+  const references = createReferenceService({ api })
+  const file = new Blob(['replacement'], { type: 'image/png' })
+
+  await references.replaceReference('assignment-1', 'reference-b', file, 'b-new.png')
+
+  assert.equal(
+    calls[0].path,
+    '/api/assignments/assignment-1/references/reference-b',
+  )
+  assert.deepEqual(calls[0].options, { method: 'PUT' })
+  assertFileFormData(calls[0], 'b-new.png')
+  assert.deepEqual(existing, before)
+})
+
+test('deleting one reference sends its ID and leaves another reference unchanged', async () => {
+  const existing = Object.freeze([
+    Object.freeze({ id: 'reference-a', original_filename: 'a.png' }),
+    Object.freeze({ id: 'reference-b', original_filename: 'b.png' }),
+  ])
+  const before = structuredClone(existing)
+  const { api, calls } = fakeApi()
+  const references = createReferenceService({ api })
+
+  await references.deleteReference('assignment-1', 'reference-b')
+
+  assert.equal(
+    calls[0].path,
+    '/api/assignments/assignment-1/references/reference-b',
+  )
+  assert.deepEqual(existing, before)
+})
+
+test('failed reference operation rejects without changing existing reference data', async () => {
+  const existing = Object.freeze([
+    Object.freeze({ id: 'reference-a', original_filename: 'a.png' }),
+  ])
+  const before = structuredClone(existing)
+  const references = createReferenceService({
+    api: {
+      async upload() {
+        throw new Error('Không thể thêm bài mẫu.')
+      },
+    },
+  })
+
+  await assert.rejects(
+    references.uploadReference(
+      'assignment-1',
+      new Blob(['new'], { type: 'image/png' }),
+      'new.png',
+    ),
+    /Không thể thêm bài mẫu/,
+  )
+  assert.deepEqual(existing, before)
 })

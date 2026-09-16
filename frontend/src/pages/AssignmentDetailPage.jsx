@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 
 import {
@@ -11,6 +11,10 @@ import {
   mapTeacherSubmission,
   selectTeacherSubmission,
 } from '../data/teacherSubmissionView.js'
+import {
+  createReferenceEditorState,
+  referenceEditorReducer,
+} from '../data/referenceEditorState.js'
 import PageErrorState from '../components/PageErrorState.jsx'
 import { aiEvaluationService } from '../services/aiEvaluationService.js'
 import { assignmentService } from '../services/assignmentService.js'
@@ -18,7 +22,7 @@ import { referenceService } from '../services/referenceService.js'
 import { submissionService } from '../services/submissionService.js'
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
-const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png']
+const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const submissionDateFormatter = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',
   timeStyle: 'short',
@@ -113,59 +117,135 @@ function AssignmentDetailError({ message }) {
 
 function validateReferenceFile(file) {
   if (!file) return 'Chọn bài mẫu của giáo viên để tải lên.'
-  if (!ACCEPTED_FILE_TYPES.includes(file.type)) return 'Chỉ nhận file JPG, JPEG hoặc PNG cho bài mẫu.'
+  if (!ACCEPTED_FILE_TYPES.includes(file.type)) return 'Chỉ nhận file JPG, JPEG, PNG hoặc WebP cho bài mẫu.'
   if (!Number.isFinite(file.size) || file.size <= 0) return 'File bài mẫu không hợp lệ.'
   if (file.size > MAX_FILE_SIZE_BYTES) return 'Kích thước bài mẫu không được vượt quá 5 MB.'
   return ''
 }
 
-function ReferenceCard({ assignment, reference, onChanged }) {
-  const [file, setFile] = useState(null)
-  const [error, setError] = useState('')
-  const [state, setState] = useState({ status: 'idle' })
+export function ReferenceFeedback({ state, successMessage }) {
+  if (state.status === 'error') {
+    return <div className="form-submit-message form-submit-error" role="alert">{state.message}</div>
+  }
+  if (state.status === 'success') {
+    return <div className="form-submit-message form-submit-success" role="status">{successMessage}</div>
+  }
+  return null
+}
+
+export function ReferenceEditor({ editor, onCancel, onFileChange, onSubmit }) {
+  const inputId = editor.mode === 'add'
+    ? 'reference-file-add'
+    : `reference-file-${editor.referenceId}`
+  const helpId = `${inputId}-help`
+  const errorId = `${inputId}-error`
+  const isAdd = editor.mode === 'add'
+
+  return (
+    <form className="reference-form reference-inline-form" noValidate onSubmit={onSubmit}>
+      <div className="form-field">
+        <label htmlFor={inputId}>
+          {isAdd ? 'Chọn bài mẫu mới' : 'Chọn file thay thế'} <span aria-hidden="true">*</span>
+        </label>
+        <input
+          accept="image/png,image/jpeg,image/webp"
+          aria-describedby={editor.error ? `${helpId} ${errorId}` : helpId}
+          aria-invalid={Boolean(editor.error)}
+          id={inputId}
+          onChange={onFileChange}
+          type="file"
+        />
+        <p className="form-field-help" id={helpId}>JPG, JPEG, PNG hoặc WebP, tối đa 5 MB.</p>
+        {editor.file && <p className="form-field-help">Đã chọn: {editor.file.name}</p>}
+        <FieldError id={errorId} message={editor.error} />
+      </div>
+
+      <ReferenceFeedback
+        state={editor}
+        successMessage={isAdd ? 'Đã thêm bài mẫu.' : 'Đã thay bài mẫu.'}
+      />
+
+      <div className="assignment-form-actions">
+        <button
+          className="button button-outline"
+          disabled={editor.status === 'loading'}
+          onClick={onCancel}
+          type="button"
+        >
+          Hủy
+        </button>
+        <button
+          aria-busy={editor.status === 'loading'}
+          className="button button-primary"
+          disabled={editor.status === 'loading'}
+          type="submit"
+        >
+          {editor.status === 'loading'
+            ? 'Đang lưu...'
+            : isAdd ? 'Thêm bài mẫu' : 'Lưu thay đổi'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+export function ReferenceCard({ assignment, references = [], onChanged }) {
+  const [editor, dispatchEditor] = useReducer(
+    referenceEditorReducer,
+    undefined,
+    createReferenceEditorState,
+  )
+  const [deleteState, setDeleteState] = useState({ status: 'idle', referenceId: null })
 
   function handleFileChange(event) {
-    setFile(event.target.files?.[0] ?? null)
-    setError('')
-    setState({ status: 'idle' })
+    dispatchEditor({ type: 'SELECT_FILE', file: event.target.files?.[0] ?? null })
   }
 
-  async function handleSubmit(event) {
+  async function handleSave(event) {
     event.preventDefault()
-    const validationError = validateReferenceFile(file)
-    setError(validationError)
-    if (validationError) return
+    const validationError = validateReferenceFile(editor.file)
+    if (validationError) {
+      dispatchEditor({ type: 'VALIDATION_ERROR', message: validationError })
+      return
+    }
 
-    setState({ status: 'loading' })
+    dispatchEditor({ type: 'REQUEST_START' })
     try {
-      if (reference?.id) {
-        await referenceService.replaceReference(assignment.id, reference.id, file, file.name)
+      if (editor.mode === 'replace') {
+        await referenceService.replaceReference(
+          assignment.id,
+          editor.referenceId,
+          editor.file,
+          editor.file.name,
+        )
       } else {
-        await referenceService.uploadReference(assignment.id, file, file.name)
+        await referenceService.uploadReference(assignment.id, editor.file, editor.file.name)
       }
-      setFile(null)
-      setState({ status: 'success' })
+      dispatchEditor({ type: 'REQUEST_SUCCESS' })
       onChanged()
     } catch (requestError) {
-      setState({
-        status: 'error',
-        message: requestError?.message ?? 'Không thể lưu bài mẫu lúc này. Vui lòng thử lại.',
+      dispatchEditor({
+        type: 'REQUEST_ERROR',
+        message: requestError?.message ?? (editor.mode === 'replace'
+          ? 'Không thể thay bài mẫu lúc này. Vui lòng thử lại.'
+          : 'Không thể thêm bài mẫu lúc này. Vui lòng thử lại.'),
       })
     }
   }
 
-  async function handleDelete() {
-    if (!reference?.id) return
+  async function handleDelete(referenceId) {
     if (typeof window !== 'undefined' && !window.confirm('Bạn có chắc muốn xóa bài mẫu này không?')) return
 
-    setState({ status: 'loading' })
+    setDeleteState({ status: 'loading', referenceId })
     try {
-      await referenceService.deleteReference(assignment.id, reference.id)
-      setState({ status: 'success' })
+      await referenceService.deleteReference(assignment.id, referenceId)
+      setDeleteState({ status: 'idle', referenceId: null })
+      if (editor.referenceId === referenceId) dispatchEditor({ type: 'CLOSE' })
       onChanged()
     } catch (requestError) {
-      setState({
+      setDeleteState({
         status: 'error',
+        referenceId,
         message: requestError?.message ?? 'Không thể xóa bài mẫu lúc này. Vui lòng thử lại.',
       })
     }
@@ -178,77 +258,93 @@ function ReferenceCard({ assignment, reference, onChanged }) {
           <p className="state-kicker">Tài liệu đối chiếu</p>
           <h2 id="reference-title">Bài mẫu của giáo viên</h2>
         </div>
-        <span className="detail-card-label">Bản tham chiếu</span>
+        <span className="detail-card-label">{references.length} bài mẫu</span>
       </div>
 
       <p className="assignment-detail-card-description">
         Upload ảnh bài ghi mẫu để làm tài liệu tham chiếu khi AI phân tích và giáo viên chấm duyệt.
       </p>
 
-      {reference ? (
-        <div className="reference-file" role="status">
-          <div>
-            <strong>{reference.fileName}</strong>
-            <span>Đã thêm {formatSubmissionDate(reference.uploadedAt)}</span>
-            {reference.url && (
-              <a href={reference.url} target="_blank" rel="noreferrer">Xem bài mẫu</a>
-            )}
-          </div>
-          <span className="table-status table-status-active">
-            <span aria-hidden="true" />
-            Đã có bài mẫu
-          </span>
-        </div>
-      ) : (
+      {references.length === 0 ? (
         <div className="reference-empty">Chưa có bài mẫu cho bài kiểm tra này.</div>
+      ) : (
+        <div className="reference-list">
+          {references.map((reference) => (
+            <div className="reference-entry" key={reference.id}>
+              <div className="reference-file">
+                <div className="reference-file-details">
+                  <strong title={reference.fileName}>{reference.fileName}</strong>
+                  <span>Tạo lúc {formatSubmissionDate(reference.uploadedAt)}</span>
+                  {reference.url && (
+                    <a href={reference.url} target="_blank" rel="noreferrer">Xem bài mẫu</a>
+                  )}
+                </div>
+                <div className="reference-actions">
+                  <button
+                    aria-label="Thay bài mẫu"
+                    className="icon-button reference-action-button"
+                    disabled={deleteState.status === 'loading'}
+                    onClick={() => dispatchEditor({
+                      type: 'OPEN_REPLACE',
+                      referenceId: reference.id,
+                    })}
+                    title="Thay bài mẫu"
+                    type="button"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <path d="M4 20h4l11-11-4-4L4 16v4Z" />
+                      <path d="m13.5 6.5 4 4" />
+                    </svg>
+                  </button>
+                  <button
+                    aria-label="Xóa bài mẫu"
+                    className="icon-button reference-action-button reference-action-delete"
+                    disabled={deleteState.status === 'loading'}
+                    onClick={() => handleDelete(reference.id)}
+                    title="Xóa bài mẫu"
+                    type="button"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <path d="M4 7h16" />
+                      <path d="M9 7V4h6v3" />
+                      <path d="m6 7 1 13h10l1-13" />
+                      <path d="M10 11v5M14 11v5" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {editor.mode === 'replace' && editor.referenceId === reference.id && (
+                <ReferenceEditor
+                  editor={editor}
+                  onCancel={() => dispatchEditor({ type: 'CLOSE' })}
+                  onFileChange={handleFileChange}
+                  onSubmit={handleSave}
+                />
+              )}
+              {deleteState.status === 'error' && deleteState.referenceId === reference.id && (
+                <ReferenceFeedback state={deleteState} successMessage="" />
+              )}
+            </div>
+          ))}
+        </div>
       )}
 
-      <form className="reference-form" noValidate onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label htmlFor="reference-file">
-            {reference ? 'Thay bài mẫu' : 'Thêm bài mẫu'} <span aria-hidden="true">*</span>
-          </label>
-          <input
-            accept="image/png,image/jpeg"
-            aria-describedby={error ? 'reference-file-help reference-file-error' : 'reference-file-help'}
-            aria-invalid={Boolean(error)}
-            id="reference-file"
-            onChange={handleFileChange}
-            type="file"
-          />
-          <p className="form-field-help" id="reference-file-help">JPG, JPEG hoặc PNG, tối đa 5 MB.</p>
-          {file && <p className="form-field-help">Đã chọn: {file.name}</p>}
-          <FieldError id="reference-file-error" message={error} />
-        </div>
-
-        {state.status === 'error' && (
-          <div className="form-submit-message form-submit-error" role="alert">{state.message}</div>
-        )}
-        {state.status === 'success' && (
-          <div className="form-submit-message form-submit-success" role="status">Đã cập nhật bài mẫu.</div>
-        )}
-
-        <div className="assignment-form-actions">
-          <button
-            aria-busy={state.status === 'loading'}
-            className="button button-outline"
-            disabled={state.status === 'loading'}
-            type="submit"
-          >
-            {state.status === 'loading' ? 'Đang lưu...' : reference ? 'Cập nhật bài mẫu' : 'Lưu bài mẫu'}
-          </button>
-          {reference && (
-            <button
-              className="button button-danger"
-              disabled={state.status === 'loading'}
-              onClick={handleDelete}
-              type="button"
-            >
-              Xóa bài mẫu
-            </button>
-          )}
-        </div>
-      </form>
+      {editor.mode === 'add' ? (
+        <ReferenceEditor
+          editor={editor}
+          onCancel={() => dispatchEditor({ type: 'CLOSE' })}
+          onFileChange={handleFileChange}
+          onSubmit={handleSave}
+        />
+      ) : (
+        <button
+          className="button button-outline reference-add-button"
+          onClick={() => dispatchEditor({ type: 'OPEN_ADD' })}
+          type="button"
+        >
+          + Thêm bài mẫu
+        </button>
+      )}
     </section>
   )
 }
@@ -621,7 +717,7 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
       </section>
 
       <div className="assignment-detail-grid">
-        <ReferenceCard assignment={detail} onChanged={onRefresh} reference={detail.reference} />
+        <ReferenceCard assignment={detail} onChanged={onRefresh} references={detail.references} />
 
         <section className="assignment-detail-card" aria-labelledby="submissions-title">
           <div className="assignment-detail-card-heading">
@@ -671,7 +767,7 @@ function AssignmentDetailPage() {
             status: 'success',
             detail: {
               ...mapAssignment(assignment, classInfo),
-              reference: (references ?? [])[0] ? mapReference(references[0]) : null,
+              references: (references ?? []).map(mapReference),
               submissions: (submissions ?? []).map(mapTeacherSubmission),
             },
           })
