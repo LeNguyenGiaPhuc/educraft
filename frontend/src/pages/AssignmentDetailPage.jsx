@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 
-import { formatAssignmentDeadline, toCanonicalDeadline } from '../data/assignmentDeadline.js'
+import {
+  formatAssignmentDeadline,
+  toAssignmentUpdateDeadline,
+  toTeacherDeadlineInput,
+} from '../data/assignmentDeadline.js'
+import {
+  formatSubmissionAttempt,
+  mapTeacherSubmission,
+  selectTeacherSubmission,
+} from '../data/teacherSubmissionView.js'
 import PageErrorState from '../components/PageErrorState.jsx'
 import { aiEvaluationService } from '../services/aiEvaluationService.js'
 import { assignmentService } from '../services/assignmentService.js'
@@ -53,26 +62,6 @@ function mapReference(reference = {}) {
     fileName: reference.original_filename ?? 'Bài mẫu',
     uploadedAt: reference.created_at,
     url: reference.signed_url ?? '',
-  }
-}
-
-function mapSubmission(submission = {}) {
-  const file = submission.files?.[0]
-  const review = submission.teacher_review
-  const student = submission.student
-  const isFinalized = submission.status === 'FINALIZED' || review?.is_finalized === true
-
-  return {
-    id: submission.id,
-    studentId: student?.student_code ?? student?.full_name ?? submission.student_id ?? 'Học sinh',
-    studentName: student?.full_name ?? 'Học sinh',
-    fileName: file?.original_filename ?? 'Chưa có file',
-    fileUrl: file?.signed_url ?? '',
-    submittedAt: submission.submitted_at,
-    status: isFinalized ? 'approved' : 'submitted',
-    finalStatus: review?.final_status ?? '',
-    feedback: review?.feedback ?? '',
-    teacherReview: review,
   }
 }
 
@@ -271,7 +260,7 @@ function submissionStatusLabel(submission) {
   return 'Chờ giáo viên chốt'
 }
 
-function SubmissionList({ submissions, selectedId, onSelect }) {
+export function SubmissionList({ submissions, selectedId, onSelect }) {
   if (submissions.length === 0) {
     return <div className="table-empty assignment-submissions-empty">Chưa có bài nộp nào.</div>
   }
@@ -286,9 +275,16 @@ function SubmissionList({ submissions, selectedId, onSelect }) {
           onClick={() => onSelect(submission.id)}
           type="button"
         >
-          <span className="submission-student-mark" aria-hidden="true">{submission.studentId.slice(-2)}</span>
+          <span className="submission-student-mark" aria-hidden="true">
+            {(submission.studentCode || submission.studentName).slice(-2)}
+          </span>
           <span className="submission-list-main">
-            <strong>{submission.studentId}</strong>
+            <strong>{submission.studentName}</strong>
+            <span>
+              {[submission.studentCode, formatSubmissionAttempt(submission.attemptNumber)]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
             <span>{submission.fileName} · {formatSubmissionDate(submission.submittedAt)}</span>
           </span>
           <span className={`submission-list-status${submission.status === 'approved' ? ' submission-list-status-approved' : ''}`}>
@@ -339,7 +335,7 @@ function validateReviewForm(form) {
   return errors
 }
 
-function SubmissionReviewPanel({ submission, onReviewed }) {
+export function SubmissionReviewPanel({ submission, onReviewed }) {
   const [evaluationState, setEvaluationState] = useState({ status: 'loading', data: null })
   const [form, setForm] = useState({
     finalStatus: finalStatusForForm(submission.finalStatus),
@@ -428,7 +424,12 @@ function SubmissionReviewPanel({ submission, onReviewed }) {
       <div className="submission-review-heading">
         <div>
           <p className="state-kicker">Duyệt bài nộp</p>
-          <h3 id="review-title">{submission.studentId}</h3>
+          <h3 id="review-title">{submission.studentName}</h3>
+          <p>
+            {[submission.studentCode, formatSubmissionAttempt(submission.attemptNumber)]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
           <p>{submission.fileName} · Nộp lúc {formatSubmissionDate(submission.submittedAt)}</p>
           {submission.fileUrl && <a href={submission.fileUrl} target="_blank" rel="noreferrer">Xem ảnh bài nộp</a>}
         </div>
@@ -500,7 +501,7 @@ function SubmissionReviewPanel({ submission, onReviewed }) {
 function AssignmentEditor({ assignment, onSaved, onCancel }) {
   const [form, setForm] = useState({
     title: assignment.title,
-    dueAt: assignment.dueAt?.slice(0, 16) ?? '',
+    dueAt: toTeacherDeadlineInput(assignment.dueAt),
     threshold: String(assignment.coverageThreshold),
     status: assignment.status,
   })
@@ -513,7 +514,8 @@ function AssignmentEditor({ assignment, onSaved, onCancel }) {
 
   async function handleSubmit(event) {
     event.preventDefault()
-    if (!form.title.trim() || !toCanonicalDeadline(form.dueAt)) {
+    const dueAt = toAssignmentUpdateDeadline(form.dueAt, assignment.dueAt)
+    if (!form.title.trim() || !dueAt) {
       setState({ status: 'error', message: 'Nhập tên và hạn nộp hợp lệ.' })
       return
     }
@@ -522,7 +524,7 @@ function AssignmentEditor({ assignment, onSaved, onCancel }) {
     try {
       await assignmentService.updateAssignment(assignment.id, {
         title: form.title.trim(),
-        due_at: toCanonicalDeadline(form.dueAt),
+        due_at: dueAt,
         coverage_threshold: Number(form.threshold),
         status: form.status,
       })
@@ -572,8 +574,7 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(detail.submissions[0]?.id ?? null)
   const [isEditing, setIsEditing] = useState(false)
   const [deleteState, setDeleteState] = useState({ status: 'idle' })
-  const selectedSubmission = detail.submissions.find((item) => item.id === selectedSubmissionId)
-    ?? detail.submissions[0]
+  const selectedSubmission = selectTeacherSubmission(detail.submissions, selectedSubmissionId)
 
   async function handleDeleteAssignment() {
     if (typeof window !== 'undefined' && !window.confirm('Bạn có chắc muốn xóa bài kiểm tra này không?')) return
@@ -671,7 +672,7 @@ function AssignmentDetailPage() {
             detail: {
               ...mapAssignment(assignment, classInfo),
               reference: (references ?? [])[0] ? mapReference(references[0]) : null,
-              submissions: (submissions ?? []).map(mapSubmission),
+              submissions: (submissions ?? []).map(mapTeacherSubmission),
             },
           })
         }

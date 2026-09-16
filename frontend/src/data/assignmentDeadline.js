@@ -4,6 +4,15 @@ const studentDeadlineFormatter = new Intl.DateTimeFormat('vi-VN', {
   timeStyle: 'short',
   timeZone: 'Asia/Ho_Chi_Minh',
 })
+const teacherDeadlineInputFormatter = new Intl.DateTimeFormat('en-CA', {
+  day: '2-digit',
+  hour: '2-digit',
+  hourCycle: 'h23',
+  minute: '2-digit',
+  month: '2-digit',
+  timeZone: 'Asia/Ho_Chi_Minh',
+  year: 'numeric',
+})
 
 function parseCanonicalDeadline(value) {
   if (typeof value !== 'string') return NaN
@@ -26,6 +35,29 @@ export function toCanonicalDeadline(value) {
     : input
 
   return Number.isFinite(parseCanonicalDeadline(canonical)) ? canonical : null
+}
+
+export function toTeacherDeadlineInput(value) {
+  const deadline = parseCanonicalDeadline(value)
+  if (!Number.isFinite(deadline)) return ''
+
+  const parts = Object.fromEntries(
+    teacherDeadlineInputFormatter
+      .formatToParts(deadline)
+      .filter(({ type }) => type !== 'literal')
+      .map(({ type, value: partValue }) => [type, partValue]),
+  )
+
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`
+}
+
+export function toAssignmentUpdateDeadline(input, originalDeadline) {
+  const canonical = toCanonicalDeadline(input)
+  if (!canonical) return null
+
+  return input === toTeacherDeadlineInput(originalDeadline)
+    ? toCanonicalDeadline(originalDeadline)
+    : canonical
 }
 
 export function getAssignmentAvailability(assignment, now = Date.now()) {
