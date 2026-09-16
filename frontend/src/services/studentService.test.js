@@ -35,6 +35,7 @@ test('maps dashboard classes and assignments to the student view model', () => {
   assert.equal(result[0].name, 'Ngữ văn 10A1')
   assert.equal(result[0].schoolYear, '2026-2027')
   assert.equal(result[0].assignments[0].classId, classId)
+  assert.equal(result[0].assignments[0].classCode, '10A1')
   assert.equal(result[0].assignments[0].dueAt, '2026-09-18T23:59:00+07:00')
   assert.equal(result[0].assignments[0].statusTone, 'active')
 })
@@ -57,6 +58,7 @@ test('maps a single student assignment with its classroom', () => {
 
   assert.deepEqual(result.classroom, {
     id: classId,
+    code: '10A1',
     name: 'Ngữ văn 10A1',
     subject: 'Ngữ văn',
     semester: 'Học kỳ 1',

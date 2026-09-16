@@ -16,6 +16,7 @@ function mapClassroom(classroom) {
 
   return {
     id: relatedClass.id,
+    code: relatedClass.code,
     name: getClassName(relatedClass),
     subject: relatedClass.subject,
     semester: relatedClass.semester,
