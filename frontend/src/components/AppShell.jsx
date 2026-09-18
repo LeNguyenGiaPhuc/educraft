@@ -11,6 +11,7 @@ function AppShell() {
   const { logout, user } = useAuth()
   const homePath = getRoleHome(user?.role)
   const isTeacher = user?.role === ROLES.TEACHER
+  const hasPrimaryNavigation = user?.role === ROLES.ADMIN || isTeacher
   const initials = (user?.name ?? 'EduCraft')
     .split(' ')
     .map((part) => part[0])
@@ -33,30 +34,26 @@ function AppShell() {
             </span>
           </Link>
 
-          <nav className="primary-nav" aria-label="Điều hướng chính">
-            {user?.role === ROLES.ADMIN && (
-              <NavLink className={navigationClassName} end to="/admin">
-                Quản trị
-              </NavLink>
-            )}
-
-            {user?.role === ROLES.TEACHER && (
-              <>
-                <NavLink className={navigationClassName} end to="/teacher">
-                  Tổng quan
+          {hasPrimaryNavigation && (
+            <nav className="primary-nav" aria-label="Điều hướng chính">
+              {user?.role === ROLES.ADMIN && (
+                <NavLink className={navigationClassName} end to="/admin">
+                  Quản trị
                 </NavLink>
-                <NavLink className={navigationClassName} to="/assignments/new">
-                  Tạo bài kiểm tra
-                </NavLink>
-              </>
-            )}
+              )}
 
-            {user?.role === ROLES.STUDENT && (
-              <NavLink className={navigationClassName} end to="/student">
-                Học sinh
-              </NavLink>
-            )}
-          </nav>
+              {isTeacher && (
+                <>
+                  <NavLink className={navigationClassName} end to="/teacher">
+                    Tổng quan
+                  </NavLink>
+                  <NavLink className={navigationClassName} to="/assignments/new">
+                    Tạo bài kiểm tra
+                  </NavLink>
+                </>
+              )}
+            </nav>
+          )}
 
           <div className="profile-area">
             <div className="shell-user">
