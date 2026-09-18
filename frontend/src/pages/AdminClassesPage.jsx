@@ -108,15 +108,15 @@ function AdminClassesPage() {
   }
 
   if (error) {
-    return <section className="admin-empty-panel"><p className="state-kicker">Lớp học</p><h1>Không thể tải danh sách lớp</h1><p>{error}</p></section>
+    return <section className="admin-state-panel" role="alert"><h1>Không thể tải danh sách lớp</h1><p>{error}</p></section>
   }
 
   return (
     <section className="admin-page">
       <div className="admin-page-header">
-        <div>
-          <p className="state-kicker">Quản lý hệ thống</p>
+        <div className="admin-page-title">
           <h1>Quản lý lớp học</h1>
+          <p>Tìm lớp, xem giáo viên phụ trách và cập nhật danh sách học sinh.</p>
         </div>
         <button className="button button-primary" type="button" onClick={() => setShowClassForm(true)}>+ Tạo lớp</button>
       </div>
@@ -147,11 +147,11 @@ function AdminClassesPage() {
       </section>
 
       {loading ? (
-        <section className="admin-empty-panel"><p className="state-kicker">Lớp học</p><h1>Đang tải danh sách lớp</h1></section>
+        <section className="admin-state-panel" aria-live="polite"><h2>Đang tải danh sách lớp...</h2></section>
       ) : (
         <section className="admin-class-list">
           {filteredClasses.length === 0 ? (
-            <div className="admin-empty-panel"><p className="state-kicker">Chưa có lớp</p><h2>Không tìm thấy lớp phù hợp.</h2></div>
+            <div className="admin-empty-panel"><h2>Không tìm thấy lớp phù hợp.</h2><p>Thử đổi nội dung tìm kiếm hoặc bộ lọc giáo viên.</p></div>
           ) : filteredClasses.map((classroom) => {
             const teacherName = teachers.find((person) => person.id === classroom.teacher_id)?.full_name ?? 'Chưa phân công'
             const classCode = classroom.code ?? classroom.id
@@ -160,7 +160,7 @@ function AdminClassesPage() {
               <Link className="admin-class-card" key={classroom.id} to={`/admin/classes/${classroom.id}`}>
                 <div className="admin-class-card-top">
                   <span className="class-code">{classCode}</span>
-                  <span className="class-status"><span aria-hidden="true" />{classroom.status === 'ACTIVE' ? 'Đang hoạt động' : classroom.status}</span>
+                  <span className={`class-status ${classroom.status === 'ACTIVE' ? 'class-status-active' : 'class-status-inactive'}`}><span aria-hidden="true" />{classroom.status === 'ACTIVE' ? 'Đang hoạt động' : classroom.status}</span>
                 </div>
                 <div className="admin-class-card-body">
                   <h3>{classroom.subject}</h3>

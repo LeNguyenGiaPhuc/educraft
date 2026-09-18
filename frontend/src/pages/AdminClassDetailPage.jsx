@@ -265,15 +265,15 @@ function AdminClassDetailPage() {
   }
 
   if (error) {
-    return <section className="admin-empty-panel"><p className="state-kicker">Chi tiết lớp</p><h1>Không thể mở lớp</h1><p>{error}</p></section>
+    return <section className="admin-state-panel" role="alert"><h1>Không thể mở lớp</h1><p>{error}</p></section>
   }
 
   if (loading && !classroom) {
-    return <section className="admin-empty-panel"><p className="state-kicker">Chi tiết lớp</p><h1>Đang tải lớp</h1></section>
+    return <section className="admin-state-panel" aria-live="polite"><h1>Đang tải lớp...</h1></section>
   }
 
   if (!classroom) {
-    return <section className="admin-empty-panel"><p className="state-kicker">Chi tiết lớp</p><h1>Không tìm thấy lớp</h1><Link className="button button-primary" to="/admin/classes">Quay lại</Link></section>
+    return <section className="admin-state-panel"><h1>Không tìm thấy lớp</h1><Link className="button button-primary" to="/admin/classes">Quay lại</Link></section>
   }
 
   const teacher = teachers.find((row) => row.id === classroom.teacher_id) ?? null
@@ -282,9 +282,9 @@ function AdminClassDetailPage() {
     <section className="admin-page">
       {notice && <div className="admin notice-bar">{notice}</div>}
       <div className="admin-page-header">
-        <div>
-          <p className="state-kicker">Chi tiết lớp</p>
+        <div className="admin-page-title">
           <h1>{classroom.name}</h1>
+          <p>{classroom.code} · {classroom.semester} · {classroom.school_year}</p>
         </div>
         <div className="admin-page-actions">
           <Link className="button button-outline" to="/admin/classes">← Quay lại</Link>
@@ -298,11 +298,14 @@ function AdminClassDetailPage() {
       <section className="admin-class-detail-card">
         <div className="admin-detail-grid">
           <div>
-            <span className="panel-subtitle">Thông tin lớp</span>
-            <div className="class-detail-title">{classroom.name}</div>
-            <p><strong>Mã lớp:</strong> {classroom.id}</p>
-            <p><strong>Giáo viên:</strong> {teacher?.full_name ?? 'Chưa phân công'}</p>
-            <p><strong>Số lượng học sinh:</strong> {students.length}</p>
+            <h2>Thông tin lớp</h2>
+            <dl className="admin-class-facts">
+              <div><dt>Mã lớp</dt><dd>{classroom.code ?? classroom.id}</dd></div>
+              <div><dt>Giáo viên phụ trách</dt><dd>{teacher?.full_name ?? 'Chưa phân công'}</dd></div>
+              <div><dt>Học kỳ</dt><dd>{classroom.semester}</dd></div>
+              <div><dt>Năm học</dt><dd>{classroom.school_year}</dd></div>
+              <div><dt>Số học sinh</dt><dd>{students.length}</dd></div>
+            </dl>
           </div>
         </div>
       </section>
@@ -310,8 +313,8 @@ function AdminClassDetailPage() {
       <section className="admin-panel">
         <div className="admin-panel-heading">
           <div>
-            <span className="panel-subtitle">Danh sách học sinh</span>
-            <h2>{classroom.name}</h2>
+            <h2>Danh sách học sinh <span className="admin-count-badge">{students.length}</span></h2>
+            <p className="admin-section-note">Thêm từng học sinh hoặc nhập danh sách đã kiểm tra từ file Excel.</p>
           </div>
           <label className="search-box compact">
             <span>Tìm kiếm</span>
@@ -336,14 +339,14 @@ function AdminClassDetailPage() {
                 <tr><td colSpan="6" className="empty-row">Lớp này chưa có học sinh.</td></tr>
               ) : matchingStudents.map((student) => (
                 <tr key={student.id}>
-                  <td>{student.importedStudentNumber ?? '—'}</td>
-                  <td><strong>{student.username}</strong></td>
-                  <td>{student.name}</td>
-                  <td>{student.email ?? '—'}</td>
-                  <td><span className={`status-badge status-${student.status ?? 'active'}`}>
+                  <td data-label="STT">{student.importedStudentNumber ?? '—'}</td>
+                  <td data-label="Tên tài khoản"><strong>{student.username}</strong></td>
+                  <td data-label="Họ tên">{student.name}</td>
+                  <td data-label="Email">{student.email ?? '—'}</td>
+                  <td data-label="Trạng thái"><span className={`status-badge status-${student.status ?? 'active'}`}>
                     {student.status === 'pending' ? 'Chờ kích hoạt' : student.status === 'locked' ? 'Khóa' : 'Hoạt động'}
                   </span></td>
-                  <td>
+                  <td data-label="Thao tác">
                     <button className="button button-ghost" type="button" onClick={() => handleRemoveStudent(student)}>Xóa</button>
                   </td>
                 </tr>

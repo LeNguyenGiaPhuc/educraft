@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { useAuth } from '../contexts/useAuth.js'
 
@@ -26,13 +26,19 @@ function AdminShell() {
     <div className="admin-shell">
       <aside className="admin-sidebar" aria-label="Điều hướng quản trị">
         <div>
-          <div className="admin-sidebar-brand">
-            <span className="brand-mark" aria-hidden="true">E</span>
+            <Link
+              aria-label="EduCraft - Tổng quan quản trị"
+              className="admin-sidebar-brand"
+              to="/admin"
+            >
+            <span className="brand-mark" aria-hidden="true">
+              E
+            </span>
             <div>
               <strong>EduCraft</strong>
-              <span className="admin-role-label">Quản trị</span>
+              <span className="admin-role-label">Không gian quản trị</span>
             </div>
-          </div>
+          </Link>
 
           <nav className="admin-sidebar-nav">
             {adminNavigation.map((item) => (

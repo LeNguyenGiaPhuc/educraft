@@ -1,0 +1,76 @@
+:root {
+  --page-bg: #f8f9ff;
+  --surface: #ffffff;
+  --surface-subtle: #eff4ff;
+  --surface-hover: #e5eeff;
+  --ink: #0b1c30;
+  --ink-deep: #0b1c30;
+  --muted: #434655;
+  --muted-light: #dce9ff;
+  --border: #dce3ef;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: #eff4ff;
+  --success: #006c4a;
+  --warning: #92400e;
+  --error: #ba1a1a;
+  --focus: #2563eb;
+  --content-max-width: 1280px;
+  --page-gutter: 32px;
+  --control-height: 44px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-panel: 0 2px 8px rgb(11 28 48 / 4%);
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --text-small: 12px;
+  --text-body: 14px;
+  --text-title: clamp(26px, 3vw, 36px);
+}
+
+body {
+  color: var(--ink);
+  background: var(--page-bg);
+  line-height: 1.6;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.button-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.button-primary:hover, .button-primary:focus-visible {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+  color: #fff;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  :root { --page-gutter: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

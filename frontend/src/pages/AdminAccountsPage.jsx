@@ -299,15 +299,15 @@ function AdminAccountsPage() {
   }
 
   if (error) {
-    return <section className="admin-empty-panel"><p className="state-kicker">Tài khoản</p><h1>Không thể tải danh sách</h1><p>{error}</p></section>
+    return <section className="admin-state-panel" role="alert"><h1>Không thể tải danh sách</h1><p>{error}</p></section>
   }
 
   return (
     <section className="admin-page">
       <div className="admin-page-header">
-        <div>
-          <p className="state-kicker">Quản lý hệ thống</p>
+        <div className="admin-page-title">
           <h1>Quản lý tài khoản</h1>
+          <p>Tìm, cập nhật trạng thái và quản lý quyền truy cập của tài khoản.</p>
         </div>
         <button className="button button-primary" type="button" onClick={openCreate}>+ Tạo tài khoản</button>
       </div>
@@ -342,43 +342,51 @@ function AdminAccountsPage() {
       </section>
 
       {loading ? (
-        <section className="admin-empty-panel"><p className="state-kicker">Tài khoản</p><h1>Đang tải danh sách</h1></section>
+        <section className="admin-state-panel" aria-live="polite"><h2>Đang tải danh sách tài khoản...</h2></section>
       ) : (
-        <section className="admin-table-wrap">
-          <table className="admin-data-table">
-            <thead>
-              <tr>
-                <th>Tên tài khoản</th>
-                <th>Họ và tên</th>
-                <th>Vai trò</th>
-                <th>Lớp học</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAccounts.length === 0 ? (
-                <tr><td colSpan="6" className="empty-row">Không tìm thấy tài khoản phù hợp.</td></tr>
-              ) : filteredAccounts.map((account) => (
-                <tr key={account.id}>
-                  <td><strong>{account.username}</strong></td>
-                  <td>{account.name}</td>
-                  <td><span className="role-badge">{roleLabels[account.role] ?? account.role}</span></td>
-                  <td>{getAccountClassLabel(account)}</td>
-                  <td><span className={`status-badge status-${account.status}`}>
-                    {account.status === 'pending' ? 'Chờ kích hoạt' : account.status === 'locked' ? 'Khóa' : 'Hoạt động'}
-                  </span></td>
-                  <td>
-                    <div className="admin-table-actions">
-                      <button className="button button-outline" type="button" onClick={() => openEdit(account)}>Chỉnh sửa</button>
-                      <button className="button button-ghost" type="button" onClick={() => handleToggle(account)}>{account.status === 'locked' || account.status === 'pending' ? 'Kích hoạt' : 'Khóa'}</button>
-                      <button className="button button-danger" type="button" onClick={() => handleDelete(account)}>Xóa</button>
-                    </div>
-                  </td>
+        <section className="admin-table-panel" aria-label="Danh sách tài khoản">
+          <div className="admin-table-heading">
+            <div>
+              <h2>Danh sách tài khoản</h2>
+              <p>{filteredAccounts.length} tài khoản phù hợp với bộ lọc.</p>
+            </div>
+          </div>
+          <div className="admin-table-wrap">
+            <table className="admin-data-table">
+              <thead>
+                <tr>
+                  <th>Tên tài khoản</th>
+                  <th>Họ và tên</th>
+                  <th>Vai trò</th>
+                  <th>Lớp học</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredAccounts.length === 0 ? (
+                  <tr><td colSpan="6" className="empty-row">Không tìm thấy tài khoản phù hợp.</td></tr>
+                ) : filteredAccounts.map((account) => (
+                  <tr key={account.id}>
+                    <td data-label="Tên tài khoản"><strong>{account.username}</strong></td>
+                    <td data-label="Họ và tên">{account.name}</td>
+                    <td data-label="Vai trò"><span className="role-badge">{roleLabels[account.role] ?? account.role}</span></td>
+                    <td data-label="Lớp học">{getAccountClassLabel(account)}</td>
+                    <td data-label="Trạng thái"><span className={`status-badge status-${account.status}`}>
+                      {account.status === 'pending' ? 'Chờ kích hoạt' : account.status === 'locked' ? 'Khóa' : 'Hoạt động'}
+                    </span></td>
+                    <td data-label="Thao tác">
+                      <div className="admin-table-actions">
+                        <button className="button button-outline" type="button" onClick={() => openEdit(account)}>Chỉnh sửa</button>
+                        <button className="button button-ghost" type="button" onClick={() => handleToggle(account)}>{account.status === 'locked' || account.status === 'pending' ? 'Kích hoạt' : 'Khóa'}</button>
+                        <button className="button button-danger" type="button" onClick={() => handleDelete(account)}>Xóa</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 

@@ -8,22 +8,22 @@ import { studentService } from '../services/studentService.js'
 function StudentActivityCard({ assignment }) {
   return (
     <Link
-      className="class-card"
+      className="class-card student-assignment-card"
       to={`/student/assignments/${encodeURIComponent(assignment.id)}`}
     >
       <div className="class-card-body">
-        <div className="class-card-meta">
-          <span className="class-code">{assignment.classCode ?? assignment.classId}</span>
+        <div className="class-card-meta student-assignment-meta">
+          <span className="class-code student-class-code">{assignment.classCode ?? assignment.classId}</span>
           {assignment.status && (
-            <span className={`table-status table-status-${assignment.statusTone}`}>
+            <span className={`table-status table-status-${assignment.statusTone} student-assignment-status`}>
               <span aria-hidden="true" />
               {assignment.statusLabel ?? assignment.status}
             </span>
           )}
         </div>
-        <h3>{assignment.title}</h3>
-        <p>{assignment.className}</p>
-        <div className="class-card-footer">
+        <h3 className="student-assignment-title">{assignment.title}</h3>
+        <p className="student-assignment-class">{assignment.className}</p>
+        <div className="class-card-footer student-assignment-footer">
           <span>Hạn nộp: {formatAssignmentDeadline(assignment)}</span>
         </div>
       </div>
@@ -35,17 +35,20 @@ function StudentClassSection({ classroom }) {
   const headingId = `student-class-${classroom.id}`
 
   return (
-    <section className="class-section" aria-labelledby={headingId}>
-      <div className="detail-section-heading">
+    <section className="class-section student-class-section" aria-labelledby={headingId}>
+      <div className="detail-section-heading student-class-heading">
         <div>
           <h2 id={headingId}>{classroom.name}</h2>
           <p>{classroom.semester} · {classroom.schoolYear}</p>
         </div>
+        <span className="student-assignment-count">
+          {classroom.assignments.length} bài kiểm tra
+        </span>
       </div>
       {classroom.assignments.length === 0 ? (
-        <div className="table-empty">Chưa có bài kiểm tra nào trong lớp này.</div>
+        <div className="table-empty student-empty-state">Chưa có bài kiểm tra nào trong lớp này.</div>
       ) : (
-        <div className="class-grid">
+        <div className="class-grid student-assignment-grid">
           {classroom.assignments.map((assignment) => (
             <StudentActivityCard key={assignment.id} assignment={assignment} />
           ))}
@@ -83,9 +86,9 @@ function StudentDashboardPage({ currentUser }) {
 
   if (request.status === 'loading') {
     return (
-      <main className="page-content">
+      <main className="page-content student-page student-dashboard-page">
         <div className="page-container">
-          <section className="state-panel" role="status">
+          <section className="state-panel student-state-panel" role="status" aria-busy="true">
             <h1>Đang tải lớp học...</h1>
           </section>
         </div>
@@ -104,16 +107,16 @@ function StudentDashboardPage({ currentUser }) {
   }
 
   return (
-    <main className="page-content">
+    <main className="page-content student-page student-dashboard-page">
       <div className="page-container">
-        <div className="dashboard-heading">
+        <div className="dashboard-heading student-dashboard-heading">
           <div>
             <h1>Xin chào, {currentUser.name}</h1>
             <p>Xem lớp học và các bài kiểm tra bài ghi của bạn.</p>
           </div>
         </div>
         {request.data.length === 0 ? (
-          <section className="state-panel" aria-live="polite">
+          <section className="state-panel student-state-panel" aria-live="polite">
             <h2>Chưa có lớp học nào</h2>
             <p>Các lớp bạn tham gia sẽ xuất hiện ở đây.</p>
           </section>

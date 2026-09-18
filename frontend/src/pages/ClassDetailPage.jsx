@@ -31,12 +31,12 @@ function mapAssignment(assignment = {}, submissionCount, studentCount = 0) {
 
 function AssignmentTable({ classId, rows }) {
   if (rows.length === 0) {
-    return <div className="table-empty">Chưa có bài kiểm tra nào trong lớp này.</div>
+    return <div className="table-empty teacher-table-empty">Chưa có bài kiểm tra nào trong lớp này.</div>
   }
 
   return (
-    <div className="data-table-wrap">
-      <table className="data-table">
+    <div className="data-table-wrap teacher-table-wrap">
+      <table className="data-table teacher-data-table">
         <thead>
           <tr>
             <th scope="col">Tên bài kiểm tra</th>
@@ -52,17 +52,17 @@ function AssignmentTable({ classId, rows }) {
         <tbody>
           {rows.map((assignment) => (
             <tr key={assignment.id}>
-              <td className="table-primary-cell">{assignment.title}</td>
-              <td>{assignment.dueDate}</td>
-              <td>{assignment.threshold}</td>
-              <td className="table-muted-cell">{assignment.submission}</td>
-              <td>
-                <span className={`table-status table-status-${assignment.statusTone}`}>
+              <td className="table-primary-cell" data-label="Tên bài kiểm tra">{assignment.title}</td>
+              <td data-label="Hạn nộp">{assignment.dueDate}</td>
+              <td data-label="Ngưỡng đạt">{assignment.threshold}</td>
+              <td className="table-muted-cell" data-label="Tiến độ nộp bài">{assignment.submission}</td>
+              <td data-label="Trạng thái">
+                <span className={`table-status table-status-${assignment.statusTone} teacher-assignment-status`}>
                   <span aria-hidden="true" />
                   {assignment.status}
                 </span>
               </td>
-              <td className="table-action-cell">
+              <td className="table-action-cell" data-label="Thao tác">
                 <Link
                   className="table-action"
                   to={`/classes/${classId}/assignments/${assignment.id}`}
@@ -80,12 +80,12 @@ function AssignmentTable({ classId, rows }) {
 
 function StudentTable({ rows }) {
   if (rows.length === 0) {
-    return <div className="table-empty">Chưa có dữ liệu học sinh cho lớp này.</div>
+    return <div className="table-empty teacher-table-empty">Chưa có dữ liệu học sinh cho lớp này.</div>
   }
 
   return (
-    <div className="data-table-wrap">
-      <table className="data-table student-table">
+    <div className="data-table-wrap teacher-table-wrap">
+      <table className="data-table student-table teacher-data-table">
         <thead>
           <tr>
             <th scope="col">STT</th>
@@ -99,13 +99,14 @@ function StudentTable({ rows }) {
         <tbody>
           {rows.map((student, index) => (
             <tr key={student.id ?? student.code}>
-              <td className="table-muted-cell">
+              <td className="table-muted-cell" data-label="STT">
                 {student.number ?? String(index + 1).padStart(2, '0')}
               </td>
-              <td className="table-primary-cell">{student.name}</td>
-              <td className="table-muted-cell">{student.code}</td>
+              <td className="table-primary-cell" data-label="Họ và tên">{student.name}</td>
+              <td className="table-muted-cell" data-label="Mã học sinh">{student.code}</td>
               <td
                 className={`table-action-cell ${student.latestSubmission === 'Chưa có dữ liệu' ? 'student-missing' : 'student-submitted'}`}
+                data-label="Bài nộp gần nhất"
               >
                 {student.latestSubmission}
               </td>
@@ -196,7 +197,7 @@ function ClassDetailPage() {
 
   if (state.status === 'loading' || !state.classroom) {
     return (
-      <main className="page-content class-detail-page">
+      <main className="page-content class-detail-page teacher-page teacher-class-detail-page">
         <div className="page-container">
           <section className="state-panel" aria-live="polite" aria-busy="true">
             <p className="state-kicker">Lớp học</p>
@@ -215,15 +216,15 @@ function ClassDetailPage() {
     : classroom.students ?? []
 
   return (
-    <main className="page-content class-detail-page">
+    <main className="page-content class-detail-page teacher-page teacher-class-detail-page">
       <div className="page-container">
-        <nav className="breadcrumb" aria-label="Đường dẫn trang">
+        <nav className="breadcrumb teacher-breadcrumb" aria-label="Đường dẫn trang">
           <Link to="/">Lớp học</Link>
           <span aria-hidden="true">/</span>
           <span>{classroom.name}</span>
         </nav>
 
-        <section className="class-banner" aria-labelledby="class-title">
+        <section className="class-banner teacher-class-banner" aria-labelledby="class-title">
           <span>{classroom.subject}</span>
           <h1 id="class-title">Lớp {classroom.code || classroom.id}</h1>
           <p>
@@ -231,9 +232,9 @@ function ClassDetailPage() {
           </p>
         </section>
 
-        <div className="class-tabs" role="tablist" aria-label="Nội dung lớp học">
+        <div className="class-tabs teacher-class-tabs" role="tablist" aria-label="Nội dung lớp học">
           <button
-            className={`class-tab${activeTab === 'assignments' ? ' class-tab-active' : ''}`}
+            className={`class-tab teacher-class-tab${activeTab === 'assignments' ? ' class-tab-active teacher-class-tab-active' : ''}`}
             id="assignments-tab"
             role="tab"
             aria-controls="class-panel"
@@ -244,7 +245,7 @@ function ClassDetailPage() {
             Bài kiểm tra
           </button>
           <button
-            className={`class-tab${activeTab === 'students' ? ' class-tab-active' : ''}`}
+            className={`class-tab teacher-class-tab${activeTab === 'students' ? ' class-tab-active teacher-class-tab-active' : ''}`}
             id="students-tab"
             role="tab"
             aria-controls="class-panel"
@@ -256,8 +257,8 @@ function ClassDetailPage() {
           </button>
         </div>
 
-        <section id="class-panel" className="class-panel" role="tabpanel" aria-live="polite">
-          <div className="detail-section-heading">
+        <section id="class-panel" className="class-panel teacher-class-panel" role="tabpanel" aria-live="polite">
+          <div className="detail-section-heading teacher-section-heading">
             <div>
               <h2>
                 {activeTab === 'assignments'

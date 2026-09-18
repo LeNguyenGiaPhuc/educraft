@@ -10,6 +10,7 @@ function navigationClassName({ isActive }) {
 function AppShell() {
   const { logout, user } = useAuth()
   const homePath = getRoleHome(user?.role)
+  const isTeacher = user?.role === ROLES.TEACHER
   const initials = (user?.name ?? 'EduCraft')
     .split(' ')
     .map((part) => part[0])
@@ -19,14 +20,17 @@ function AppShell() {
     .toUpperCase()
 
   return (
-    <div className="app-shell">
-      <header className="site-header">
+    <div className={`app-shell ${isTeacher ? 'teacher-shell' : 'student-shell'}`}>
+      <header className={`site-header${isTeacher ? ' teacher-sidebar' : ''}`}>
         <div className="site-header-inner">
           <Link className="brand" to={homePath} aria-label="EduCraft">
             <span className="brand-mark" aria-hidden="true">
               E
             </span>
-            <span>EduCraft</span>
+            <span>
+              EduCraft
+              {isTeacher && <small className="shell-role-label">Không gian giáo viên</small>}
+            </span>
           </Link>
 
           <nav className="primary-nav" aria-label="Điều hướng chính">
@@ -55,8 +59,14 @@ function AppShell() {
           </nav>
 
           <div className="profile-area">
-            <div className="profile-monogram" aria-label={user?.name ?? 'Người dùng'}>
-              {initials}
+            <div className="shell-user">
+              <div className="profile-monogram" aria-label={user?.name ?? 'Người dùng'}>
+                {initials}
+              </div>
+              <div className="shell-user-details">
+                <strong>{user?.name ?? 'Người dùng'}</strong>
+                <small>{isTeacher ? 'Giáo viên' : 'Học sinh'}</small>
+              </div>
             </div>
             <button className="logout-button" onClick={logout} type="button">
               Đăng xuất
@@ -65,7 +75,9 @@ function AppShell() {
         </div>
       </header>
 
-      <Outlet />
+      <div className="shell-content">
+        <Outlet />
+      </div>
     </div>
   )
 }

@@ -24,7 +24,8 @@ function createMemoryStorage() {
 const student = getMockUser('student')
 
 test('shows only the fixture student class and its activities with existing deadlines and statuses', () => {
-  const snapshot = getStudentDashboardSnapshot(student, createMemoryStorage())
+  const beforeDeadline = Date.parse('2026-09-18T00:00:00+07:00')
+  const snapshot = getStudentDashboardSnapshot(student, createMemoryStorage(), beforeDeadline)
 
   assert.equal(snapshot.status, 'success')
   assert.deepEqual(snapshot.data.map((classroom) => classroom.id), ['10A1'])

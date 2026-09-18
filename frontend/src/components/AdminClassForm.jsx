@@ -63,7 +63,7 @@ function AdminClassForm({ initialClass = null, teachers = [], onCancel, onSaved 
           <button aria-label="Đóng cửa sổ" className="icon-button" title="Đóng" type="button" onClick={onCancel}>×</button>
         </div>
 
-        <form className="admin-form" noValidate onSubmit={handleSubmit}>
+        <form className="admin-form admin-class-form" noValidate onSubmit={handleSubmit}>
           {errors.form && <p className="form-field-error" role="alert">{errors.form}</p>}
 
           <div className="form-grid">

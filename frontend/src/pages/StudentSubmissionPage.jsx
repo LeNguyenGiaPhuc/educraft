@@ -41,19 +41,15 @@ function SubmissionError({ message }) {
 
 function SubmissionSuccess({ assignment, canResubmit, onSubmitAnother, request }) {
   return (
-    <section className="assignment-success" role="status" aria-live="polite">
+    <section className="assignment-success student-success-panel" role="status" aria-live="polite">
       <p className="state-kicker">Đã nhận bài nộp</p>
       <h1>Nộp bài thành công</h1>
       <p>
         File <strong>{request.data.fileName}</strong> đã được ghi nhận cho bài
         “{assignment.title}”.
       </p>
-      <div className="assignment-success-actions">
-        {canResubmit && (
-          <button className="button button-primary" type="button" onClick={onSubmitAnother}>
-            Nộp lại
-          </button>
-        )}
+      <div className="assignment-success-actions student-success-actions">
+        {canResubmit && <button className="button button-primary" type="button" onClick={onSubmitAnother}>Nộp lại</button>}
         <Link
           className="button button-outline"
           to="/student"
@@ -80,10 +76,123 @@ function submissionStatusLabel(status) {
   return status === 'submitted' ? 'Đã nộp' : 'Chưa xác định'
 }
 
+function getLatestSubmission(submissions) {
+  return submissions.reduce((latest, submission) => (
+    !latest || submission.attemptNumber > latest.attemptNumber ? submission : latest
+  ), null)
+}
+
+function getCurrentProgressStep(history, availability, latestSubmission) {
+  if (history.status !== 'success') return null
+  if (!latestSubmission) return availability.isOpen ? 'Bài kiểm tra' : null
+  return latestSubmission.result ? null : 'Giáo viên chốt'
+}
+
+function getSubmissionProgressStep(history, availability, latestSubmission) {
+  if (history.status === 'error') {
+    return { state: 'error', status: 'Chưa tải được', detail: 'Lỗi này không làm thay đổi trạng thái mở hoặc đóng ở trên.' }
+  }
+
+  if (history.status !== 'success') {
+    return { state: 'loading', status: 'Đang tải', detail: 'Đang kiểm tra lịch sử nộp bài.' }
+  }
+
+  if (!latestSubmission) {
+    return {
+      state: 'upcoming',
+      status: 'Chưa nộp',
+      detail: availability.isOpen ? 'Chọn ảnh bài ghi để gửi trước hạn.' : 'Bài đã đóng nên không nhận thêm bài nộp.',
+    }
+  }
+
+  return {
+    state: 'complete',
+    status: `${history.submissions.length} lần nộp`,
+    detail: `Đang theo dõi lần nộp ${latestSubmission.attemptNumber}.`,
+  }
+}
+
+function getReviewProgressStep(history, latestSubmission) {
+  if (history.status === 'error') {
+    return { state: 'error', status: 'Chưa xác định', detail: 'Không thể xác nhận kết quả khi lịch sử chưa tải được.' }
+  }
+
+  if (history.status !== 'success') {
+    return { state: 'loading', status: 'Đang tải', detail: 'Đang kiểm tra kết quả giáo viên chốt.' }
+  }
+
+  if (!latestSubmission) {
+    return { state: 'upcoming', status: 'Chưa có kết quả', detail: 'Kết quả chỉ xuất hiện sau khi có bài nộp và giáo viên chốt.' }
+  }
+
+  if (!latestSubmission.result) {
+    return {
+      state: 'waiting',
+      status: 'Chờ giáo viên chốt',
+      detail: 'Kết quả sẽ xuất hiện trong lịch sử sau khi giáo viên chốt.',
+    }
+  }
+
+  return {
+    state: 'complete',
+    status: getFinalReviewStatusLabel(latestSubmission.result.finalStatus),
+    detail: 'Giáo viên đã chốt kết quả cho lần nộp gần nhất.',
+  }
+}
+
+function StudentProgress({ assignment, availability, history }) {
+  const latestSubmission = getLatestSubmission(history.submissions)
+  const currentStep = getCurrentProgressStep(history, availability, latestSubmission)
+  const submissionStep = getSubmissionProgressStep(history, availability, latestSubmission)
+  const reviewStep = getReviewProgressStep(history, latestSubmission)
+
+  const steps = [
+    {
+      title: 'Bài kiểm tra',
+      state: availability.isOpen ? 'ready' : 'closed',
+      current: currentStep === 'Bài kiểm tra',
+      status: availability.isOpen ? 'Đang mở' : 'Đã đóng',
+      detail: availability.isOpen
+        ? `Hạn nộp ${formatAssignmentDeadline(assignment)}.`
+        : availability.message,
+    },
+    { title: 'Bài nộp', ...submissionStep },
+    { title: 'Giáo viên chốt', current: currentStep === 'Giáo viên chốt', ...reviewStep },
+  ]
+
+  return (
+    <section className="student-progress" aria-labelledby="student-progress-title" aria-live="polite">
+      <div className="student-progress-heading">
+        <div>
+          <p className="state-kicker">Theo dõi bài làm</p>
+          <h2 id="student-progress-title">Tiến trình bài kiểm tra</h2>
+        </div>
+        <span className="student-progress-class">{assignment.classroom.name}</span>
+      </div>
+      <ol className="student-progress-list">
+        {steps.map((step, index) => (
+          <li
+            aria-current={step.current ? 'step' : undefined}
+            className={`student-progress-step student-progress-${step.state}`}
+            key={step.title}
+          >
+            <span className="student-progress-number" aria-hidden="true">{index + 1}</span>
+            <div className="student-progress-copy">
+              <h3>{step.title}</h3>
+              <p>{step.detail}</p>
+            </div>
+            <span className="student-progress-status">{step.status}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 function SubmissionHistory({ submissions, status, message }) {
   return (
     <section className="student-submission-history" aria-labelledby="submission-history-title">
-      <div className="detail-section-heading">
+      <div className="detail-section-heading student-history-heading">
         <div>
           <h2 id="submission-history-title">Lịch sử nộp bài</h2>
           <p>
@@ -101,8 +210,8 @@ function SubmissionHistory({ submissions, status, message }) {
       ) : submissions.length === 0 ? (
         <div className="table-empty">Bạn chưa nộp bài cho hoạt động này.</div>
       ) : (
-        <div className="data-table-wrap">
-          <table className="data-table student-submission-table">
+        <div className="data-table-wrap student-history-wrap">
+          <table className="data-table student-submission-table student-history-table">
             <thead>
               <tr>
                 <th scope="col">Lần nộp</th>
@@ -115,11 +224,11 @@ function SubmissionHistory({ submissions, status, message }) {
               {submissions.map((item) => (
                 <Fragment key={item.id}>
                   <tr>
-                    <td className="table-primary-cell">Lần {item.attemptNumber}</td>
-                    <td>{item.fileName}</td>
-                    <td className="table-muted-cell">{formatSubmissionDate(item.submittedAt)}</td>
-                    <td>
-                      <span className="table-status table-status-active">
+                    <td className="table-primary-cell" data-label="Lần nộp">Lần {item.attemptNumber}</td>
+                    <td data-label="Tên file">{item.fileName}</td>
+                    <td className="table-muted-cell" data-label="Thời gian nộp">{formatSubmissionDate(item.submittedAt)}</td>
+                    <td data-label="Trạng thái">
+                      <span className="table-status table-status-active student-history-status">
                         <span aria-hidden="true" />
                         {submissionStatusLabel(item.status)}
                       </span>
@@ -127,9 +236,9 @@ function SubmissionHistory({ submissions, status, message }) {
                   </tr>
                   {item.result && (
                     <tr className="student-submission-result-row">
-                      <td colSpan="4">
+                      <td className="student-history-result-cell" colSpan="4">
                         <div className="student-submission-result">
-                          <div>
+                          <div className="student-final-result-heading">
                             <span>Kết quả do giáo viên chốt</span>
                             <strong>{getFinalReviewStatusLabel(item.result.finalStatus)}</strong>
                           </div>
@@ -155,12 +264,12 @@ function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubm
   const hasValidationErrors = Object.keys(errors).length > 0
 
   return (
-    <section className="assignment-form-card" aria-labelledby="submission-form-title">
-      <div className="assignment-form-heading">
+    <section className="assignment-form-card student-submit-card" aria-labelledby="submission-form-title">
+      <div className="assignment-form-heading student-submit-heading">
         <p className="state-kicker">Góc nhìn học sinh · {assignment.classroom.name}</p>
         <h1 id="submission-form-title">{assignment.title}</h1>
         <p>Hạn nộp: {formatAssignmentDeadline(assignment)}</p>
-        <span className={`table-status table-status-${availability.isOpen ? 'active' : 'closed'}`}>
+        <span className={`table-status table-status-${availability.isOpen ? 'active' : 'closed'} student-submit-status`}>
           <span aria-hidden="true" />
           {availability.isOpen ? 'Đang mở' : 'Đã đóng'}
         </span>
@@ -168,30 +277,30 @@ function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubm
 
       {!availability.isOpen ? (
         <>
-          <p className="form-submit-message" role="status">{availability.message}</p>
-          <div className="assignment-form-actions">
+          <p className="form-submit-message student-submit-closed-message" role="status">{availability.message}</p>
+          <div className="assignment-form-actions student-form-actions">
             <Link className="button button-primary" to="/student">
               Về tổng quan học sinh
             </Link>
           </div>
         </>
       ) : (
-      <form noValidate onSubmit={onSubmit}>
+      <form className="student-submit-form" noValidate onSubmit={onSubmit}>
         {hasValidationErrors && (
-          <div className="form-error-summary" role="alert">
+          <div className="form-error-summary student-form-error-summary" role="alert">
             <strong>Chưa thể nộp bài.</strong>
             <span>Kiểm tra file bài ghi rồi thử lại.</span>
           </div>
         )}
 
         {request.status === 'error' && (
-          <div className="form-submit-message form-submit-error" role="alert">
+          <div className="form-submit-message form-submit-error student-form-submit-error" role="alert">
             {request.message}
           </div>
         )}
 
-        <div className="form-fields">
-          <div className="form-field form-field-wide">
+        <div className="form-fields student-fields-grid">
+          <div className="form-field form-field-wide student-field">
             <label htmlFor="note-file">
               {hasPreviousSubmissions ? 'Ảnh bài ghi mới' : 'Ảnh bài ghi'} <span aria-hidden="true">*</span>
             </label>
@@ -205,17 +314,17 @@ function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubm
               onChange={onFileChange}
               type="file"
             />
-            <p className="form-field-help" id="note-file-help">
+            <p className="form-field-help student-field-help" id="note-file-help">
               Chọn file JPG, JPEG hoặc PNG, tối đa 5 MB. File sẽ được gửi lên hệ thống.
             </p>
             {form.fileName && (
-              <p className="form-field-help">Đã chọn: {form.fileName}</p>
+              <p className="form-field-help student-field-help student-selected-file">Đã chọn: {form.fileName}</p>
             )}
             <FieldError id="note-file-error" message={errors.file} />
           </div>
         </div>
 
-        <div className="assignment-form-actions">
+        <div className="assignment-form-actions student-form-actions">
           <Link className="button button-outline" to="/student">
             Hủy
           </Link>
@@ -358,30 +467,44 @@ function StudentSubmissionWorkspace({ assignment }) {
         <span aria-hidden="true">/</span>
         <span>Nộp bài ghi</span>
       </nav>
-      {submitRequest.status === 'success' ? (
-        <SubmissionSuccess
-          assignment={assignment}
-          canResubmit={availability.isOpen}
-          onSubmitAnother={handleSubmitAnother}
-          request={submitRequest}
-        />
-      ) : (
-        <StudentSubmissionForm
-          assignment={assignment}
-          availability={availability}
-          errors={errors}
-          form={form}
-          hasPreviousSubmissions={submissionHistory.length > 0}
-          onFileChange={handleFileChange}
-          onSubmit={handleSubmit}
-          request={submitRequest}
-        />
-      )}
-      <SubmissionHistory
-        message={historyRequest.message}
-        status={historyRequest.status}
-        submissions={submissionHistory}
+      <StudentProgress
+        assignment={assignment}
+        availability={getAssignmentAvailability(assignment)}
+        history={{
+          status: historyRequest.status,
+          submissions: submissionHistory,
+        }}
       />
+      <div className="student-submission-layout">
+        <div className="student-submit-column">
+          {submitRequest.status === 'success' ? (
+            <SubmissionSuccess
+              assignment={assignment}
+              canResubmit={availability.isOpen}
+              onSubmitAnother={handleSubmitAnother}
+              request={submitRequest}
+            />
+          ) : (
+            <StudentSubmissionForm
+              assignment={assignment}
+              availability={availability}
+              errors={errors}
+              form={form}
+              hasPreviousSubmissions={submissionHistory.length > 0}
+              onFileChange={handleFileChange}
+              onSubmit={handleSubmit}
+              request={submitRequest}
+            />
+          )}
+        </div>
+        <div className="student-history-column">
+          <SubmissionHistory
+            message={historyRequest.message}
+            status={historyRequest.status}
+            submissions={submissionHistory}
+          />
+        </div>
+      </div>
     </>
   )
 }
@@ -394,7 +517,7 @@ function StudentSubmissionPage({ currentUser }) {
   }
 
   return (
-    <main className="page-content assignment-page">
+    <main className="page-content assignment-page student-page student-submission-page">
       <div className="page-container">
         <StudentSubmissionWorkspace
           key={`${currentUser?.id ?? 'student'}:${assignment.id}`}

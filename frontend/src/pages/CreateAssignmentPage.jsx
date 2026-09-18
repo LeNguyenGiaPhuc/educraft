@@ -95,14 +95,14 @@ function CreateAssignmentError({ message }) {
 
 function AssignmentSuccess({ classroom, onCreateAnother, submission }) {
   return (
-    <section className="assignment-success" role="status" aria-live="polite">
+    <section className="assignment-success teacher-state-panel teacher-success-panel" role="status" aria-live="polite">
       <p className="state-kicker">Đã tạo bài kiểm tra</p>
       <h1>Đã tạo bài kiểm tra</h1>
       <p>
         Bài “{submission.data.title}” đã được thêm vào lớp {classroom.name}. Bạn có thể xem lại
         trong danh sách bài kiểm tra.
       </p>
-      <div className="assignment-success-actions">
+      <div className="assignment-success-actions teacher-page-actions">
         <Link className="button button-primary" to={`/classes/${classroom.id}`}>
           Về lớp học
         </Link>
@@ -120,8 +120,8 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
   const options = getAssignmentClassOptions(classrooms)
 
   return (
-    <section className="assignment-form-card" aria-labelledby="assignment-form-title">
-      <div className="assignment-form-heading">
+    <section className="assignment-form-card teacher-form-card" aria-labelledby="assignment-form-title">
+      <div className="assignment-form-heading teacher-form-heading">
         <p className="state-kicker">Thiết lập bài ghi</p>
         <h1 id="assignment-form-title">Tạo bài kiểm tra bài ghi</h1>
         <p>
@@ -129,22 +129,22 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
         </p>
       </div>
 
-      <form noValidate onSubmit={onSubmit}>
+      <form className="teacher-assignment-form" noValidate onSubmit={onSubmit}>
         {hasValidationErrors && (
-          <div className="form-error-summary" role="alert">
+          <div className="form-error-summary teacher-form-error-summary" role="alert">
             <strong>Chưa thể tạo bài kiểm tra.</strong>
             <span>Kiểm tra các trường được đánh dấu rồi thử lại.</span>
           </div>
         )}
 
         {submission.status === 'error' && (
-          <div className="form-submit-message form-submit-error" role="alert">
+          <div className="form-submit-message form-submit-error teacher-form-submit-error" role="alert">
             {submission.message}
           </div>
         )}
 
-        <div className="form-fields">
-          <div className="form-field form-field-wide">
+        <div className="form-fields teacher-fields-grid">
+          <div className="form-field form-field-wide teacher-field teacher-field-wide">
             <label htmlFor="assignment-title">
               Tên bài kiểm tra <span aria-hidden="true">*</span>
             </label>
@@ -165,7 +165,7 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
             <FieldError id="assignment-title-error" message={errors.title} />
           </div>
 
-          <div className="form-field">
+          <div className="form-field teacher-field">
             <label htmlFor="assignment-class">
               Lớp học <span aria-hidden="true">*</span>
             </label>
@@ -187,7 +187,7 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
             <FieldError id="assignment-class-error" message={errors.classId} />
           </div>
 
-          <div className="form-field">
+          <div className="form-field teacher-field">
             <label htmlFor="assignment-due-at">
               Hạn nộp <span aria-hidden="true">*</span>
             </label>
@@ -206,7 +206,7 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
             <FieldError id="assignment-due-at-error" message={errors.dueAt} />
           </div>
 
-          <div className="form-field form-field-narrow">
+          <div className="form-field form-field-narrow teacher-field teacher-field-narrow">
             <label htmlFor="assignment-threshold">
               Ngưỡng đạt <span aria-hidden="true">*</span>
             </label>
@@ -232,7 +232,7 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
           </div>
         </div>
 
-        <div className="assignment-form-actions">
+        <div className="assignment-form-actions teacher-form-actions">
           <Link className="button button-outline" to={`/classes/${classroom.id}`}>
             Hủy
           </Link>
@@ -371,7 +371,7 @@ function CreateAssignmentPage() {
 
   if (snapshot.status === 'loading') {
     return (
-      <main className="page-content assignment-page">
+      <main className="page-content assignment-page teacher-page teacher-create-page">
         <div className="page-container">
           <section className="state-panel" aria-live="polite" aria-busy="true">
             <p className="state-kicker">Tạo bài kiểm tra</p>
@@ -396,7 +396,7 @@ function CreateAssignmentPage() {
   const initialClassroom = snapshot.classrooms.find((classroom) => classroom.id === initialClassId)
 
   return (
-    <main className="page-content assignment-page">
+    <main className="page-content assignment-page teacher-page teacher-create-page">
       <div className="page-container">
         <CreateAssignmentWorkspace
           key={initialClassId ?? 'no-class'}

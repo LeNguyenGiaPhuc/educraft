@@ -142,8 +142,8 @@ export function ReferenceEditor({ editor, onCancel, onFileChange, onSubmit }) {
   const isAdd = editor.mode === 'add'
 
   return (
-    <form className="reference-form reference-inline-form" noValidate onSubmit={onSubmit}>
-      <div className="form-field">
+    <form className="reference-form reference-inline-form teacher-reference-form" noValidate onSubmit={onSubmit}>
+      <div className="form-field teacher-field">
         <label htmlFor={inputId}>
           {isAdd ? 'Chọn bài mẫu mới' : 'Chọn file thay thế'} <span aria-hidden="true">*</span>
         </label>
@@ -165,7 +165,7 @@ export function ReferenceEditor({ editor, onCancel, onFileChange, onSubmit }) {
         successMessage={isAdd ? 'Đã thêm bài mẫu.' : 'Đã thay bài mẫu.'}
       />
 
-      <div className="assignment-form-actions">
+      <div className="assignment-form-actions teacher-form-actions">
         <button
           className="button button-outline"
           disabled={editor.status === 'loading'}
@@ -255,13 +255,13 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
   }
 
   return (
-    <section className="assignment-detail-card" aria-labelledby="reference-title">
-      <div className="assignment-detail-card-heading">
+    <section className="assignment-detail-card teacher-detail-card teacher-reference-card" aria-labelledby="reference-title">
+      <div className="assignment-detail-card-heading teacher-detail-card-heading">
         <div>
           <p className="state-kicker">Tài liệu đối chiếu</p>
           <h2 id="reference-title">Bài mẫu của giáo viên</h2>
         </div>
-        <span className="detail-card-label">{references.length} bài mẫu</span>
+        <span className="detail-card-label teacher-count-label">{references.length} bài mẫu</span>
       </div>
 
       <p className="assignment-detail-card-description">
@@ -274,20 +274,20 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
       />
 
       {references.length === 0 ? (
-        <div className="reference-empty">Chưa có bài mẫu cho bài kiểm tra này.</div>
+        <div className="reference-empty teacher-reference-empty">Chưa có bài mẫu cho bài kiểm tra này.</div>
       ) : (
-        <div className="reference-list">
+        <div className="reference-list teacher-reference-list">
           {references.map((reference) => (
-            <div className="reference-entry" key={reference.id}>
-              <div className="reference-file">
-                <div className="reference-file-details">
+            <div className="reference-entry teacher-reference-entry" key={reference.id}>
+              <div className="reference-file teacher-reference-file">
+                <div className="reference-file-details teacher-reference-file-details">
                   <strong title={reference.fileName}>{reference.fileName}</strong>
                   <span>Tạo lúc {formatSubmissionDate(reference.uploadedAt)}</span>
                   {reference.url && (
                     <a href={reference.url} target="_blank" rel="noreferrer">Xem bài mẫu</a>
                   )}
                 </div>
-                <div className="reference-actions">
+                <div className="reference-actions teacher-reference-actions">
                   <button
                     aria-label="Thay bài mẫu"
                     className="icon-button reference-action-button"
@@ -346,7 +346,7 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
         />
       ) : (
         <button
-          className="button button-outline reference-add-button"
+          className="button button-outline reference-add-button teacher-reference-add-button"
           onClick={() => dispatchEditor({ type: 'OPEN_ADD' })}
           type="button"
         >
@@ -370,19 +370,19 @@ export function SubmissionList({ submissions, selectedId, onSelect }) {
   }
 
   return (
-    <div className="submission-list" aria-label="Danh sách bài nộp của học sinh">
+    <div className="submission-list teacher-submission-list" aria-label="Danh sách bài nộp của học sinh">
       {submissions.map((submission) => (
         <button
           aria-pressed={selectedId === submission.id}
-          className={`submission-list-item${selectedId === submission.id ? ' submission-list-item-active' : ''}`}
+          className={`submission-list-item teacher-submission-item${selectedId === submission.id ? ' submission-list-item-active teacher-submission-item-active' : ''}`}
           key={submission.id}
           onClick={() => onSelect(submission.id)}
           type="button"
         >
-          <span className="submission-student-mark" aria-hidden="true">
+          <span className="submission-student-mark teacher-submission-mark" aria-hidden="true">
             {(submission.studentCode || submission.studentName).slice(-2)}
           </span>
-          <span className="submission-list-main">
+          <span className="submission-list-main teacher-submission-main">
             <strong>{submission.studentName}</strong>
             <span>
               {[submission.studentCode, formatSubmissionAttempt(submission.attemptNumber)]
@@ -391,7 +391,7 @@ export function SubmissionList({ submissions, selectedId, onSelect }) {
             </span>
             <span>{submission.fileName} · {formatSubmissionDate(submission.submittedAt)}</span>
           </span>
-          <span className={`submission-list-status${submission.status === 'approved' ? ' submission-list-status-approved' : ''}`}>
+          <span className={`submission-list-status teacher-submission-status${submission.status === 'approved' ? ' submission-list-status-approved teacher-submission-status-approved' : ''}`}>
             {submissionStatusLabel(submission)}
           </span>
         </button>
@@ -402,19 +402,19 @@ export function SubmissionList({ submissions, selectedId, onSelect }) {
 
 function AiResultCard({ evaluation }) {
   return (
-    <section className="ai-result-card" aria-labelledby="ai-result-title">
-      <div className="ai-result-heading">
+    <section className="ai-result-card teacher-ai-card" aria-labelledby="ai-result-title">
+      <div className="ai-result-heading teacher-ai-heading">
         <div>
           <p className="state-kicker">Kết quả mô phỏng</p>
           <h3 id="ai-result-title">AI đề xuất</h3>
         </div>
         <strong>{Math.round(evaluation.confidence * 100)}% tin cậy</strong>
       </div>
-      <div className="ai-score-row">
+      <div className="ai-score-row teacher-ai-status-row">
         <span>Trạng thái AI đề xuất</span>
         <strong>{finalStatusLabel(evaluation.suggestedStatus)}</strong>
       </div>
-      <div className="ai-result-columns">
+      <div className="ai-result-columns teacher-ai-columns">
         <div>
           <h4>Điểm mạnh</h4>
           <ul>{evaluation.strengths.map((item) => <li key={item}>{item}</li>)}</ul>
@@ -524,8 +524,8 @@ export function SubmissionReviewPanel({ submission, onReviewed }) {
   const isFinalized = submission.status === 'approved'
 
   return (
-    <section className="submission-review-panel" aria-labelledby="review-title">
-      <div className="submission-review-heading">
+    <section className="submission-review-panel teacher-review-panel" aria-labelledby="review-title">
+      <div className="submission-review-heading teacher-review-heading">
         <div>
           <p className="state-kicker">Duyệt bài nộp</p>
           <h3 id="review-title">{submission.studentName}</h3>
@@ -537,7 +537,7 @@ export function SubmissionReviewPanel({ submission, onReviewed }) {
           <p>{submission.fileName} · Nộp lúc {formatSubmissionDate(submission.submittedAt)}</p>
           {submission.fileUrl && <a href={submission.fileUrl} target="_blank" rel="noreferrer">Xem ảnh bài nộp</a>}
         </div>
-        <span className={`review-state${isFinalized ? ' review-state-approved' : ''}`}>
+        <span className={`review-state teacher-review-state${isFinalized ? ' review-state-approved teacher-review-state-approved' : ''}`}>
           {isFinalized ? 'Đã chốt' : 'Chưa chốt'}
         </span>
       </div>
@@ -548,9 +548,9 @@ export function SubmissionReviewPanel({ submission, onReviewed }) {
       )}
       <AiResultCard evaluation={evaluation} />
 
-      <form className="review-form" noValidate onSubmit={handleSubmit}>
-        <div className="form-fields">
-          <div className="form-field form-field-narrow">
+      <form className="review-form teacher-review-form" noValidate onSubmit={handleSubmit}>
+        <div className="form-fields teacher-fields-grid">
+          <div className="form-field form-field-narrow teacher-field teacher-field-narrow">
             <label htmlFor="review-final-status">Kết quả giáo viên chốt <span aria-hidden="true">*</span></label>
             <select
               aria-describedby={errors.finalStatus ? 'review-final-status-error' : undefined}
@@ -567,7 +567,7 @@ export function SubmissionReviewPanel({ submission, onReviewed }) {
             <FieldError id="review-final-status-error" message={errors.finalStatus} />
           </div>
 
-          <div className="form-field form-field-wide">
+          <div className="form-field form-field-wide teacher-field teacher-field-wide">
             <label htmlFor="review-feedback">Nhận xét cuối <span aria-hidden="true">*</span></label>
             <textarea
               aria-describedby={errors.feedback ? 'review-feedback-error' : undefined}
@@ -586,7 +586,7 @@ export function SubmissionReviewPanel({ submission, onReviewed }) {
         {review.status === 'error' && <div className="form-submit-message form-submit-error" role="alert">{review.message}</div>}
         {review.status === 'success' && <div className="form-submit-message form-submit-success" role="status">Đã chốt trạng thái và nhận xét cho học sinh.</div>}
 
-        <div className="review-form-actions">
+        <div className="review-form-actions teacher-review-actions">
           <span>Kết quả cuối cùng do giáo viên quyết định.</span>
           <button
             aria-busy={review.status === 'loading'}
@@ -639,21 +639,21 @@ function AssignmentEditor({ assignment, onSaved, onCancel }) {
   }
 
   return (
-    <form className="assignment-edit-form" noValidate onSubmit={handleSubmit}>
-      <div className="form-fields">
-        <div className="form-field form-field-wide">
+    <form className="assignment-edit-form teacher-edit-form" noValidate onSubmit={handleSubmit}>
+      <div className="form-fields teacher-fields-grid">
+        <div className="form-field form-field-wide teacher-field teacher-field-wide">
           <label htmlFor="edit-assignment-title">Tên bài kiểm tra</label>
           <input id="edit-assignment-title" name="title" onChange={handleChange} value={form.title} />
         </div>
-        <div className="form-field">
+        <div className="form-field teacher-field">
           <label htmlFor="edit-assignment-due">Hạn nộp</label>
           <input id="edit-assignment-due" name="dueAt" onChange={handleChange} type="datetime-local" value={form.dueAt} />
         </div>
-        <div className="form-field form-field-narrow">
+        <div className="form-field form-field-narrow teacher-field teacher-field-narrow">
           <label htmlFor="edit-assignment-threshold">Ngưỡng đạt (%)</label>
           <input id="edit-assignment-threshold" max="100" min="0" name="threshold" onChange={handleChange} type="number" value={form.threshold} />
         </div>
-        <div className="form-field form-field-narrow">
+        <div className="form-field form-field-narrow teacher-field teacher-field-narrow">
           <label htmlFor="edit-assignment-status">Trạng thái</label>
           <select id="edit-assignment-status" name="status" onChange={handleChange} value={form.status}>
             <option value="DRAFT">Bản nháp</option>
@@ -663,7 +663,7 @@ function AssignmentEditor({ assignment, onSaved, onCancel }) {
         </div>
       </div>
       {state.status === 'error' && <div className="form-submit-message form-submit-error" role="alert">{state.message}</div>}
-      <div className="assignment-form-actions">
+      <div className="assignment-form-actions teacher-form-actions">
         <button className="button button-outline" onClick={onCancel} type="button">Hủy</button>
         <button className="button button-primary" disabled={state.status === 'loading'} type="submit">
           {state.status === 'loading' ? 'Đang lưu...' : 'Lưu thay đổi'}
@@ -693,21 +693,21 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
 
   return (
     <>
-      <nav className="breadcrumb" aria-label="Đường dẫn trang">
+      <nav className="breadcrumb teacher-breadcrumb" aria-label="Đường dẫn trang">
         <Link to={`/classes/${detail.classroom.id}`}>{detail.classroom.name}</Link>
         <span aria-hidden="true">/</span>
         <span>Chi tiết bài kiểm tra</span>
       </nav>
 
-      <section className="assignment-detail-hero" aria-labelledby="assignment-detail-title">
+      <section className="assignment-detail-hero teacher-assignment-hero" aria-labelledby="assignment-detail-title">
         {!isEditing ? (
           <>
-            <div>
+            <div className="teacher-assignment-summary">
               <p className="state-kicker">Bài kiểm tra bài ghi</p>
               <h1 id="assignment-detail-title">{detail.title}</h1>
               <p>{detail.dueDate} · Ngưỡng đạt {detail.threshold} · {detail.submissions.length} bài nộp</p>
             </div>
-            <div className="assignment-form-actions">
+            <div className="assignment-form-actions teacher-form-actions teacher-assignment-actions">
               <button className="button button-outline" onClick={() => setIsEditing(true)} type="button">Chỉnh sửa</button>
               <button className="button button-danger" disabled={deleteState.status === 'loading'} onClick={handleDeleteAssignment} type="button">
                 {deleteState.status === 'loading' ? 'Đang xóa...' : 'Xóa'}
@@ -724,16 +724,16 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
         {deleteState.status === 'error' && <p className="form-field-error" role="alert">{deleteState.message}</p>}
       </section>
 
-      <div className="assignment-detail-grid">
+      <div className="assignment-detail-grid teacher-assignment-grid">
         <ReferenceCard assignment={detail} onChanged={onRefresh} references={detail.references} />
 
-        <section className="assignment-detail-card" aria-labelledby="submissions-title">
-          <div className="assignment-detail-card-heading">
+        <section className="assignment-detail-card teacher-detail-card teacher-submissions-card" aria-labelledby="submissions-title">
+          <div className="assignment-detail-card-heading teacher-detail-card-heading">
             <div>
               <p className="state-kicker">Theo dõi tiến độ</p>
               <h2 id="submissions-title">Bài nộp của học sinh</h2>
             </div>
-            <span className="detail-card-label">{detail.submissions.length} bài nộp</span>
+            <span className="detail-card-label teacher-count-label">{detail.submissions.length} bài nộp</span>
           </div>
           <p className="assignment-detail-card-description">
             Chọn một bài nộp để xem kết quả AI mô phỏng và chốt trạng thái cuối cùng.
@@ -798,7 +798,7 @@ function AssignmentDetailPage() {
 
   if (state.status === 'loading' || !state.detail) {
     return (
-      <main className="page-content assignment-detail-page">
+      <main className="page-content assignment-detail-page teacher-page teacher-assignment-detail-page">
         <div className="page-container">
           <section className="state-panel" aria-live="polite" aria-busy="true">
             <p className="state-kicker">Chi tiết bài kiểm tra</p>
@@ -810,7 +810,7 @@ function AssignmentDetailPage() {
   }
 
   return (
-    <main className="page-content assignment-detail-page">
+    <main className="page-content assignment-detail-page teacher-page teacher-assignment-detail-page">
       <div className="page-container">
         <AssignmentDetailWorkspace
           detail={state.detail}

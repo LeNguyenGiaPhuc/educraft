@@ -73,8 +73,25 @@ function LoginPage() {
 
   return (
     <main className="login-page">
-      <section className="login-panel" aria-labelledby="login-title">
+      <aside className="login-introduction" aria-label="Về EduCraft">
         <div className="login-brand">
+          <span className="brand-mark" aria-hidden="true">E</span>
+          <span>EduCraft</span>
+        </div>
+        <div className="login-introduction-copy">
+          <p className="state-kicker">Không gian học tập</p>
+          <h2>Mỗi bài ghi.<br />Một bước tiến.</h2>
+          <p>Kết nối lớp học, bài ghi và phản hồi của giáo viên trong một không gian.</p>
+          <ul className="login-workflows">
+            <li><strong>Quản trị</strong><span>Quản lý tài khoản và lớp học</span></li>
+            <li><strong>Giáo viên</strong><span>Giao bài, xem bài nộp và chốt kết quả</span></li>
+            <li><strong>Học sinh</strong><span>Nộp bài ghi và theo dõi nhận xét</span></li>
+          </ul>
+        </div>
+        <p className="login-introduction-footer">Cùng học. Cùng tiến bộ.</p>
+      </aside>
+      <section className="login-panel" aria-labelledby="login-title">
+        <div className="login-brand login-mobile-brand">
           <span className="brand-mark" aria-hidden="true">E</span>
           <span>EduCraft</span>
         </div>
@@ -86,6 +103,7 @@ function LoginPage() {
           {demoAccounts.map((account) => (
             <button
               className={`demo-login-button${form.email === account.email ? ' demo-login-button-active' : ''}`}
+              aria-pressed={form.email === account.email}
               key={account.role}
               onClick={() => applyDemoAccount(account)}
               type="button"
@@ -119,21 +137,16 @@ function LoginPage() {
               />
               <button
                 aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                aria-pressed={showPassword}
                 className="password-toggle-button"
                 onClick={() => setShowPassword((value) => !value)}
                 title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 type="button"
               >
                 <svg aria-hidden="true" className="password-toggle-icon" viewBox="0 0 24 24">
-                  {showPassword ? (
-                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                  ) : (
-                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                  )}
-                  <path d="M3 3l18 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                  {showPassword ? (
-                    <circle cx="12" cy="12" fill="none" r="3" stroke="currentColor" strokeWidth="2" />
-                  ) : null}
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                  <circle cx="12" cy="12" fill="none" r="3" stroke="currentColor" strokeWidth="2" />
+                  {showPassword && <path d="M3 3l18 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />}
                 </svg>
               </button>
             </div>
@@ -141,7 +154,7 @@ function LoginPage() {
 
           {status.message && (
             <div
-              className={`form-submit-message ${status.tone === 'success' ? 'form-submit-success' : 'form-submit-error'}`}
+              className={`form-submit-message ${status.tone === 'error' ? 'form-submit-error' : status.tone === 'success' ? 'form-submit-success' : 'login-submit-pending'}`}
               role={status.tone === 'error' ? 'alert' : 'status'}
             >
               {status.message}

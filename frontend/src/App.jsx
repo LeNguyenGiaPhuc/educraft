@@ -20,6 +20,12 @@ import LoginPage from './pages/LoginPage.jsx'
 import StudentDashboardPage from './pages/StudentDashboardPage.jsx'
 import StudentSubmissionPage from './pages/StudentSubmissionPage.jsx'
 import './App.css'
+import './styles/tokens.css'
+import './styles/shells.css'
+import './styles/login.css'
+import './styles/admin.css'
+import './styles/teacher.css'
+import './styles/student.css'
 
 function HomeRedirect() {
   const { user } = useAuth()

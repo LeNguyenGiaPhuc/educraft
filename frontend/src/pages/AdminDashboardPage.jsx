@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 import { useEffect, useState } from 'react'
 
 import { adminAccountService } from '../services/adminAccountService.js'
@@ -50,8 +52,7 @@ function AdminDashboardPage() {
 
   if (error) {
     return (
-      <section className="admin-empty-panel">
-        <p className="state-kicker">Quản trị</p>
+      <section className="admin-state-panel" role="alert">
         <h1>Bảng điều khiển quản trị</h1>
         <p>{error}</p>
       </section>
@@ -60,8 +61,7 @@ function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <section className="admin-empty-panel">
-        <p className="state-kicker">Quản trị</p>
+      <section className="admin-state-panel" aria-live="polite">
         <h1>Tổng quan</h1>
         <p>Đang tải tổng quan...</p>
       </section>
@@ -71,52 +71,46 @@ function AdminDashboardPage() {
   return (
     <section className="admin-page">
       <div className="admin-page-header">
-        <div>
-          <p className="state-kicker">Quản trị</p>
+        <div className="admin-page-title">
           <h1>Tổng quan</h1>
+          <p>Số liệu tài khoản và lớp học hiện có trong hệ thống.</p>
         </div>
       </div>
 
       <div className="admin-stat-grid">
-        <section>
-          <span>{stats.users}</span>
+        <section className="admin-stat-card">
+          <span className="admin-stat-value">{stats.users}</span>
           <strong>Tổng số tài khoản</strong>
         </section>
-        <section>
-          <span>{stats.teachers}</span>
+        <section className="admin-stat-card">
+          <span className="admin-stat-value">{stats.teachers}</span>
           <strong>Tổng số giáo viên</strong>
         </section>
-        <section>
-          <span>{stats.students}</span>
+        <section className="admin-stat-card">
+          <span className="admin-stat-value">{stats.students}</span>
           <strong>Tổng số học sinh</strong>
         </section>
-        <section>
-          <span>{stats.classes}</span>
+        <section className="admin-stat-card">
+          <span className="admin-stat-value">{stats.classes}</span>
           <strong>Tổng số lớp học</strong>
         </section>
       </div>
 
-      <section className="admin-panel">
+      <section className="admin-panel admin-quick-panel">
         <div className="admin-panel-heading">
           <div>
-            <span className="panel-subtitle">Hoạt động gần đây</span>
-            <h2>Hệ thống</h2>
+            <h2>Truy cập nhanh</h2>
+            <p>Đi đến các công việc quản trị thường dùng.</p>
           </div>
         </div>
 
-        <div className="admin-feed">
-          <div className="admin-feed-row">
-            <span className="admin-feed-icon">•</span>
-            <span>Quản lý tài khoản và lớp học</span>
-          </div>
-          <div className="admin-feed-row">
-            <span className="admin-feed-icon">•</span>
-            <span>Phân công giáo viên và học sinh</span>
-          </div>
-          <div className="admin-feed-row">
-            <span className="admin-feed-icon">•</span>
-            <span>Danh sách lớp và chi tiết học sinh</span>
-          </div>
+        <div className="admin-quick-links">
+          <Link className="admin-quick-link" to="/admin/accounts">
+            <span>Quản lý tài khoản</span>
+          </Link>
+          <Link className="admin-quick-link" to="/admin/classes">
+            <span>Quản lý lớp học</span>
+          </Link>
         </div>
       </section>
     </section>

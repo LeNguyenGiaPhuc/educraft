@@ -182,10 +182,9 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
   const entryByEmail = new Map((preview?.entries ?? []).map((entry) => [entry.email, entry]))
 
   return (
-    <section className="student-import-panel" aria-labelledby="student-import-title">
+    <section className="student-import-panel admin-import-panel" aria-labelledby="student-import-title">
       <div className="student-import-heading">
         <div>
-          <p className="state-kicker">Nhập dữ liệu hàng loạt</p>
           <h3 id="student-import-title">Import danh sách học sinh từ Excel</h3>
           <p>
             File bắt buộc có đủ ba cột <strong>STT</strong>, <strong>Họ và tên</strong> và <strong>Email</strong>.
@@ -269,10 +268,10 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
                   const entry = entryByEmail.get(student.email)
                   return (
                     <tr key={`${student.studentNumber}-${student.email}`}>
-                      <td>{student.studentNumber}</td>
-                      <td>{student.name}</td>
-                      <td>{student.email}</td>
-                      <td>{entryLabel(entry)}</td>
+                      <td data-label="STT">{student.studentNumber}</td>
+                      <td data-label="Họ và tên">{student.name}</td>
+                      <td data-label="Email">{student.email}</td>
+                      <td data-label="Kết quả dự kiến"><span className={`import-result-badge import-result-${entry?.kind ?? 'unknown'}`}>{entryLabel(entry)}</span></td>
                     </tr>
                   )
                 })}
