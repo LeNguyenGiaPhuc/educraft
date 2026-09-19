@@ -117,10 +117,11 @@
 
 .login-page {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 32px 16px;
+  display: block;
+  width: 100%;
+  padding: 0;
   background: var(--page-bg);
+  overflow-x: clip;
 }
 
 .login-panel {
@@ -2317,92 +2318,6 @@
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--ink);
-}
-
-.admin-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(12, 43, 55, 0.48);
-  display: grid;
-  place-items: center;
-  z-index: 50;
-}
-
-.admin-modal {
-  width: min(680px, calc(100vw - 40px));
-  max-height: min(760px, calc(100vh - 48px));
-  overflow: auto;
-  padding: 22px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  box-shadow: 0 14px 60px rgba(0,0,0,0.16);
-}
-
-.admin-modal.large {
-  width: min(780px, calc(100vw - 40px));
-}
-
-.admin-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.admin-modal-header h2 {
-  margin: 4px 0 0;
-  color: var(--ink);
-  font-size: 24px;
-}
-
-.admin-form {
-  margin-top: 16px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.field-label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.field-error {
-  color: var(--error);
-}
-
-.admin-form-help {
-  grid-column: 1 / -1;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-subtle);
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.admin-form-help strong {
-  color: var(--ink);
-}
-
-.admin-form-help p {
-  margin: 4px 0 0;
-}
-
-.admin-form-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 20px;
 }
 
 .admin-class-list {

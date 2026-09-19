@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
+import AdminModal from '../components/AdminModal.jsx'
 import StudentImportPanel from '../components/StudentImportPanel.jsx'
 import AdminClassForm from '../components/AdminClassForm.jsx'
 import { getNextStudentNumber } from '../data/adminClassRoster.js'
@@ -18,14 +19,13 @@ function StudentAddModal({ students, onCancel, onAdd }) {
   ))
 
   return (
-    <div className="admin-modal-backdrop">
-      <div aria-labelledby="student-modal-title" aria-modal="true" className="admin-modal large" role="dialog">
+    <AdminModal className="large" labelledBy="student-modal-title" onClose={onCancel}>
         <div className="admin-modal-header">
           <div>
             <span className="panel-subtitle">Học sinh</span>
             <h2 id="student-modal-title">Thêm học sinh vào lớp</h2>
           </div>
-          <button aria-label="Đóng cửa sổ" className="icon-button" title="Đóng" type="button" onClick={onCancel}>×</button>
+          <button aria-label="Đóng cửa sổ" className="icon-button" data-modal-initial-focus title="Đóng" type="button" onClick={onCancel}>×</button>
         </div>
 
         <div className="admin-filter-row">
@@ -48,8 +48,7 @@ function StudentAddModal({ students, onCancel, onAdd }) {
           <button className="button button-outline" type="button" onClick={onCancel}>Hủy</button>
           <button className="button button-primary" disabled={!selectedId} type="button" onClick={() => onAdd(selectedId)}>Thêm vào lớp</button>
         </div>
-      </div>
-    </div>
+    </AdminModal>
   )
 }
 
@@ -357,15 +356,17 @@ function AdminClassDetailPage() {
       </section>
 
       {showImportPanel && (
-        <div className="admin-modal-backdrop">
-          <div className="admin-modal large">
-            <StudentImportPanel
-              classId={classId}
-              onCancel={() => setShowImportPanel(false)}
-              onImported={handleImported}
-            />
-          </div>
-        </div>
+        <AdminModal
+          className="large"
+          labelledBy="student-import-title"
+          onClose={() => setShowImportPanel(false)}
+        >
+          <StudentImportPanel
+            classId={classId}
+            onCancel={() => setShowImportPanel(false)}
+            onImported={handleImported}
+          />
+        </AdminModal>
       )}
 
       {showStudentModal && (

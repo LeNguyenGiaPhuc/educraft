@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
+import AdminModal from '../components/AdminModal.jsx'
 import { ApiError } from '../services/apiClient.js'
 import { adminAccountService } from '../services/adminAccountService.js'
 import { authService, ROLES, roleLabels } from '../services/authService.js'
@@ -85,14 +86,13 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
   }
 
   return (
-    <div className="admin-modal-backdrop">
-      <div aria-labelledby="account-modal-title" aria-modal="true" className="admin-modal" role="dialog">
+    <AdminModal labelledBy="account-modal-title" onClose={onCancel}>
         <div className="admin-modal-header">
           <div>
             <span className="panel-subtitle">Tài khoản</span>
             <h2 id="account-modal-title">{initialForm?.id ? 'Chỉnh sửa tài khoản' : 'Tạo tài khoản'}</h2>
           </div>
-          <button aria-label="Đóng cửa sổ" className="icon-button" title="Đóng" type="button" onClick={onCancel}>×</button>
+          <button aria-label="Đóng cửa sổ" className="icon-button" data-modal-initial-focus title="Đóng" type="button" onClick={onCancel}>×</button>
         </div>
 
         <form className="admin-form" onSubmit={handleSubmit} noValidate>
@@ -109,27 +109,35 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
               {errors.username && <small className="field-error">{errors.username}</small>}
             </label>
 
-            <label className="field-label">
-              <span>{initialForm?.id ? 'Mật khẩu mới (không bắt buộc)' : 'Mật khẩu'}</span>
+            <div className="field-label">
+              <label htmlFor="account-password">{initialForm?.id ? 'Mật khẩu mới (không bắt buộc)' : 'Mật khẩu'}</label>
               <div className="password-row">
                 <input
+                  aria-describedby={errors.password ? 'account-password-error' : undefined}
+                  aria-invalid={Boolean(errors.password)}
                   autoComplete="new-password"
+                  id="account-password"
                   type={showPassword ? 'text' : 'password'}
                   value={form.password ?? ''}
                   onChange={(event) => updateField('password', event.target.value)}
                 />
                 <button
                   aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  aria-pressed={showPassword}
                   className="password-toggle-button"
                   onClick={() => setShowPassword((value) => !value)}
                   title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                   type="button"
                 >
-                  {showPassword ? 'Ẩn' : 'Hiện'}
+                  <svg aria-hidden="true" className="password-toggle-icon" viewBox="0 0 24 24">
+                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                    <circle cx="12" cy="12" fill="none" r="3" stroke="currentColor" strokeWidth="2" />
+                    {showPassword && <path d="M3 3l18 18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />}
+                  </svg>
                 </button>
               </div>
-              {errors.password && <small className="field-error">{errors.password}</small>}
-            </label>
+              {errors.password && <small className="field-error" id="account-password-error">{errors.password}</small>}
+            </div>
 
             <label className="field-label">
               <span>Họ và tên</span>
@@ -160,8 +168,7 @@ function AccountForm({ initialForm, onCancel, onSaved }) {
             <button className="button button-primary" type="submit" disabled={submitting}>{submitting ? 'Đang lưu...' : 'Lưu'}</button>
           </div>
         </form>
-      </div>
-    </div>
+    </AdminModal>
   )
 }
 
@@ -174,7 +181,7 @@ function AdminAccountsPage() {
   const [notice, setNotice] = useState('')
   const [accounts, setAccounts] = useState([])
   const [classes, setClasses] = useState([])
-  const [currentUser, setCurrentUser] = useState(null)
+  const currentUserRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -193,9 +200,9 @@ function AdminAccountsPage() {
 
       try {
         const me = await authService.me()
-        setCurrentUser(me)
+        currentUserRef.current = me
       } catch {
-        setCurrentUser(null)
+        currentUserRef.current = null
       }
     } catch (caughtError) {
       const details = caughtError instanceof ApiError ? caughtError.message : String(caughtError?.message ?? 'Không thể tải dữ liệu.')
@@ -213,7 +220,7 @@ function AdminAccountsPage() {
         if (!active) return
         setAccounts(accountRows.map(normalizeAdminAccount))
         setClasses(classRows.map(normalizeClass))
-        setCurrentUser(me)
+        currentUserRef.current = me
       })
       .catch((caughtError) => {
         if (!active) return
@@ -249,7 +256,7 @@ function AdminAccountsPage() {
   }
 
   async function handleToggle(account) {
-    if (account.id === currentUser?.id) {
+    if (account.id === currentUserRef.current?.id) {
       setNotice('Không thể khóa tài khoản đang đăng nhập.')
       return
     }
@@ -276,7 +283,7 @@ function AdminAccountsPage() {
   }
 
   async function handleDelete(account) {
-    if (account.id === currentUser?.id) {
+    if (account.id === currentUserRef.current?.id) {
       setNotice('Không thể xóa tài khoản đang đăng nhập.')
       return
     }

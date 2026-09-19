@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import AdminShell from './components/AdminShell.jsx'
@@ -8,17 +9,6 @@ import RoleRoute from './components/RoleRoute.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { useAuth } from './contexts/useAuth.js'
 import { getRoleHome, ROLES } from './services/authService.js'
-import AdminAccountsPage from './pages/AdminAccountsPage.jsx'
-import AdminClassDetailPage from './pages/AdminClassDetailPage.jsx'
-import AdminClassesPage from './pages/AdminClassesPage.jsx'
-import AdminDashboardPage from './pages/AdminDashboardPage.jsx'
-import AssignmentDetailPage from './pages/AssignmentDetailPage.jsx'
-import ClassDetailPage from './pages/ClassDetailPage.jsx'
-import CreateAssignmentPage from './pages/CreateAssignmentPage.jsx'
-import DashboardPage from './pages/DashboardPage.jsx'
-import LoginPage from './pages/LoginPage.jsx'
-import StudentDashboardPage from './pages/StudentDashboardPage.jsx'
-import StudentSubmissionPage from './pages/StudentSubmissionPage.jsx'
 import './App.css'
 import './styles/tokens.css'
 import './styles/shells.css'
@@ -26,6 +16,31 @@ import './styles/login.css'
 import './styles/admin.css'
 import './styles/teacher.css'
 import './styles/student.css'
+import './styles/blueprint.css'
+
+const AdminAccountsPage = lazy(() => import('./pages/AdminAccountsPage.jsx'))
+const AdminClassDetailPage = lazy(() => import('./pages/AdminClassDetailPage.jsx'))
+const AdminClassesPage = lazy(() => import('./pages/AdminClassesPage.jsx'))
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage.jsx'))
+const AssignmentDetailPage = lazy(() => import('./pages/AssignmentDetailPage.jsx'))
+const ClassDetailPage = lazy(() => import('./pages/ClassDetailPage.jsx'))
+const CreateAssignmentPage = lazy(() => import('./pages/CreateAssignmentPage.jsx'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'))
+const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
+const StudentDashboardPage = lazy(() => import('./pages/StudentDashboardPage.jsx'))
+const StudentSubmissionPage = lazy(() => import('./pages/StudentSubmissionPage.jsx'))
+
+function RouteLoadingState() {
+  return (
+    <main className="page-content">
+      <div className="page-container">
+        <section className="state-panel" aria-live="polite">
+          <h1>Đang mở không gian làm việc...</h1>
+        </section>
+      </div>
+    </main>
+  )
+}
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -60,7 +75,8 @@ function AppRoutes() {
   const currentTeacher = user?.role === ROLES.TEACHER ? user : null
 
   return (
-    <Routes>
+    <Suspense fallback={<RouteLoadingState />}>
+      <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginPage />} />
 
@@ -115,7 +131,8 @@ function AppRoutes() {
           </Route>
         </Route>
       </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   )
 }
 

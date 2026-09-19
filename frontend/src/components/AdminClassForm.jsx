@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import AdminModal from './AdminModal.jsx'
 import { adminClassService } from '../services/adminClassService.js'
 import { ApiError } from '../services/apiClient.js'
 
@@ -53,14 +54,13 @@ function AdminClassForm({ initialClass = null, teachers = [], onCancel, onSaved 
   }
 
   return (
-    <div className="admin-modal-backdrop">
-      <div aria-labelledby="class-modal-title" aria-modal="true" className="admin-modal" role="dialog">
+    <AdminModal labelledBy="class-modal-title" onClose={onCancel}>
         <div className="admin-modal-header">
           <div>
             <span className="panel-subtitle">Lớp học</span>
             <h2 id="class-modal-title">{isEdit ? 'Chỉnh sửa lớp' : 'Tạo lớp'}</h2>
           </div>
-          <button aria-label="Đóng cửa sổ" className="icon-button" title="Đóng" type="button" onClick={onCancel}>×</button>
+          <button aria-label="Đóng cửa sổ" className="icon-button" data-modal-initial-focus title="Đóng" type="button" onClick={onCancel}>×</button>
         </div>
 
         <form className="admin-form admin-class-form" noValidate onSubmit={handleSubmit}>
@@ -88,7 +88,7 @@ function AdminClassForm({ initialClass = null, teachers = [], onCancel, onSaved 
             <label className="field-label">
               <span>Năm học *</span>
               <input value={form.schoolYear} onChange={(event) => updateField('schoolYear', event.target.value)} />
-              {errors.schoolYear && <small className="field-error">{errors.schoolYear}</small>}
+              {errors.school_year && <small className="field-error">{errors.school_year}</small>}
             </label>
 
             <label className="field-label">
@@ -106,8 +106,7 @@ function AdminClassForm({ initialClass = null, teachers = [], onCancel, onSaved 
             <button className="button button-primary" type="submit">{isEdit ? 'Lưu thay đổi' : 'Tạo lớp'}</button>
           </div>
         </form>
-      </div>
-    </div>
+    </AdminModal>
   )
 }
 

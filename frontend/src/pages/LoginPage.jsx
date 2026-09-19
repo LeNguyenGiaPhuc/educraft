@@ -1,28 +1,14 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
+import LandingShowcase from '../components/landing/LandingShowcase.jsx'
 import { useAuth } from '../contexts/useAuth.js'
 import { getRoleHome, ROLES } from '../services/authService.js'
 
 const demoAccounts = [
-  {
-    role: ROLES.ADMIN,
-    title: 'Quản trị',
-    email: 'admin@educraft.test',
-    password: 'admin123',
-  },
-  {
-    role: ROLES.TEACHER,
-    title: 'Giáo viên',
-    email: 'teacher@educraft.test',
-    password: 'teacher123',
-  },
-  {
-    role: ROLES.STUDENT,
-    title: 'Học sinh',
-    email: 'student@educraft.test',
-    password: 'student123',
-  },
+  { role: ROLES.ADMIN, title: 'Quản trị', email: 'admin@educraft.test', password: 'admin123' },
+  { role: ROLES.TEACHER, title: 'Giáo viên', email: 'teacher@educraft.test', password: 'teacher123' },
+  { role: ROLES.STUDENT, title: 'Học sinh', email: 'student@educraft.test', password: 'student123' },
 ]
 
 function LoginPage() {
@@ -35,6 +21,43 @@ function LoginPage() {
   })
   const [status, setStatus] = useState({ tone: 'idle', message: '' })
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const dialogRef = useRef(null)
+  const loginOpenButtonRef = useRef(null)
+  const closeButtonRef = useRef(null)
+
+  useEffect(() => {
+    const dialog = dialogRef.current
+
+    if (!dialog) {
+      return undefined
+    }
+
+    if (isLoginOpen) {
+      document.body.classList.add('login-dialog-open')
+
+      if (!dialog.open) {
+        dialog.showModal()
+      }
+
+      closeButtonRef.current?.focus()
+    } else {
+      document.body.classList.remove('login-dialog-open')
+
+      if (dialog.open) {
+        dialog.close()
+      }
+    }
+
+    return () => {
+      document.body.classList.remove('login-dialog-open')
+    }
+  }, [isLoginOpen])
+
+  const openLoginPanel = useCallback(() => {
+    setStatus({ tone: 'idle', message: '' })
+    setIsLoginOpen(true)
+  }, [])
 
   if (user) {
     return <Navigate replace to={getRoleHome(user.role)} />
@@ -63,47 +86,69 @@ function LoginPage() {
   }
 
   function applyDemoAccount(account) {
-    setForm({
-      email: account.email,
-      password: account.password,
-    })
+    setForm({ email: account.email, password: account.password })
     setShowPassword(false)
     setStatus({ tone: 'idle', message: '' })
   }
 
+  function closeLoginPanel() {
+    if (status.tone !== 'loading') {
+      setIsLoginOpen(false)
+    }
+  }
+
+  function handleDialogCancel(event) {
+    if (status.tone === 'loading') {
+      event.preventDefault()
+    }
+  }
+
+  function handleDialogClose() {
+    setIsLoginOpen(false)
+    window.requestAnimationFrame(() => loginOpenButtonRef.current?.focus())
+  }
+
   return (
     <main className="login-page">
-      <aside className="login-introduction" aria-label="Về EduCraft">
-        <div className="login-brand">
-          <span className="brand-mark" aria-hidden="true">E</span>
-          <span>EduCraft</span>
+      <LandingShowcase loginButtonRef={loginOpenButtonRef} onOpenLogin={openLoginPanel} />
+
+      <dialog
+        aria-labelledby="login-title"
+        className="login-panel"
+        onCancel={handleDialogCancel}
+        onClose={handleDialogClose}
+        ref={dialogRef}
+      >
+        <div className="login-dialog-header">
+          <div className="login-brand">
+            <span className="brand-mark" aria-hidden="true">E</span>
+            <strong>EduCraft</strong>
+          </div>
+          <button
+            aria-label="Đóng đăng nhập"
+            className="login-close-button"
+            onClick={closeLoginPanel}
+            ref={closeButtonRef}
+            title="Đóng"
+            type="button"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
         </div>
-        <div className="login-introduction-copy">
-          <p className="state-kicker">Không gian học tập</p>
-          <h2>Mỗi bài ghi.<br />Một bước tiến.</h2>
-          <p>Kết nối lớp học, bài ghi và phản hồi của giáo viên trong một không gian.</p>
-          <ul className="login-workflows">
-            <li><strong>Quản trị</strong><span>Quản lý tài khoản và lớp học</span></li>
-            <li><strong>Giáo viên</strong><span>Giao bài, xem bài nộp và chốt kết quả</span></li>
-            <li><strong>Học sinh</strong><span>Nộp bài ghi và theo dõi nhận xét</span></li>
-          </ul>
+
+        <div className="login-panel-heading">
+          <span className="login-panel-index" aria-hidden="true">01</span>
+          <div>
+            <h1 id="login-title">Chào mừng trở lại.</h1>
+            <p>Đăng nhập để tiếp tục công việc trong EduCraft.</p>
+          </div>
         </div>
-        <p className="login-introduction-footer">Cùng học. Cùng tiến bộ.</p>
-      </aside>
-      <section className="login-panel" aria-labelledby="login-title">
-        <div className="login-brand login-mobile-brand">
-          <span className="brand-mark" aria-hidden="true">E</span>
-          <span>EduCraft</span>
-        </div>
-        <p className="state-kicker">Đăng nhập thử nghiệm</p>
-        <h1 id="login-title">Đăng nhập hệ thống</h1>
-        <p>Chọn nhanh một tài khoản mẫu hoặc nhập đúng email và mật khẩu bên dưới.</p>
 
         <div className="demo-login-grid" aria-label="Tài khoản mẫu">
           {demoAccounts.map((account) => (
             <button
-              className={`demo-login-button${form.email === account.email ? ' demo-login-button-active' : ''}`}
               aria-pressed={form.email === account.email}
+              className={`demo-login-button${form.email === account.email ? ' demo-login-button-active' : ''}`}
               key={account.role}
               onClick={() => applyDemoAccount(account)}
               type="button"
@@ -167,10 +212,13 @@ function LoginPage() {
             disabled={status.tone === 'loading'}
             type="submit"
           >
-            {status.tone === 'loading' ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            <span>{status.tone === 'loading' ? 'Đang đăng nhập...' : 'Đăng nhập'}</span>
+            {status.tone !== 'loading' && <span aria-hidden="true">→</span>}
           </button>
         </form>
-      </section>
+
+        <p className="login-panel-note">Ba vai trò. Một luồng học tập liền mạch.</p>
+      </dialog>
     </main>
   )
 }
