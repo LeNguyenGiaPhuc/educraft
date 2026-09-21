@@ -99,6 +99,32 @@ export function parseProviderResult(value) {
   return result.data
 }
 
+export function parseTranscriptionResult(value) {
+  const result = transcriptionSchema.safeParse(value)
+  if (!result.success) {
+    throw new AppError(
+      502,
+      'AI_PROVIDER_INVALID_RESPONSE',
+      'Dịch vụ AI trả về bản chép không hợp lệ.',
+    )
+  }
+
+  return result.data
+}
+
+export function parseEvaluationSuggestion(value) {
+  const result = evaluationSuggestionSchema.safeParse(value)
+  if (!result.success) {
+    throw new AppError(
+      502,
+      'AI_PROVIDER_INVALID_RESPONSE',
+      'Dịch vụ AI trả về gợi ý không hợp lệ.',
+    )
+  }
+
+  return result.data
+}
+
 export function buildTranscriptionPrompt({ referenceCount, submissionCount }) {
   return [
     'Bạn là bộ phận đọc bài viết tay tiếng Việt cho hệ thống EduCraft.',
