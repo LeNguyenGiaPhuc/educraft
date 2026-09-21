@@ -57,15 +57,11 @@ function imagePart(image) {
 }
 
 function withTimeout(operationFactory, timeoutMs) {
-  const controller = new AbortController()
   let timer
   const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => {
-      controller.abort()
-      reject(new Error('AI provider timeout'))
-    }, timeoutMs)
+    timer = setTimeout(() => reject(new Error('AI provider timeout')), timeoutMs)
   })
-  const operation = Promise.resolve().then(() => operationFactory(controller.signal))
+  const operation = Promise.resolve().then(operationFactory)
 
   return Promise.race([operation, timeout]).finally(() => clearTimeout(timer))
 }
@@ -104,14 +100,13 @@ export function createGeminiAiProvider({
   async function createInteraction(request) {
     try {
       return await withTimeout(
-        (signal) => ai.interactions.create({
+        () => ai.interactions.create({
           ...request,
-          signal,
           store: false,
           generation_config: {
             temperature,
           },
-        }),
+        }, { timeout: timeoutMs }),
         timeoutMs,
       )
     } catch (error) {

@@ -120,3 +120,29 @@ test('Gemini provider maps a timeout to a stable failure', async () => {
       && error.code === 'AI_PROVIDER_FAILED',
   )
 })
+
+test('Gemini provider passes timeout through SDK options instead of the request body', async () => {
+  const calls = []
+  const responses = [transcription, suggestion]
+  const client = {
+    interactions: {
+      async create(request, options) {
+        calls.push({ request, options })
+        return { output_text: responses.shift() }
+      },
+    },
+  }
+  const provider = createGeminiAiProvider({
+    apiKey: 'test-key',
+    client,
+    timeoutMs: 4321,
+  })
+
+  await provider.evaluate(input)
+
+  assert.equal(calls.length, 2)
+  for (const call of calls) {
+    assert.deepEqual(call.options, { timeout: 4321 })
+    assert.equal(Object.hasOwn(call.request, 'signal'), false)
+  }
+})
