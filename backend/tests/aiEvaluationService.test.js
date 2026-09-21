@@ -2,10 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { AppError } from '../src/common/errors.js'
-import {
-  MOCK_AI_EVALUATION,
-  createAiEvaluationService,
-} from '../src/modules/ai-evaluations/aiEvaluationService.js'
+import { createAiEvaluationService } from '../src/modules/ai-evaluations/aiEvaluationService.js'
 
 const submissionIds = [
   '11111111-1111-4111-8111-111111111111',
@@ -13,12 +10,29 @@ const submissionIds = [
 ]
 const teacherId = '22222222-2222-4222-8222-222222222222'
 
+const MOCK_PROVIDER_RESULT = Object.freeze({
+  coverage_score: 82,
+  confidence: 0.84,
+  suggested_status: 'REQUIRES_TEACHER_REVIEW',
+  missing_content: Object.freeze(['Bổ sung phần kết luận.']),
+  feedback_draft: 'Đánh giá mô phỏng: bài ghi đủ ý chính, cần giáo viên xem lại phần kết luận.',
+  reference_transcription: 'Bản chép mô phỏng từ bài mẫu.',
+  student_transcription: 'Bản chép mô phỏng từ bài nộp.',
+  uncertain_content: Object.freeze([]),
+  provider: 'mock',
+  model_name: 'educraft-mock-evaluator',
+  model_version: '1.0',
+  prompt_version: 'handwriting-v1',
+  latency_ms: 0,
+})
+
 function evaluation(submissionId = submissionIds[0]) {
   return {
     id: '99999999-9999-4999-8999-999999999999',
     submission_id: submissionId,
-    ...MOCK_AI_EVALUATION,
-    missing_content: [...MOCK_AI_EVALUATION.missing_content],
+    ...MOCK_PROVIDER_RESULT,
+    missing_content: [...MOCK_PROVIDER_RESULT.missing_content],
+    uncertain_content: [...MOCK_PROVIDER_RESULT.uncertain_content],
     created_at: '2026-09-14T03:00:00Z',
     private_database_field: 'hidden',
   }
@@ -110,7 +124,17 @@ function createSubmissionService({ statuses = ['SUBMITTED'], error = null, event
       this.calls.push({ auth, submissionId })
       events.push('authorize-submission')
       if (error) throw error
-      return { id: submissionId, status: queue.shift() }
+      return {
+        id: submissionId,
+        assignment_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        status: queue.shift(),
+        files: [{
+          storage_path: `${submissionId}/page-1.jpg`,
+          mime_type: 'image/jpeg',
+          size_bytes: 10,
+          page_order: 1,
+        }],
+      }
     },
   }
 }
@@ -127,6 +151,8 @@ function buildService({
   adminResults = [],
   submissionStatuses,
   submissionError,
+  provider,
+  inputService,
   logger = { error() {} },
 } = {}) {
   const events = []
@@ -137,12 +163,48 @@ function buildService({
     error: submissionError,
     events,
   })
+  const defaultInputService = {
+    async loadEvaluationInput(_auth, submission) {
+      events.push('load-evaluation-input')
+      return {
+        assignmentTitle: 'Lực ma sát',
+        coverageThreshold: 80,
+        referenceImages: [{
+          buffer: Buffer.from('reference'),
+          mimeType: 'image/jpeg',
+          order: 1,
+        }],
+        submissionImages: submission.files.map((file) => ({
+          buffer: Buffer.from('submission'),
+          mimeType: file.mime_type,
+          order: file.page_order,
+        })),
+      }
+    },
+  }
+  const defaultProvider = {
+    async evaluate(input) {
+      events.push('provider:evaluate')
+      assert.equal(input.assignmentTitle, 'Lực ma sát')
+      return {
+        ...MOCK_PROVIDER_RESULT,
+        missing_content: [...MOCK_PROVIDER_RESULT.missing_content],
+        uncertain_content: [],
+      }
+    },
+  }
   return {
     adminClient,
     events,
     submissionService,
     supabase,
-    service: createAiEvaluationService({ adminClient, submissionService, logger }),
+    service: createAiEvaluationService({
+      adminClient,
+      submissionService,
+      inputService: inputService ?? defaultInputService,
+      provider: provider ?? defaultProvider,
+      logger,
+    }),
   }
 }
 
@@ -157,7 +219,7 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     ],
   })
 
-  const result = await context.service.runMockEvaluation(
+  const result = await context.service.runEvaluation(
     teacherAuth(context.supabase),
     submissionIds[0],
   )
@@ -170,7 +232,13 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     confidence: 0.84,
     suggested_status: 'REQUIRES_TEACHER_REVIEW',
     missing_content: ['Bổ sung phần kết luận.'],
-    feedback_draft: MOCK_AI_EVALUATION.feedback_draft,
+    feedback_draft: MOCK_PROVIDER_RESULT.feedback_draft,
+    provider: 'mock',
+    prompt_version: 'handwriting-v1',
+    latency_ms: 0,
+    reference_transcription: 'Bản chép mô phỏng từ bài mẫu.',
+    student_transcription: 'Bản chép mô phỏng từ bài nộp.',
+    uncertain_content: [],
     model_name: 'educraft-mock-evaluator',
     model_version: '1.0',
     created_at: savedEvaluation.created_at,
@@ -178,7 +246,9 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
   assert.deepEqual(context.events, [
     'authorize-submission',
     'user:ai_evaluations:read',
+    'load-evaluation-input',
     'admin:submissions:update',
+    'provider:evaluate',
     'admin:ai_evaluations:upsert',
     'admin:submissions:update',
   ])
@@ -195,9 +265,15 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     confidence: 0.84,
     suggested_status: 'REQUIRES_TEACHER_REVIEW',
     missing_content: ['Bổ sung phần kết luận.'],
-    feedback_draft: MOCK_AI_EVALUATION.feedback_draft,
+    feedback_draft: MOCK_PROVIDER_RESULT.feedback_draft,
     model_name: 'educraft-mock-evaluator',
     model_version: '1.0',
+    provider: 'mock',
+    prompt_version: 'handwriting-v1',
+    latency_ms: 0,
+    reference_transcription: 'Bản chép mô phỏng từ bài mẫu.',
+    student_transcription: 'Bản chép mô phỏng từ bài nộp.',
+    uncertain_content: [],
   })
   assert.equal(context.adminClient.calls.some((call) => call.table === 'teacher_reviews'), false)
   assert.equal(JSON.stringify(context.adminClient.calls).includes('FINALIZED'), true)
@@ -214,11 +290,11 @@ test('existing evaluation is returned idempotently without creating a duplicate'
     ],
   })
 
-  const first = await context.service.runMockEvaluation(
+  const first = await context.service.runEvaluation(
     teacherAuth(context.supabase),
     submissionIds[0],
   )
-  const second = await context.service.runMockEvaluation(
+  const second = await context.service.runEvaluation(
     teacherAuth(context.supabase),
     submissionIds[0],
   )
@@ -226,6 +302,81 @@ test('existing evaluation is returned idempotently without creating a duplicate'
   assert.deepEqual(first, second)
   assert.equal(context.adminClient.calls.length, 0)
   assert.equal(context.supabase.calls.length, 2)
+})
+
+test('provider receives only the prepared image input, never auth or profile data', async () => {
+  let receivedInput
+  const context = buildService({
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: evaluation(), error: null },
+      { data: { id: submissionIds[0], status: 'REQUIRES_REVIEW' }, error: null },
+    ],
+    provider: {
+      async evaluate(input) {
+        receivedInput = input
+        return {
+          ...MOCK_PROVIDER_RESULT,
+          missing_content: [...MOCK_PROVIDER_RESULT.missing_content],
+          uncertain_content: [],
+        }
+      },
+    },
+  })
+
+  await context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0])
+
+  assert.equal(Object.hasOwn(receivedInput, 'auth'), false)
+  assert.equal(Object.hasOwn(receivedInput, 'profile'), false)
+  assert.equal(Object.hasOwn(receivedInput, 'student'), false)
+  assert.equal(receivedInput.referenceImages[0].buffer instanceof Buffer, true)
+})
+
+test('provider failure restores a newly processing submission to SUBMITTED', async () => {
+  const context = buildService({
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: { id: submissionIds[0], status: 'SUBMITTED' }, error: null },
+    ],
+    provider: {
+      async evaluate() {
+        throw new AppError(502, 'AI_PROVIDER_FAILED', 'Dịch vụ AI tạm thời không thể xử lý ảnh.')
+      },
+    },
+  })
+
+  await assert.rejects(
+    context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0]),
+    (error) => error.code === 'AI_PROVIDER_FAILED',
+  )
+  assert.deepEqual(
+    context.adminClient.calls.filter((call) => call.table === 'submissions').map((call) => call.value),
+    [{ status: 'PROCESSING' }, { status: 'SUBMITTED' }],
+  )
+  assert.equal(context.adminClient.calls.some((call) => call.table === 'ai_evaluations'), false)
+})
+
+test('invalid provider output is rejected before evaluation persistence', async () => {
+  const context = buildService({
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: { id: submissionIds[0], status: 'SUBMITTED' }, error: null },
+    ],
+    provider: {
+      async evaluate() {
+        return { coverage_score: 101 }
+      },
+    },
+  })
+
+  await assert.rejects(
+    context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0]),
+    (error) => error.code === 'AI_PROVIDER_INVALID_RESPONSE',
+  )
+  assert.equal(context.adminClient.calls.some((call) => call.table === 'ai_evaluations'), false)
 })
 
 test('assigned teacher reads an existing suggestion through user-scoped Supabase', async () => {
@@ -253,7 +404,7 @@ test('unassigned teacher is rejected before user AI reads or admin persistence',
   const context = buildService({ submissionError: forbidden })
 
   await assert.rejects(
-    context.service.runMockEvaluation(teacherAuth(context.supabase), submissionIds[0]),
+    context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0]),
     forbidden,
   )
   assert.deepEqual(context.events, ['authorize-submission'])
@@ -265,7 +416,7 @@ test('service rejects a Student before authorization or persistence', async () =
   const context = buildService()
 
   await assert.rejects(
-    context.service.runMockEvaluation(
+    context.service.runEvaluation(
       teacherAuth(context.supabase, 'STUDENT'),
       submissionIds[0],
     ),
@@ -283,7 +434,7 @@ test('FINALIZED and unsupported submission states cannot be changed', async () =
     const context = buildService({ submissionStatuses: [status] })
 
     await assert.rejects(
-      context.service.runMockEvaluation(teacherAuth(context.supabase), submissionIds[0]),
+      context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0]),
       (error) => error.status === 409 && error.code === code,
     )
     assert.equal(context.supabase.calls.length, 0)
@@ -309,7 +460,7 @@ test('attempt evaluations remain scoped to each requested submission ID', async 
   })
 
   for (const submissionId of submissionIds) {
-    await context.service.runMockEvaluation(teacherAuth(context.supabase), submissionId)
+    await context.service.runEvaluation(teacherAuth(context.supabase), submissionId)
   }
 
   const upserts = context.adminClient.calls.filter((call) => call.operation === 'upsert')
@@ -335,7 +486,7 @@ test('evaluation persistence failure restores SUBMITTED and never reaches review
   })
 
   await assert.rejects(
-    context.service.runMockEvaluation(teacherAuth(context.supabase), submissionIds[0]),
+    context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0]),
     (error) => error.code === 'AI_EVALUATION_SAVE_FAILED'
       && !error.message.includes('private'),
   )
@@ -362,11 +513,11 @@ test('status recovery failure is safely logged and explicitly surfaced', async (
   })
 
   await assert.rejects(
-    context.service.runMockEvaluation(teacherAuth(context.supabase), submissionIds[0]),
+    context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0]),
     (error) => error.code === 'AI_EVALUATION_ROLLBACK_FAILED',
   )
   assert.deepEqual(logger.entries, [{
-    event: 'mock_ai_status_recovery_failed',
+    event: 'ai_evaluation_status_recovery_failed',
     submissionId: submissionIds[0],
     errorCode: 'AI_STATUS_UPDATE_FAILED',
   }])
@@ -384,7 +535,7 @@ test('final status failure leaves a saved evaluation in retriable PROCESSING sta
   })
 
   await assert.rejects(
-    context.service.runMockEvaluation(teacherAuth(context.supabase), submissionIds[0]),
+    context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0]),
     (error) => error.code === 'AI_STATUS_UPDATE_FAILED'
       && !error.message.includes('private'),
   )

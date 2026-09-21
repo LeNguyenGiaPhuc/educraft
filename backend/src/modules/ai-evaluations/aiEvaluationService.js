@@ -1,4 +1,5 @@
 import { AppError } from '../../common/errors.js'
+import { parseProviderResult } from './aiEvaluationSchema.js'
 
 const AI_EVALUATION_COLUMNS = [
   'id',
@@ -8,20 +9,18 @@ const AI_EVALUATION_COLUMNS = [
   'suggested_status',
   'missing_content',
   'feedback_draft',
+  'provider',
+  'prompt_version',
+  'latency_ms',
+  'reference_transcription',
+  'student_transcription',
+  'uncertain_content',
   'model_name',
   'model_version',
   'created_at',
 ].join(',')
 
-export const MOCK_AI_EVALUATION = Object.freeze({
-  coverage_score: 82,
-  confidence: 0.84,
-  suggested_status: 'REQUIRES_TEACHER_REVIEW',
-  missing_content: Object.freeze(['Bổ sung phần kết luận.']),
-  feedback_draft: 'Đánh giá mô phỏng: bài ghi đủ ý chính, cần giáo viên xem lại phần kết luận.',
-  model_name: 'educraft-mock-evaluator',
-  model_version: '1.0',
-})
+const EVALUATABLE_STATUSES = new Set(['SUBMITTED', 'PROCESSING', 'REQUIRES_REVIEW'])
 
 function requireTeacherContext(auth) {
   if (
@@ -47,30 +46,25 @@ function projectEvaluation(evaluation) {
     coverage_score: evaluation.coverage_score,
     confidence: evaluation.confidence,
     suggested_status: evaluation.suggested_status,
-    missing_content: evaluation.missing_content,
+    missing_content: evaluation.missing_content ?? [],
     feedback_draft: evaluation.feedback_draft,
+    provider: evaluation.provider ?? null,
+    prompt_version: evaluation.prompt_version ?? null,
+    latency_ms: evaluation.latency_ms ?? null,
+    reference_transcription: evaluation.reference_transcription ?? null,
+    student_transcription: evaluation.student_transcription ?? null,
+    uncertain_content: evaluation.uncertain_content ?? [],
     model_name: evaluation.model_name,
     model_version: evaluation.model_version,
     created_at: evaluation.created_at,
   }
 }
 
-function mockEvaluationFor(submissionId) {
-  return {
-    submission_id: submissionId,
-    coverage_score: MOCK_AI_EVALUATION.coverage_score,
-    confidence: MOCK_AI_EVALUATION.confidence,
-    suggested_status: MOCK_AI_EVALUATION.suggested_status,
-    missing_content: [...MOCK_AI_EVALUATION.missing_content],
-    feedback_draft: MOCK_AI_EVALUATION.feedback_draft,
-    model_name: MOCK_AI_EVALUATION.model_name,
-    model_version: MOCK_AI_EVALUATION.model_version,
-  }
-}
-
 export function createAiEvaluationService({
   adminClient,
   submissionService,
+  inputService,
+  provider,
   logger = console,
 }) {
   async function authorizeTeacher(auth, submissionId) {
@@ -89,14 +83,14 @@ export function createAiEvaluationService({
     } catch {
       throw safeDatabaseError(
         'AI_EVALUATION_READ_FAILED',
-        'Không thể đọc đề xuất đánh giá mô phỏng.',
+        'Không thể đọc đề xuất đánh giá.',
       )
     }
 
     if (result.error) {
       throw safeDatabaseError(
         'AI_EVALUATION_READ_FAILED',
-        'Không thể đọc đề xuất đánh giá mô phỏng.',
+        'Không thể đọc đề xuất đánh giá.',
       )
     }
 
@@ -117,14 +111,14 @@ export function createAiEvaluationService({
     } catch {
       throw safeDatabaseError(
         'AI_STATUS_UPDATE_FAILED',
-        'Không thể cập nhật trạng thái xử lý mô phỏng.',
+        'Không thể cập nhật trạng thái đánh giá.',
       )
     }
 
     if (result.error) {
       throw safeDatabaseError(
         'AI_STATUS_UPDATE_FAILED',
-        'Không thể cập nhật trạng thái xử lý mô phỏng.',
+        'Không thể cập nhật trạng thái đánh giá.',
       )
     }
     if (!result.data) {
@@ -138,25 +132,31 @@ export function createAiEvaluationService({
     return result.data
   }
 
-  async function persistMockEvaluation(submissionId) {
+  async function persistEvaluation(submissionId, providerResult) {
+    const normalized = parseProviderResult(providerResult)
+    const value = {
+      submission_id: submissionId,
+      ...normalized,
+    }
+
     let result
     try {
       result = await adminClient
         .from('ai_evaluations')
-        .upsert(mockEvaluationFor(submissionId), { onConflict: 'submission_id' })
+        .upsert(value, { onConflict: 'submission_id' })
         .select(AI_EVALUATION_COLUMNS)
         .single()
     } catch {
       throw safeDatabaseError(
         'AI_EVALUATION_SAVE_FAILED',
-        'Không thể lưu đề xuất đánh giá mô phỏng.',
+        'Không thể lưu đề xuất đánh giá.',
       )
     }
 
     if (result.error || !result.data) {
       throw safeDatabaseError(
         'AI_EVALUATION_SAVE_FAILED',
-        'Không thể lưu đề xuất đánh giá mô phỏng.',
+        'Không thể lưu đề xuất đánh giá.',
       )
     }
 
@@ -168,20 +168,20 @@ export function createAiEvaluationService({
       await updateSubmissionStatus(submissionId, 'PROCESSING', 'SUBMITTED')
     } catch (error) {
       logger.error({
-        event: 'mock_ai_status_recovery_failed',
+        event: 'ai_evaluation_status_recovery_failed',
         submissionId,
         errorCode: error?.code ?? 'UNKNOWN_RECOVERY_ERROR',
       })
       throw new AppError(
         500,
         'AI_EVALUATION_ROLLBACK_FAILED',
-        'Không thể khôi phục trạng thái sau khi đánh giá mô phỏng thất bại.',
+        'Không thể khôi phục trạng thái sau khi đánh giá thất bại.',
       )
     }
   }
 
   return {
-    async runMockEvaluation(auth, submissionId) {
+    async runEvaluation(auth, submissionId) {
       const { supabase } = requireTeacherContext(auth)
       const submission = await authorizeTeacher(auth, submissionId)
 
@@ -192,11 +192,11 @@ export function createAiEvaluationService({
           'Lượt nộp bài đã được giáo viên chốt kết quả.',
         )
       }
-      if (!['SUBMITTED', 'PROCESSING', 'REQUIRES_REVIEW'].includes(submission.status)) {
+      if (!EVALUATABLE_STATUSES.has(submission.status)) {
         throw new AppError(
           409,
           'AI_EVALUATION_STATE_INVALID',
-          'Trạng thái lượt nộp bài không cho phép đánh giá mô phỏng.',
+          'Trạng thái lượt nộp bài không cho phép đánh giá.',
         )
       }
 
@@ -225,15 +225,20 @@ export function createAiEvaluationService({
         )
       }
 
+      const input = await inputService.loadEvaluationInput(auth, submission)
+      let transitionedToProcessing = false
+
       if (submission.status === 'SUBMITTED') {
         await updateSubmissionStatus(submissionId, 'SUBMITTED', 'PROCESSING')
+        transitionedToProcessing = true
       }
 
       let evaluation
       try {
-        evaluation = await persistMockEvaluation(submissionId)
+        const providerResult = await provider.evaluate(input)
+        evaluation = await persistEvaluation(submissionId, providerResult)
       } catch (error) {
-        if (submission.status === 'SUBMITTED') {
+        if (transitionedToProcessing) {
           await recoverSubmittedStatus(submissionId)
         }
         throw error
@@ -257,7 +262,7 @@ export function createAiEvaluationService({
         throw new AppError(
           404,
           'AI_EVALUATION_NOT_FOUND',
-          'Chưa có đề xuất đánh giá mô phỏng cho lượt nộp bài này.',
+          'Chưa có đề xuất đánh giá cho lượt nộp bài này.',
         )
       }
 

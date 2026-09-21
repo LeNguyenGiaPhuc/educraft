@@ -34,7 +34,7 @@ function unauthenticated(_request, _response, next) {
 
 function createService(overrides = {}) {
   return {
-    async runMockEvaluation() {
+    async runEvaluation() {
       return {
         submission_id: submissionId,
         submission_status: 'REQUIRES_REVIEW',
@@ -59,7 +59,7 @@ function buildApp({ service = createService(), authenticate = authenticatedAs() 
   })
 }
 
-test('assigned teacher can trigger and read a mock evaluation', async () => {
+test('assigned teacher can trigger and read an AI evaluation', async () => {
   const created = await request(buildApp())
     .post(`/api/submissions/${submissionId}/ai-evaluation`)
     .set('Origin', frontendOrigin)
@@ -105,7 +105,7 @@ test('AI routes validate the submission UUID', async () => {
 test('request-provided identities are not passed to the AI service', async () => {
   const calls = []
   const service = createService({
-    async runMockEvaluation(...args) {
+    async runEvaluation(...args) {
       calls.push(['create', ...args])
       return { submission_id: submissionId, evaluation }
     },
@@ -137,7 +137,7 @@ test('request-provided identities are not passed to the AI service', async () =>
 test('AI service failures use the shared safe error response', async () => {
   const safeFailure = await request(buildApp({
     service: createService({
-      async runMockEvaluation() {
+      async runEvaluation() {
         throw new AppError(500, 'AI_EVALUATION_SAVE_FAILED', 'Không thể lưu đề xuất.')
       },
     }),

@@ -84,6 +84,85 @@ begin
 end;
 $$;
 
+do $$
+declare
+  missing_columns text;
+begin
+  select string_agg(expected.column_name, ', ' order by expected.column_name)
+  into missing_columns
+  from unnest(array[
+    'provider',
+    'prompt_version',
+    'latency_ms',
+    'reference_transcription',
+    'student_transcription',
+    'uncertain_content'
+  ]) as expected(column_name)
+  where not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'ai_evaluations'
+      and column_name = expected.column_name
+  );
+
+  if missing_columns is not null then
+    raise exception 'Missing AI evaluation columns: %', missing_columns;
+  end if;
+end;
+$$;
+
+do $$
+declare
+  missing_constraints text;
+begin
+  select string_agg(expected.constraint_name, ', ' order by expected.constraint_name)
+  into missing_constraints
+  from unnest(array[
+    'ai_evaluations_latency_nonnegative_check',
+    'ai_evaluations_uncertain_content_array_check'
+  ]) as expected(constraint_name)
+  where not exists (
+    select 1
+    from pg_constraint
+    join pg_class on pg_class.oid = pg_constraint.conrelid
+    join pg_namespace on pg_namespace.oid = pg_class.relnamespace
+    where pg_namespace.nspname = 'public'
+      and pg_class.relname = 'ai_evaluations'
+      and pg_constraint.conname = expected.constraint_name
+  );
+
+  if missing_constraints is not null then
+    raise exception 'Missing AI evaluation constraints: %', missing_constraints;
+  end if;
+end;
+$$;
+
+do $$
+declare
+  unsafe_grants text;
+begin
+  select string_agg(expected.role_name || ':' || expected.privilege_type, ', ' order by expected.role_name, expected.privilege_type)
+  into unsafe_grants
+  from (
+    values
+      ('anon', 'INSERT'),
+      ('anon', 'UPDATE'),
+      ('authenticated', 'INSERT'),
+      ('authenticated', 'UPDATE')
+  ) as expected(role_name, privilege_type)
+  where has_table_privilege(
+    expected.role_name,
+    'public.ai_evaluations',
+    expected.privilege_type
+  );
+
+  if unsafe_grants is not null then
+    raise exception 'Unsafe direct AI evaluation grants: %', unsafe_grants;
+  end if;
+end;
+$$;
+
 select
   'EduCraft initial schema is valid' as result,
   count(*) as table_count
