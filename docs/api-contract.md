@@ -67,7 +67,7 @@ Errors use:
 | Account status | `PENDING`, `ACTIVE`, `LOCKED` |
 | Assignment status | `DRAFT`, `OPEN`, `CLOSED` |
 | Submission status | `SUBMITTED`, `PROCESSING`, `REQUIRES_REVIEW`, `FINALIZED` |
-| Mock AI suggested status | `COMPLETED`, `NEEDS_COMPLETION`, `REQUIRES_TEACHER_REVIEW` |
+| AI suggested status | `COMPLETED`, `NEEDS_COMPLETION`, `REQUIRES_TEACHER_REVIEW` |
 | Final Teacher status | `COMPLETED`, `NEEDS_COMPLETION` |
 
 All date-time values are RFC 3339 timestamps. Assignment `due_at` input must
@@ -523,7 +523,7 @@ This route accepts an authenticated `STUDENT` or `TEACHER`:
   currently assigned to that Teacher. The Teacher receives the Teacher
   representation described above.
 
-## Mock AI evaluation
+## Teacher AI suggestion
 
 ```http
 POST /api/submissions/:submissionId/ai-evaluation
@@ -531,8 +531,10 @@ GET /api/submissions/:submissionId/ai-evaluation
 ```
 
 Both routes require an authenticated `TEACHER` currently assigned to the
-submission's class. `POST` runs the deterministic mock evaluation workflow and
-returns the resulting submission status and evaluation:
+submission's class. The frontend performs `GET` first and only sends `POST`
+after the Teacher explicitly clicks the AI-analysis button. `POST` is
+idempotent for one submission attempt, never finalizes a review, and returns a
+suggestion for Teacher review:
 
 ```json
 {
@@ -546,7 +548,13 @@ returns the resulting submission status and evaluation:
       "confidence": 0.84,
       "suggested_status": "REQUIRES_TEACHER_REVIEW",
       "missing_content": ["Bổ sung phần kết luận."],
-      "feedback_draft": "Đánh giá mô phỏng: bài ghi đủ ý chính, cần giáo viên xem lại phần kết luận.",
+      "feedback_draft": "Bài ghi đủ ý chính nhưng cần bổ sung phần kết luận.",
+      "provider": "mock",
+      "prompt_version": "handwriting-v1",
+      "latency_ms": 0,
+      "reference_transcription": "Bản chép từ bài mẫu.",
+      "student_transcription": "Bản chép từ bài nộp.",
+      "uncertain_content": [],
       "model_name": "educraft-mock-evaluator",
       "model_version": "1.0",
       "created_at": "2026-09-14T09:45:00Z"
@@ -555,11 +563,53 @@ returns the resulting submission status and evaluation:
 }
 ```
 
-`GET` returns the evaluation object directly in `data`. The evaluation is an
-internal mock suggestion for Teacher review. It never finalizes a submission or
-sets the Teacher's final result. Students never receive coverage, confidence,
-suggested status, missing-content, feedback-draft, or model fields. The AI
-workflow cannot modify a `FINALIZED` submission.
+`GET` returns the evaluation object directly in `data`. `provider` is `mock`
+in the default deterministic mode or `gemini` when the backend is configured
+for Gemini. `reference_transcription` and `student_transcription` are the
+validated text extracted from the images. `uncertain_content` lists a source
+(`reference` or `submission`), page, text, and reason whenever the model could
+not confidently read a segment. A provider suggestion is never a Teacher
+decision; it cannot write `teacher_reviews` or change a submission to
+`FINALIZED`.
+
+The private reference and submission images are downloaded by the backend only
+after the Teacher/class authorization check. The browser never receives a
+Gemini key and never calls Gemini directly. Students never receive coverage,
+confidence, suggested status, missing-content, transcriptions, uncertainty, or
+model fields through the Student submission projections.
+
+The backend accepts these configuration variables:
+
+```dotenv
+AI_PROVIDER=mock
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.8-flash
+AI_TIMEOUT_MS=30000
+AI_MAX_REFERENCE_IMAGES=4
+AI_MAX_TOTAL_BYTES=15728640
+```
+
+`AI_PROVIDER=mock` requires no key or network access. `AI_PROVIDER=gemini`
+requires `GEMINI_API_KEY`; malformed model output is rejected before the
+database write. The input loader requires at least one reference image and one
+submission image, limits references to four and the combined payload to 15
+MiB, and uses these safe errors:
+
+| Code | Meaning |
+| --- | --- |
+| `AI_PROVIDER_UNAVAILABLE` | Gemini mode was selected without a usable provider configuration. |
+| `AI_REFERENCE_REQUIRED` | The assignment has no authorized reference image. |
+| `AI_SUBMISSION_IMAGE_REQUIRED` | The selected submission has no image file. |
+| `AI_INPUT_LIMIT_EXCEEDED` | Reference count or combined image bytes exceed the configured limit. |
+| `AI_INPUT_READ_FAILED` | A private Storage object could not be read. |
+| `AI_PROVIDER_FAILED` | Gemini timed out or the SDK request failed. |
+| `AI_PROVIDER_INVALID_RESPONSE` | Provider JSON failed the strict evaluation schema. |
+
+When provider or persistence work fails after a submission enters
+`PROCESSING`, the backend attempts to restore `SUBMITTED`; finalization errors
+leave the saved suggestion retriable in `PROCESSING`. The Teacher can always
+continue manual review, and the sentence `Kết quả cuối cùng do giáo viên quyết định.`
+is shown beside the finalization form.
 
 ## Teacher finalization
 
