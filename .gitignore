@@ -142,10 +142,14 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
-# Superpowers
-docs/superpowers/
-.superpowers/   
+# Superpowers / AI tooling
+.superpowers/
+.impeccable/
+
+# Local documentation
+docs/
 
 # AI readiness lab evidence and local images
 backend/ai-readiness-lab/fixtures/
 backend/ai-readiness-lab/outputs/
+
