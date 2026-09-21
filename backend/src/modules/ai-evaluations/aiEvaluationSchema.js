@@ -17,6 +17,11 @@ const transcriptionSchema = z.object({
   uncertain_content: z.array(uncertainContentSchema).max(50),
 }).strict()
 
+const singleImageTranscriptionSchema = z.object({
+  transcription: z.string().trim().min(1).max(12000),
+  uncertain_content: z.array(uncertainContentSchema).max(50),
+}).strict()
+
 const evaluationSuggestionSchema = z.object({
   coverage_score: z.number().min(0).max(100),
   confidence: z.number().min(0).max(1),
@@ -30,7 +35,7 @@ const evaluationSuggestionSchema = z.object({
 }).strict()
 
 export const providerResultSchema = transcriptionSchema.merge(evaluationSuggestionSchema).extend({
-  provider: z.enum(['mock', 'gemini']),
+  provider: z.enum(['mock', 'gemini', 'ollama']),
   model_name: z.string().trim().min(1).max(200),
   model_version: z.string().trim().min(1).max(200),
   prompt_version: z.string().trim().min(1).max(100),
@@ -59,6 +64,16 @@ export const transcriptionJsonSchema = {
     },
   },
   required: ['reference_transcription', 'student_transcription', 'uncertain_content'],
+}
+
+export const singleImageTranscriptionJsonSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    transcription: { type: 'string' },
+    uncertain_content: transcriptionJsonSchema.properties.uncertain_content,
+  },
+  required: ['transcription', 'uncertain_content'],
 }
 
 export const evaluationSuggestionJsonSchema = {
@@ -101,6 +116,19 @@ export function parseProviderResult(value) {
 
 export function parseTranscriptionResult(value) {
   const result = transcriptionSchema.safeParse(value)
+  if (!result.success) {
+    throw new AppError(
+      502,
+      'AI_PROVIDER_INVALID_RESPONSE',
+      'Dịch vụ AI trả về bản chép không hợp lệ.',
+    )
+  }
+
+  return result.data
+}
+
+export function parseSingleImageTranscription(value) {
+  const result = singleImageTranscriptionSchema.safeParse(value)
   if (!result.success) {
     throw new AppError(
       502,

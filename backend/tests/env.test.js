@@ -19,6 +19,10 @@ test('loadEnv returns normalized config', () => {
   assert.equal(config.NODE_ENV, 'test')
   assert.equal(config.AI_PROVIDER, 'mock')
   assert.equal(config.GEMINI_MODEL, 'gemini-3.8-flash')
+  assert.equal(config.OLLAMA_BASE_URL, 'http://127.0.0.1:11434')
+  assert.equal(config.OLLAMA_MODEL, 'qwen3-vl:2b')
+  assert.equal(config.OLLAMA_NUM_CTX, 4096)
+  assert.equal(config.OLLAMA_NUM_PREDICT, 512)
   assert.equal(config.AI_TIMEOUT_MS, 30000)
   assert.equal(config.AI_MAX_REFERENCE_IMAGES, 4)
   assert.equal(config.AI_MAX_TOTAL_BYTES, 15 * 1024 * 1024)
@@ -51,4 +55,16 @@ test('loadEnv treats an empty Gemini key as absent in mock mode', () => {
   const config = loadEnv({ ...validEnv, GEMINI_API_KEY: '' })
 
   assert.equal(config.GEMINI_API_KEY, undefined)
+})
+
+test('loadEnv accepts Ollama without a Gemini key', () => {
+  const config = loadEnv({
+    ...validEnv,
+    AI_PROVIDER: 'ollama',
+    OLLAMA_BASE_URL: 'http://127.0.0.1:11434',
+    OLLAMA_MODEL: 'qwen3-vl:2b',
+  })
+
+  assert.equal(config.AI_PROVIDER, 'ollama')
+  assert.equal(config.OLLAMA_MODEL, 'qwen3-vl:2b')
 })

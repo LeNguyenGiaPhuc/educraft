@@ -14,7 +14,7 @@ Các luồng chính đã kết nối frontend với backend:
 - Student xem lớp/bài kiểm tra được phép truy cập, nộp ảnh JPG/JPEG/PNG, xem lịch sử nộp và kết quả đã chốt.
 - File bài mẫu và bài nộp được lưu qua Supabase Storage với signed URL.
 
-AI evaluator mặc định là evaluator mô phỏng deterministic để chạy demo không cần mạng. Có thể bật Gemini cho ảnh synthetic/anonymized bằng `AI_PROVIDER=gemini`; AI chỉ đưa ra gợi ý, không tự chốt kết quả giáo viên.
+AI evaluator mặc định là evaluator mô phỏng deterministic để chạy demo không cần mạng. Có thể dùng Ollama local với `qwen3-vl:2b` bằng `AI_PROVIDER=ollama`, hoặc bật Gemini cho ảnh synthetic/anonymized bằng `AI_PROVIDER=gemini`; AI chỉ đưa ra gợi ý, không tự chốt kết quả giáo viên.
 
 ## Công nghệ và cấu trúc
 
@@ -51,6 +51,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 AI_PROVIDER=mock
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-3.8-flash
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3-vl:2b
+OLLAMA_NUM_CTX=4096
+OLLAMA_NUM_PREDICT=512
 AI_TIMEOUT_MS=30000
 AI_MAX_REFERENCE_IMAGES=4
 AI_MAX_TOTAL_BYTES=15728640
@@ -115,7 +119,16 @@ npm run ai:lab
 
 Lab tạo 10 JSON (5 case × 2 temperature) và `report.md` dưới `backend/ai-readiness-lab/outputs/<timestamp>/`. Nhóm phải mở đủ output, ghi chất lượng và failure/hallucination notes; không commit key, ảnh thật hoặc output chưa được rà soát. Chưa có key thì lệnh dừng trước khi tạo output.
 
-Để quay về demo deterministic sau khi thử Gemini:
+Để chạy demo AI local bằng Ollama, cài Ollama, bảo đảm model `qwen3-vl:2b` đã có và Ollama đang chạy, sau đó dùng:
+
+```dotenv
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen3-vl:2b
+AI_TIMEOUT_MS=60000
+```
+
+Để quay về demo deterministic sau khi thử AI:
 
 ```dotenv
 AI_PROVIDER=mock

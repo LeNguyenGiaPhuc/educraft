@@ -48,6 +48,15 @@ function responseText(response) {
   throw invalidProviderResponse()
 }
 
+function cleanJsonText(raw) {
+  if (typeof raw !== 'string') return ''
+  return raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim()
+}
+
 function imagePart(image) {
   return {
     type: 'image',
@@ -77,7 +86,7 @@ function responseFormat(schema) {
 function parseJsonResponse(response, parser) {
   let value
   try {
-    value = JSON.parse(responseText(response))
+    value = JSON.parse(cleanJsonText(responseText(response)))
   } catch {
     throw invalidProviderResponse()
   }
@@ -87,7 +96,7 @@ function parseJsonResponse(response, parser) {
 
 export function createGeminiAiProvider({
   apiKey,
-  model = 'gemini-3.8-flash',
+  model = 'gemini-3.5-flash-lite',
   timeoutMs = 30000,
   temperature = 0.1,
   client,
@@ -111,6 +120,7 @@ export function createGeminiAiProvider({
       )
     } catch (error) {
       if (error instanceof AppError) throw error
+      console.error('[Gemini AI Provider Error]', error?.status ?? '', error?.message ?? error)
       throw providerFailed()
     }
   }

@@ -9,6 +9,7 @@ import { createAiEvaluationInputService } from './modules/ai-evaluations/aiEvalu
 import { createAiEvaluationService } from './modules/ai-evaluations/aiEvaluationService.js'
 import { createGeminiAiProvider } from './modules/ai-evaluations/providers/geminiAiProvider.js'
 import { createMockAiProvider } from './modules/ai-evaluations/providers/mockAiProvider.js'
+import { createOllamaAiProvider } from './modules/ai-evaluations/providers/ollamaAiProvider.js'
 import { createAssignmentController } from './modules/assignments/assignmentController.js'
 import { createAssignmentRouter } from './modules/assignments/assignmentRoutes.js'
 import { createAssignmentService } from './modules/assignments/assignmentService.js'
@@ -39,6 +40,17 @@ export function createAiProvider(config) {
       apiKey: config.GEMINI_API_KEY,
       model: config.GEMINI_MODEL,
       timeoutMs: config.AI_TIMEOUT_MS,
+    })
+  }
+
+  if (config.AI_PROVIDER === 'ollama') {
+    return createOllamaAiProvider({
+      baseUrl: config.OLLAMA_BASE_URL,
+      model: config.OLLAMA_MODEL,
+      timeoutMs: config.AI_TIMEOUT_MS,
+      numCtx: config.OLLAMA_NUM_CTX,
+      numPredict: config.OLLAMA_NUM_PREDICT,
+      fetchImpl: config.OLLAMA_FETCH_IMPL,
     })
   }
 
