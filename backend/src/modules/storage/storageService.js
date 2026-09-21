@@ -152,6 +152,54 @@ export function createStorageService({ adminClient, createFileId = randomUUID } 
     return result.data.signedUrl
   }
 
+  async function downloadPrivateImage(client, bucket, path) {
+    const storageClient = requireStorageClient(client)
+    const validatedBucket = validateBucket(bucket)
+    const validatedPath = validateObjectPath(path)
+
+    let result
+    try {
+      result = await storageClient.storage
+        .from(validatedBucket)
+        .download(validatedPath)
+    } catch {
+      throw new AppError(
+        502,
+        'AI_INPUT_READ_FAILED',
+        'Không thể đọc file ảnh để đánh giá.',
+      )
+    }
+
+    if (result?.error || !result?.data || typeof result.data.arrayBuffer !== 'function') {
+      throw new AppError(
+        502,
+        'AI_INPUT_READ_FAILED',
+        'Không thể đọc file ảnh để đánh giá.',
+      )
+    }
+
+    let buffer
+    try {
+      buffer = Buffer.from(await result.data.arrayBuffer())
+    } catch {
+      throw new AppError(
+        502,
+        'AI_INPUT_READ_FAILED',
+        'Không thể đọc file ảnh để đánh giá.',
+      )
+    }
+
+    if (buffer.length === 0) {
+      throw new AppError(
+        502,
+        'AI_INPUT_READ_FAILED',
+        'Không thể đọc file ảnh để đánh giá.',
+      )
+    }
+
+    return buffer
+  }
+
   return {
     async uploadReferenceFile({ client, assignmentId, file, ...input }) {
       const details = buildUpload(
@@ -183,6 +231,10 @@ export function createStorageService({ adminClient, createFileId = randomUUID } 
 
     async createSignedUrl({ client, bucket, path }) {
       return createSignedUrl(client, bucket, path)
+    },
+
+    async downloadPrivateImage({ client, bucket, path }) {
+      return downloadPrivateImage(client, bucket, path)
     },
 
     async rollbackUploadedFile({ bucket, path }) {

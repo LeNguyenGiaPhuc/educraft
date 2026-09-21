@@ -25,7 +25,13 @@ function imageFile(mimeType, originalname = 'student note.jpg') {
   }
 }
 
-function createFakeClient({ uploadError = null, removeError = null, signedUrlError = null } = {}) {
+function createFakeClient({
+  uploadError = null,
+  removeError = null,
+  signedUrlError = null,
+  downloadError = null,
+  downloadData = Buffer.from('downloaded image'),
+} = {}) {
   const calls = []
 
   return {
@@ -46,6 +52,13 @@ function createFakeClient({ uploadError = null, removeError = null, signedUrlErr
             return {
               data: signedUrlError ? null : { signedUrl: `https://signed.test/${bucket}/${path}` },
               error: signedUrlError,
+            }
+          },
+          async download(path) {
+            calls.push({ operation: 'download', bucket, path })
+            return {
+              data: downloadError ? null : new Blob([downloadData]),
+              error: downloadError,
             }
           },
         }
@@ -180,6 +193,58 @@ test('private file access returns a short-lived signed URL', async () => {
     path,
     expiresIn: 300,
   })
+})
+
+test('private file download returns an in-memory Buffer for an allowed bucket', async () => {
+  const client = createFakeClient({ downloadData: Buffer.from('image bytes') })
+  const service = buildService()
+  const path = `${submissionId}/${fileId}.webp`
+
+  const result = await service.downloadPrivateImage({
+    client,
+    bucket: STUDENT_SUBMISSIONS_BUCKET,
+    path,
+  })
+
+  assert.deepEqual(result, Buffer.from('image bytes'))
+  assert.deepEqual(client.calls.at(-1), {
+    operation: 'download',
+    bucket: STUDENT_SUBMISSIONS_BUCKET,
+    path,
+  })
+})
+
+test('private file download maps storage failures to a safe AI input error', async () => {
+  const client = createFakeClient({ downloadError: new Error('private provider detail') })
+  const service = buildService()
+
+  await assert.rejects(
+    service.downloadPrivateImage({
+      client,
+      bucket: REFERENCE_MATERIALS_BUCKET,
+      path: `${assignmentId}/${fileId}.jpg`,
+    }),
+    (error) => (
+      error.status === 502
+      && error.code === 'AI_INPUT_READ_FAILED'
+      && !error.message.includes('provider')
+    ),
+  )
+})
+
+test('private file download rejects invalid paths before contacting Storage', async () => {
+  const client = createFakeClient()
+  const service = buildService()
+
+  await assert.rejects(
+    service.downloadPrivateImage({
+      client,
+      bucket: STUDENT_SUBMISSIONS_BUCKET,
+      path: '../../escape.png',
+    }),
+    (error) => error.code === 'INVALID_STORAGE_PATH',
+  )
+  assert.equal(client.calls.length, 0)
 })
 
 test('signed URL failures use a safe storage error', async () => {
