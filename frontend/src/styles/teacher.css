@@ -438,6 +438,110 @@
   background: #f6f8ff;
 }
 
+.teacher-ai-consent {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #c8d8ff;
+  border-radius: var(--radius-sm);
+  background: #f8faff;
+}
+
+.teacher-ai-consent h4 {
+  margin: 4px 0 6px;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.teacher-ai-consent p:not(.state-kicker) {
+  max-width: 620px;
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.teacher-ai-error {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.teacher-ai-error .form-submit-message {
+  flex: 1 1 260px;
+  margin: 0;
+}
+
+.ai-provider-disclosure {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.teacher-ai-transcripts {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.teacher-ai-transcripts details,
+.teacher-ai-uncertainty {
+  border: 1px solid #dfe6f7;
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.teacher-ai-transcripts summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.teacher-ai-transcripts details p {
+  margin: 0;
+  padding: 0 12px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.teacher-ai-uncertainty {
+  margin-top: 10px;
+  padding: 12px;
+}
+
+.teacher-ai-uncertainty h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.teacher-ai-uncertainty p,
+.teacher-ai-uncertainty ul {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.teacher-ai-uncertainty ul {
+  padding-left: 16px;
+}
+
+.teacher-ai-uncertainty li + li {
+  margin-top: 6px;
+}
+
+.teacher-ai-uncertainty li strong,
+.teacher-ai-uncertainty li span {
+  display: block;
+}
+
 .teacher-ai-heading h3 {
   font-size: 16px;
 }

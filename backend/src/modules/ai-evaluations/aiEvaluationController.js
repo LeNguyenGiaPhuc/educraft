@@ -3,7 +3,7 @@ import { sendData } from '../../common/response.js'
 export function createAiEvaluationController({ aiEvaluationService }) {
   return {
     async create(request, response) {
-      const result = await aiEvaluationService.runMockEvaluation(
+      const result = await aiEvaluationService.runEvaluation(
         request.auth,
         request.validated.params.submissionId,
       )

@@ -17,6 +17,11 @@ test('loadEnv returns normalized config', () => {
 
   assert.equal(config.PORT, 3100)
   assert.equal(config.NODE_ENV, 'test')
+  assert.equal(config.AI_PROVIDER, 'mock')
+  assert.equal(config.GEMINI_MODEL, 'gemini-3.8-flash')
+  assert.equal(config.AI_TIMEOUT_MS, 30000)
+  assert.equal(config.AI_MAX_REFERENCE_IMAGES, 4)
+  assert.equal(config.AI_MAX_TOTAL_BYTES, 15 * 1024 * 1024)
 })
 
 test('loadEnv rejects a missing Supabase URL', () => {
@@ -24,4 +29,26 @@ test('loadEnv rejects a missing Supabase URL', () => {
   delete missingUrl.SUPABASE_URL
 
   assert.throws(() => loadEnv(missingUrl), /SUPABASE_URL/)
+})
+
+test('loadEnv requires a Gemini key only when the Gemini provider is enabled', () => {
+  assert.throws(
+    () => loadEnv({ ...validEnv, AI_PROVIDER: 'gemini' }),
+    /GEMINI_API_KEY/,
+  )
+
+  const config = loadEnv({
+    ...validEnv,
+    AI_PROVIDER: 'gemini',
+    GEMINI_API_KEY: 'demo-key',
+  })
+
+  assert.equal(config.AI_PROVIDER, 'gemini')
+  assert.equal(config.GEMINI_API_KEY, 'demo-key')
+})
+
+test('loadEnv treats an empty Gemini key as absent in mock mode', () => {
+  const config = loadEnv({ ...validEnv, GEMINI_API_KEY: '' })
+
+  assert.equal(config.GEMINI_API_KEY, undefined)
 })

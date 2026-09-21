@@ -10,11 +10,11 @@ Các luồng chính đã kết nối frontend với backend:
 - Admin quản lý tài khoản, đặt mật khẩu, khóa/mở khóa tài khoản và xóa khi đủ điều kiện.
 - Admin quản lý lớp, phân công giáo viên, thêm/xóa học sinh và import danh sách Excel.
 - Teacher xem lớp được phân công, tạo/chỉnh sửa/xóa bài kiểm tra và quản lý nhiều bài mẫu.
-- Teacher xem bài nộp theo học sinh và số lần nộp, gọi đánh giá AI, nhập nhận xét và chốt kết quả.
+- Teacher xem bài nộp theo học sinh và số lần nộp, chủ động gọi gợi ý AI, xem bản chép/đoạn chưa chắc chắn, nhập nhận xét và chốt kết quả.
 - Student xem lớp/bài kiểm tra được phép truy cập, nộp ảnh JPG/JPEG/PNG, xem lịch sử nộp và kết quả đã chốt.
 - File bài mẫu và bài nộp được lưu qua Supabase Storage với signed URL.
 
-AI evaluator hiện là evaluator mô phỏng deterministic để phục vụ prototype. Việc kết nối mô hình AI thật và gửi email tự động là phần mở rộng sau MVP.
+AI evaluator mặc định là evaluator mô phỏng deterministic để chạy demo không cần mạng. Có thể bật Gemini cho ảnh synthetic/anonymized bằng `AI_PROVIDER=gemini`; AI chỉ đưa ra gợi ý, không tự chốt kết quả giáo viên.
 
 ## Công nghệ và cấu trúc
 
@@ -48,6 +48,12 @@ FRONTEND_ORIGIN=http://localhost:5173
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+AI_PROVIDER=mock
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.8-flash
+AI_TIMEOUT_MS=30000
+AI_MAX_REFERENCE_IMAGES=4
+AI_MAX_TOTAL_BYTES=15728640
 ```
 
 Kiểm tra backend tại `GET http://localhost:3000/api/health`.
@@ -71,7 +77,7 @@ Mở địa chỉ Vite hiển thị trong terminal, thường là `http://localh
 
 ## Database và Storage
 
-Áp dụng migration theo thứ tự tên file trong `supabase/migrations/`. Có thể chạy bằng Supabase CLI hoặc dán từng migration vào SQL Editor của project nhóm. Sau đó chạy các file kiểm tra trong `supabase/tests/` để xác nhận schema, RLS và storage policy.
+Áp dụng migration theo thứ tự tên file trong `supabase/migrations/`, bao gồm `202609210001_ai_handwriting_evaluation.sql` cho các trường transcription, uncertainty, provider và latency. Có thể chạy bằng Supabase CLI hoặc dán từng migration vào SQL Editor của project nhóm. Sau đó chạy các file kiểm tra trong `supabase/tests/` để xác nhận schema, RLS và storage policy.
 
 Không commit `backend/.env`, service-role key hoặc các thông tin bí mật khác.
 
@@ -90,10 +96,31 @@ npm run lint
 npm run build
 ```
 
-Trạng thái kiểm tra gần nhất trên `main`:
+Trạng thái kiểm tra gần nhất trên branch tính năng:
 
-- Backend: `202/202` test đạt.
-- Frontend: `191/191` test đạt.
+- Backend: `229/229` test đạt.
+- Frontend: `195/195` test đạt.
 - Backend lint, frontend lint và frontend build đều đạt.
+
+## AI readiness lab
+
+Readiness lab không chạm Supabase và chỉ nhận ảnh synthetic/anonymized. Đặt đủ năm ảnh theo `backend/ai-readiness-lab/cases.json`, sau đó chạy:
+
+```powershell
+cd backend
+$env:GEMINI_API_KEY='your-key'
+$env:GEMINI_MODEL='gemini-3.8-flash'
+npm run ai:lab
+```
+
+Lab tạo 10 JSON (5 case × 2 temperature) và `report.md` dưới `backend/ai-readiness-lab/outputs/<timestamp>/`. Nhóm phải mở đủ output, ghi chất lượng và failure/hallucination notes; không commit key, ảnh thật hoặc output chưa được rà soát. Chưa có key thì lệnh dừng trước khi tạo output.
+
+Để quay về demo deterministic sau khi thử Gemini:
+
+```dotenv
+AI_PROVIDER=mock
+```
+
+Sau đó restart backend.
 
 Trước khi bàn giao, vẫn cần chạy smoke test trên Supabase thật cho ba vai trò, upload file thật và các trường hợp bị từ chối quyền truy cập.

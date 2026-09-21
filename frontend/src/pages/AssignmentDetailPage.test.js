@@ -186,3 +186,33 @@ test('selected review panel keeps the Student name and attempt visible', async (
   assert.match(markup, /Nguyen An Binh/)
   assert.match(markup, /student01 · Lần 2/)
 })
+
+test('AI result card discloses provider, transcriptions, and uncertain segments', async () => {
+  const { AiResultCard } = await vite.ssrLoadModule('/src/pages/AssignmentDetailPage.jsx')
+  const evaluation = {
+    provider: 'gemini',
+    coverage_score: 82,
+    confidence: 0.84,
+    suggestedStatus: 'REQUIRES_TEACHER_REVIEW',
+    strengths: ['Độ bao phủ nội dung: 82%'],
+    weaknesses: ['Bổ sung kết luận'],
+    feedbackDraft: 'Cần xem lại phần kết luận.',
+    referenceTranscription: 'Bản chép bài mẫu',
+    studentTranscription: 'Bản chép bài nộp',
+    uncertainContent: [{
+      source: 'submission',
+      page: 2,
+      text: 'ma sát?',
+      reason: 'Nét chữ bị mờ',
+    }],
+  }
+  const markup = renderToStaticMarkup(React.createElement(AiResultCard, { evaluation }))
+
+  assert.match(markup, /Gợi ý AI/)
+  assert.match(markup, /Bản chép bài mẫu/)
+  assert.match(markup, /Bản chép bài nộp/)
+  assert.match(markup, /Không chắc chắn/)
+  assert.match(markup, /Bài nộp · trang 2/)
+  assert.match(markup, /kết quả cuối cùng do giáo viên quyết định/)
+  assert.doesNotMatch(markup, /Kết quả mô phỏng/)
+})

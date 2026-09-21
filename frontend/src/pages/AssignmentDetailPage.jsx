@@ -74,15 +74,25 @@ function mapEvaluation(result = {}) {
   const missingContent = Array.isArray(evaluation.missing_content)
     ? evaluation.missing_content
     : []
+  const uncertainContent = Array.isArray(evaluation.uncertain_content)
+    ? evaluation.uncertain_content
+    : []
 
   return {
     suggestedStatus: evaluation.suggested_status ?? 'REQUIRES_TEACHER_REVIEW',
     confidence: Number(evaluation.confidence ?? 0),
+    coverageScore: Number(evaluation.coverage_score ?? 0),
     strengths: Number.isFinite(Number(evaluation.coverage_score))
       ? [`Độ bao phủ nội dung: ${evaluation.coverage_score}%`]
       : ['Chưa có dữ liệu điểm bao phủ.'],
     weaknesses: missingContent.length > 0 ? missingContent : ['Không có nội dung thiếu được ghi nhận.'],
     feedbackDraft: evaluation.feedback_draft ?? '',
+    provider: evaluation.provider ?? 'mock',
+    modelName: evaluation.model_name ?? '',
+    promptVersion: evaluation.prompt_version ?? '',
+    referenceTranscription: evaluation.reference_transcription ?? '',
+    studentTranscription: evaluation.student_transcription ?? '',
+    uncertainContent,
   }
 }
 
@@ -400,16 +410,20 @@ export function SubmissionList({ submissions, selectedId, onSelect }) {
   )
 }
 
-function AiResultCard({ evaluation }) {
+export function AiResultCard({ evaluation }) {
   return (
     <section className="ai-result-card teacher-ai-card" aria-labelledby="ai-result-title">
       <div className="ai-result-heading teacher-ai-heading">
         <div>
-          <p className="state-kicker">Kết quả mô phỏng</p>
+          <p className="state-kicker">Gợi ý AI</p>
           <h3 id="ai-result-title">AI đề xuất</h3>
         </div>
         <strong>{Math.round(evaluation.confidence * 100)}% tin cậy</strong>
       </div>
+      <p className="ai-provider-disclosure">
+        Đây là gợi ý hỗ trợ giáo viên; kết quả cuối cùng do giáo viên quyết định.
+        {evaluation.provider === 'mock' && ' Bản demo đang dùng dữ liệu mô phỏng.'}
+      </p>
       <div className="ai-score-row teacher-ai-status-row">
         <span>Trạng thái AI đề xuất</span>
         <strong>{finalStatusLabel(evaluation.suggestedStatus)}</strong>
@@ -423,6 +437,31 @@ function AiResultCard({ evaluation }) {
           <h4>Cần cải thiện</h4>
           <ul>{evaluation.weaknesses.map((item) => <li key={item}>{item}</li>)}</ul>
         </div>
+      </div>
+      <div className="ai-transcripts teacher-ai-transcripts">
+        <details>
+          <summary>Bản chép bài mẫu</summary>
+          <p>{evaluation.referenceTranscription || 'Chưa có bản chép bài mẫu.'}</p>
+        </details>
+        <details>
+          <summary>Bản chép bài nộp</summary>
+          <p>{evaluation.studentTranscription || 'Chưa có bản chép bài nộp.'}</p>
+        </details>
+      </div>
+      <div className="ai-uncertainty teacher-ai-uncertainty">
+        <h4>Không chắc chắn</h4>
+        {evaluation.uncertainContent.length === 0 ? (
+          <p>Không ghi nhận đoạn chưa chắc chắn.</p>
+        ) : (
+          <ul>
+            {evaluation.uncertainContent.map((item, index) => (
+              <li key={`${item.source}-${item.page}-${index}`}>
+                <strong>{item.source === 'reference' ? 'Bài mẫu' : 'Bài nộp'} · trang {item.page}</strong>
+                <span>{item.text} — {item.reason}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   )
@@ -451,34 +490,52 @@ export function SubmissionReviewPanel({ submission, onReviewed }) {
   useEffect(() => {
     let isMounted = true
 
-    aiEvaluationService
-      .getEvaluation(submission.id)
-      .catch((error) => {
-        if (error?.status !== 404 && error?.code !== 'AI_EVALUATION_NOT_FOUND') throw error
-        return aiEvaluationService.createEvaluation(submission.id).then((result) => result.evaluation ?? result)
-      })
+    aiEvaluationService.getEvaluation(submission.id)
       .then((result) => {
-        if (isMounted) {
-          const evaluation = mapEvaluation(result)
-          setEvaluationState({ status: 'success', data: evaluation })
-          setForm((current) => ({
-            finalStatus: finalStatusForForm(submission.finalStatus, evaluation.suggestedStatus),
-            feedback: current.feedback || evaluation.feedbackDraft,
-          }))
-        }
+        if (!isMounted) return
+        const evaluation = mapEvaluation(result)
+        setEvaluationState({ status: 'success', data: evaluation })
+        setForm((current) => ({
+          finalStatus: finalStatusForForm(submission.finalStatus, evaluation.suggestedStatus),
+          feedback: current.feedback || evaluation.feedbackDraft,
+        }))
       })
       .catch((error) => {
-        if (isMounted) {
-          setEvaluationState({
-            status: 'error',
-            data: null,
-            message: error?.message ?? 'Chưa có đề xuất AI cho bài nộp này.',
-          })
+        if (!isMounted) return
+        if (error?.status === 404 || error?.code === 'AI_EVALUATION_NOT_FOUND') {
+          setEvaluationState({ status: 'not-started', data: null })
+          return
         }
+        setEvaluationState({
+          status: 'error',
+          data: null,
+          message: error?.message ?? 'Chưa có đề xuất AI cho bài nộp này.',
+        })
       })
 
     return () => { isMounted = false }
   }, [submission.id, submission.finalStatus])
+
+  async function handleRunEvaluation() {
+    if (evaluationState.status === 'loading' || isFinalized) return
+
+    setEvaluationState({ status: 'loading', data: null })
+    try {
+      const result = await aiEvaluationService.createEvaluation(submission.id)
+      const evaluation = mapEvaluation(result)
+      setEvaluationState({ status: 'success', data: evaluation })
+      setForm((current) => ({
+        finalStatus: finalStatusForForm(submission.finalStatus, evaluation.suggestedStatus),
+        feedback: current.feedback || evaluation.feedbackDraft,
+      }))
+    } catch (error) {
+      setEvaluationState({
+        status: 'error',
+        data: null,
+        message: error?.message ?? 'Không thể phân tích bài nộp lúc này. Vui lòng thử lại.',
+      })
+    }
+  }
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -520,6 +577,10 @@ export function SubmissionReviewPanel({ submission, onReviewed }) {
     strengths: ['Chưa có dữ liệu AI.'],
     weaknesses: ['Giáo viên tự xem bài và nhập nhận xét.'],
     feedbackDraft: '',
+    provider: 'mock',
+    referenceTranscription: '',
+    studentTranscription: '',
+    uncertainContent: [],
   }
   const isFinalized = submission.status === 'approved'
 
@@ -542,11 +603,33 @@ export function SubmissionReviewPanel({ submission, onReviewed }) {
         </span>
       </div>
 
-      {evaluationState.status === 'loading' && <p className="form-field-help">Đang tải đề xuất AI...</p>}
-      {evaluationState.status === 'error' && (
-        <div className="form-submit-message form-submit-error" role="alert">{evaluationState.message}</div>
+      {evaluationState.status === 'loading' && (
+        <p className="form-field-help" aria-live="polite">Đang tải đề xuất AI...</p>
       )}
-      <AiResultCard evaluation={evaluation} />
+      {evaluationState.status === 'not-started' && (
+        <div className="ai-consent-panel teacher-ai-consent">
+          <p className="state-kicker">Phân tích tùy chọn</p>
+          <h4>Phân tích bằng AI</h4>
+          <p>
+            Ảnh bài mẫu và bài nộp sẽ được gửi tới dịch vụ AI để tạo bản chép và gợi ý.
+            Không dùng dữ liệu thật trong bản demo.
+          </p>
+          <button className="button button-primary" onClick={handleRunEvaluation} type="button">
+            Phân tích bằng AI
+          </button>
+        </div>
+      )}
+      {evaluationState.status === 'error' && (
+        <div className="ai-error-state teacher-ai-error">
+          <div className="form-submit-message form-submit-error" role="alert">{evaluationState.message}</div>
+          {!isFinalized && (
+            <button className="button button-outline" onClick={handleRunEvaluation} type="button">
+              Thử phân tích lại
+            </button>
+          )}
+        </div>
+      )}
+      {evaluationState.status === 'success' && <AiResultCard evaluation={evaluation} />}
 
       <form className="review-form teacher-review-form" noValidate onSubmit={handleSubmit}>
         <div className="form-fields teacher-fields-grid">
@@ -736,7 +819,7 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
             <span className="detail-card-label teacher-count-label">{detail.submissions.length} bài nộp</span>
           </div>
           <p className="assignment-detail-card-description">
-            Chọn một bài nộp để xem kết quả AI mô phỏng và chốt trạng thái cuối cùng.
+            Chọn một bài nộp để xem gợi ý AI và chốt trạng thái cuối cùng.
           </p>
 
           <SubmissionList onSelect={setSelectedSubmissionId} selectedId={selectedSubmission?.id} submissions={detail.submissions} />
