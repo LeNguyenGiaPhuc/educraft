@@ -5,7 +5,10 @@ import { createAccountRouter } from './modules/accounts/accountRoutes.js'
 import { createAccountService } from './modules/accounts/accountService.js'
 import { createAiEvaluationController } from './modules/ai-evaluations/aiEvaluationController.js'
 import { createAiEvaluationRouter } from './modules/ai-evaluations/aiEvaluationRoutes.js'
+import { createAiEvaluationInputService } from './modules/ai-evaluations/aiEvaluationInputService.js'
 import { createAiEvaluationService } from './modules/ai-evaluations/aiEvaluationService.js'
+import { createGeminiAiProvider } from './modules/ai-evaluations/providers/geminiAiProvider.js'
+import { createMockAiProvider } from './modules/ai-evaluations/providers/mockAiProvider.js'
 import { createAssignmentController } from './modules/assignments/assignmentController.js'
 import { createAssignmentRouter } from './modules/assignments/assignmentRoutes.js'
 import { createAssignmentService } from './modules/assignments/assignmentService.js'
@@ -29,6 +32,18 @@ import { createSubmissionService } from './modules/submissions/submissionService
 import { createStudentDashboardController } from './modules/students/studentDashboardController.js'
 import { createStudentDashboardRouter } from './modules/students/studentDashboardRoutes.js'
 import { createStudentDashboardService } from './modules/students/studentDashboardService.js'
+
+export function createAiProvider(config) {
+  if (config.AI_PROVIDER === 'gemini') {
+    return createGeminiAiProvider({
+      apiKey: config.GEMINI_API_KEY,
+      model: config.GEMINI_MODEL,
+      timeoutMs: config.AI_TIMEOUT_MS,
+    })
+  }
+
+  return createMockAiProvider()
+}
 
 export function createDependencies(config) {
   const gateway = createSupabaseGateway(config)
@@ -89,9 +104,20 @@ export function createDependencies(config) {
     controller: studentController,
     authenticate,
   })
+  const inputService = createAiEvaluationInputService({
+    adminClient: gateway.adminClient,
+    assignmentService,
+    referenceService,
+    storageService,
+    maxReferenceImages: config.AI_MAX_REFERENCE_IMAGES,
+    maxTotalBytes: config.AI_MAX_TOTAL_BYTES,
+  })
+  const provider = createAiProvider(config)
   const aiEvaluationService = createAiEvaluationService({
     adminClient: gateway.adminClient,
     submissionService,
+    inputService,
+    provider,
   })
   const aiEvaluationController = createAiEvaluationController({ aiEvaluationService })
   const aiEvaluationRouter = createAiEvaluationRouter({
