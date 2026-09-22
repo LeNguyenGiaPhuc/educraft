@@ -14,7 +14,7 @@ Các luồng chính đã kết nối frontend với backend:
 - Student xem lớp/bài kiểm tra được phép truy cập, nộp ảnh JPG/JPEG/PNG, xem lịch sử nộp và kết quả đã chốt.
 - File bài mẫu và bài nộp được lưu qua Supabase Storage với signed URL.
 
-AI evaluator mặc định là evaluator mô phỏng deterministic để chạy demo không cần mạng. Có thể dùng Ollama local với `qwen3-vl:2b` bằng `AI_PROVIDER=ollama`, hoặc bật Gemini cho ảnh synthetic/anonymized bằng `AI_PROVIDER=gemini`; AI chỉ đưa ra gợi ý, không tự chốt kết quả giáo viên.
+AI evaluator mặc định dùng Ollama local với `qwen3-vl:2b`. Có thể chuyển sang Gemini bằng `AI_PROVIDER=gemini`; AI chỉ đưa ra gợi ý, không tự chốt kết quả giáo viên.
 
 ## Công nghệ và cấu trúc
 
@@ -22,8 +22,7 @@ AI evaluator mặc định là evaluator mô phỏng deterministic để chạy 
 - `backend/`: Express, Zod, Supabase JS.
 - `supabase/migrations/`: schema, quyền truy cập, function và policy của database/storage.
 - `supabase/tests/`: các truy vấn kiểm tra schema, RLS và storage policy.
-- `docs/api-contract.md`: hợp đồng endpoint giữa frontend và backend.
-- `docs/frontend-workflow.md`: workflow và tiêu chí phân quyền của giao diện.
+- `docs/`: ghi chú local của nhóm, không được commit vào repository.
 
 ## Yêu cầu
 
@@ -48,7 +47,7 @@ FRONTEND_ORIGIN=http://localhost:5173
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-AI_PROVIDER=mock
+AI_PROVIDER=ollama
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-3.8-flash
 OLLAMA_BASE_URL=http://127.0.0.1:11434
@@ -100,24 +99,11 @@ npm run lint
 npm run build
 ```
 
-Trạng thái kiểm tra gần nhất trên branch tính năng:
+Trạng thái kiểm tra gần nhất:
 
-- Backend: `229/229` test đạt.
-- Frontend: `195/195` test đạt.
+- Backend: `240/240` test đạt.
+- Frontend: `67/67` test đạt.
 - Backend lint, frontend lint và frontend build đều đạt.
-
-## AI readiness lab
-
-Readiness lab không chạm Supabase và chỉ nhận ảnh synthetic/anonymized. Đặt đủ năm ảnh theo `backend/ai-readiness-lab/cases.json`, sau đó chạy:
-
-```powershell
-cd backend
-$env:GEMINI_API_KEY='your-key'
-$env:GEMINI_MODEL='gemini-3.8-flash'
-npm run ai:lab
-```
-
-Lab tạo 10 JSON (5 case × 2 temperature) và `report.md` dưới `backend/ai-readiness-lab/outputs/<timestamp>/`. Nhóm phải mở đủ output, ghi chất lượng và failure/hallucination notes; không commit key, ảnh thật hoặc output chưa được rà soát. Chưa có key thì lệnh dừng trước khi tạo output.
 
 Để chạy demo AI local bằng Ollama, cài Ollama, bảo đảm model `qwen3-vl:2b` đã có và Ollama đang chạy, sau đó dùng:
 
@@ -128,12 +114,6 @@ OLLAMA_MODEL=qwen3-vl:2b
 AI_TIMEOUT_MS=60000
 ```
 
-Để quay về demo deterministic sau khi thử AI:
-
-```dotenv
-AI_PROVIDER=mock
-```
-
-Sau đó restart backend.
+Sau khi đổi nhà cung cấp hoặc model, restart backend.
 
 Trước khi bàn giao, vẫn cần chạy smoke test trên Supabase thật cho ba vai trò, upload file thật và các trường hợp bị từ chối quyền truy cập.

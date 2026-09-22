@@ -107,7 +107,7 @@ test('returns no user when both session checks are unauthorized', async () => {
   assert.equal(await auth.restoreSession(), null)
 })
 
-test('keeps role navigation and access checks independent from mock storage', () => {
+test('keeps role navigation and access checks independent from legacy client storage', () => {
   const user = normalizeUser(profile())
 
   assert.equal(getRoleHome(ROLES.STUDENT), '/student')

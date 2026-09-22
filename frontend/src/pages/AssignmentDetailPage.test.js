@@ -187,7 +187,7 @@ test('selected review panel keeps the Student name and attempt visible', async (
   assert.match(markup, /student01 · Lần 2/)
 })
 
-test('AI result card discloses provider, transcriptions, and uncertain segments', async () => {
+test('AI result card discloses teacher ownership, transcriptions, and uncertain segments', async () => {
   const { AiResultCard } = await vite.ssrLoadModule('/src/pages/AssignmentDetailPage.jsx')
   const evaluation = {
     provider: 'gemini',

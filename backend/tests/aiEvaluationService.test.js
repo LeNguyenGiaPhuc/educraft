@@ -10,17 +10,17 @@ const submissionIds = [
 ]
 const teacherId = '22222222-2222-4222-8222-222222222222'
 
-const MOCK_PROVIDER_RESULT = Object.freeze({
+const PROVIDER_RESULT = Object.freeze({
   coverage_score: 82,
   confidence: 0.84,
   suggested_status: 'REQUIRES_TEACHER_REVIEW',
   missing_content: Object.freeze(['Bổ sung phần kết luận.']),
-  feedback_draft: 'Đánh giá mô phỏng: bài ghi đủ ý chính, cần giáo viên xem lại phần kết luận.',
-  reference_transcription: 'Bản chép mô phỏng từ bài mẫu.',
-  student_transcription: 'Bản chép mô phỏng từ bài nộp.',
+  feedback_draft: 'Bài ghi đủ ý chính, cần giáo viên xem lại phần kết luận.',
+  reference_transcription: 'Bản chép từ bài mẫu.',
+  student_transcription: 'Bản chép từ bài nộp.',
   uncertain_content: Object.freeze([]),
-  provider: 'mock',
-  model_name: 'educraft-mock-evaluator',
+  provider: 'ollama',
+  model_name: 'qwen3-vl:2b',
   model_version: '1.0',
   prompt_version: 'handwriting-v1',
   latency_ms: 0,
@@ -30,9 +30,9 @@ function evaluation(submissionId = submissionIds[0]) {
   return {
     id: '99999999-9999-4999-8999-999999999999',
     submission_id: submissionId,
-    ...MOCK_PROVIDER_RESULT,
-    missing_content: [...MOCK_PROVIDER_RESULT.missing_content],
-    uncertain_content: [...MOCK_PROVIDER_RESULT.uncertain_content],
+    ...PROVIDER_RESULT,
+    missing_content: [...PROVIDER_RESULT.missing_content],
+    uncertain_content: [...PROVIDER_RESULT.uncertain_content],
     created_at: '2026-09-14T03:00:00Z',
     private_database_field: 'hidden',
   }
@@ -187,8 +187,8 @@ function buildService({
       events.push('provider:evaluate')
       assert.equal(input.assignmentTitle, 'Lực ma sát')
       return {
-        ...MOCK_PROVIDER_RESULT,
-        missing_content: [...MOCK_PROVIDER_RESULT.missing_content],
+        ...PROVIDER_RESULT,
+        missing_content: [...PROVIDER_RESULT.missing_content],
         uncertain_content: [],
       }
     },
@@ -232,14 +232,14 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     confidence: 0.84,
     suggested_status: 'REQUIRES_TEACHER_REVIEW',
     missing_content: ['Bổ sung phần kết luận.'],
-    feedback_draft: MOCK_PROVIDER_RESULT.feedback_draft,
-    provider: 'mock',
+    feedback_draft: PROVIDER_RESULT.feedback_draft,
+    provider: 'ollama',
     prompt_version: 'handwriting-v1',
     latency_ms: 0,
-    reference_transcription: 'Bản chép mô phỏng từ bài mẫu.',
-    student_transcription: 'Bản chép mô phỏng từ bài nộp.',
+    reference_transcription: 'Bản chép từ bài mẫu.',
+    student_transcription: 'Bản chép từ bài nộp.',
     uncertain_content: [],
-    model_name: 'educraft-mock-evaluator',
+    model_name: 'qwen3-vl:2b',
     model_version: '1.0',
     created_at: savedEvaluation.created_at,
   })
@@ -265,14 +265,14 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     confidence: 0.84,
     suggested_status: 'REQUIRES_TEACHER_REVIEW',
     missing_content: ['Bổ sung phần kết luận.'],
-    feedback_draft: MOCK_PROVIDER_RESULT.feedback_draft,
-    model_name: 'educraft-mock-evaluator',
+    feedback_draft: PROVIDER_RESULT.feedback_draft,
+    model_name: 'qwen3-vl:2b',
     model_version: '1.0',
-    provider: 'mock',
+    provider: 'ollama',
     prompt_version: 'handwriting-v1',
     latency_ms: 0,
-    reference_transcription: 'Bản chép mô phỏng từ bài mẫu.',
-    student_transcription: 'Bản chép mô phỏng từ bài nộp.',
+    reference_transcription: 'Bản chép từ bài mẫu.',
+    student_transcription: 'Bản chép từ bài nộp.',
     uncertain_content: [],
   })
   assert.equal(context.adminClient.calls.some((call) => call.table === 'teacher_reviews'), false)
@@ -317,8 +317,8 @@ test('provider receives only the prepared image input, never auth or profile dat
       async evaluate(input) {
         receivedInput = input
         return {
-          ...MOCK_PROVIDER_RESULT,
-          missing_content: [...MOCK_PROVIDER_RESULT.missing_content],
+          ...PROVIDER_RESULT,
+          missing_content: [...PROVIDER_RESULT.missing_content],
           uncertain_content: [],
         }
       },

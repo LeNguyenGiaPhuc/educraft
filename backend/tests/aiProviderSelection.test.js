@@ -4,16 +4,11 @@ import sharp from 'sharp'
 
 import { createAiProvider } from '../src/createDependencies.js'
 
-test('dependency composition selects the deterministic mock by default', async () => {
-  const provider = createAiProvider({ AI_PROVIDER: 'mock' })
-  const result = await provider.evaluate({
-    assignmentTitle: 'Lực ma sát',
-    coverageThreshold: 80,
-    referenceImages: [],
-    submissionImages: [],
-  })
-
-  assert.equal(result.provider, 'mock')
+test('dependency composition rejects an unsupported provider', () => {
+  assert.throws(
+    () => createAiProvider({ AI_PROVIDER: 'unsupported' }),
+    /Unsupported AI provider/,
+  )
 })
 
 test('dependency composition selects Gemini only when explicitly configured', () => {

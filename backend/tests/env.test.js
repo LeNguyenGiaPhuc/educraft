@@ -17,7 +17,7 @@ test('loadEnv returns normalized config', () => {
 
   assert.equal(config.PORT, 3100)
   assert.equal(config.NODE_ENV, 'test')
-  assert.equal(config.AI_PROVIDER, 'mock')
+  assert.equal(config.AI_PROVIDER, 'ollama')
   assert.equal(config.GEMINI_MODEL, 'gemini-3.8-flash')
   assert.equal(config.OLLAMA_BASE_URL, 'http://127.0.0.1:11434')
   assert.equal(config.OLLAMA_MODEL, 'qwen3-vl:2b')
@@ -51,7 +51,7 @@ test('loadEnv requires a Gemini key only when the Gemini provider is enabled', (
   assert.equal(config.GEMINI_API_KEY, 'demo-key')
 })
 
-test('loadEnv treats an empty Gemini key as absent in mock mode', () => {
+test('loadEnv treats an empty Gemini key as absent in Ollama mode', () => {
   const config = loadEnv({ ...validEnv, GEMINI_API_KEY: '' })
 
   assert.equal(config.GEMINI_API_KEY, undefined)

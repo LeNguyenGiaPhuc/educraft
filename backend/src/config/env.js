@@ -12,7 +12,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  AI_PROVIDER: z.enum(['mock', 'gemini', 'ollama']).default('mock'),
+  AI_PROVIDER: z.enum(['gemini', 'ollama']).default('ollama'),
   GEMINI_API_KEY: optionalEnvString,
   GEMINI_MODEL: z.string().min(1).default('gemini-3.8-flash'),
   OLLAMA_BASE_URL: z.string().url().default('http://127.0.0.1:11434'),

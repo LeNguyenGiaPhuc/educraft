@@ -8,7 +8,6 @@ import { createAiEvaluationRouter } from './modules/ai-evaluations/aiEvaluationR
 import { createAiEvaluationInputService } from './modules/ai-evaluations/aiEvaluationInputService.js'
 import { createAiEvaluationService } from './modules/ai-evaluations/aiEvaluationService.js'
 import { createGeminiAiProvider } from './modules/ai-evaluations/providers/geminiAiProvider.js'
-import { createMockAiProvider } from './modules/ai-evaluations/providers/mockAiProvider.js'
 import { createOllamaAiProvider } from './modules/ai-evaluations/providers/ollamaAiProvider.js'
 import { createAssignmentController } from './modules/assignments/assignmentController.js'
 import { createAssignmentRouter } from './modules/assignments/assignmentRoutes.js'
@@ -54,7 +53,7 @@ export function createAiProvider(config) {
     })
   }
 
-  return createMockAiProvider()
+  throw new Error(`Unsupported AI provider: ${config.AI_PROVIDER}`)
 }
 
 export function createDependencies(config) {

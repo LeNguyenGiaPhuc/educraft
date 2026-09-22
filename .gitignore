@@ -149,7 +149,3 @@ vite.config.ts.timestamp-*
 # Local documentation
 docs/
 
-# AI readiness lab evidence and local images
-backend/ai-readiness-lab/fixtures/
-backend/ai-readiness-lab/outputs/
-

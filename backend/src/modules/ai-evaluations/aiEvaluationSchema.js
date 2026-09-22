@@ -35,7 +35,7 @@ const evaluationSuggestionSchema = z.object({
 }).strict()
 
 export const providerResultSchema = transcriptionSchema.merge(evaluationSuggestionSchema).extend({
-  provider: z.enum(['mock', 'gemini', 'ollama']),
+  provider: z.enum(['gemini', 'ollama']),
   model_name: z.string().trim().min(1).max(200),
   model_version: z.string().trim().min(1).max(200),
   prompt_version: z.string().trim().min(1).max(100),
