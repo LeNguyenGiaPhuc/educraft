@@ -76,6 +76,7 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState(detail.submissions[0]?.id ?? null)
   const [isEditing, setIsEditing] = useState(false)
   const [deleteState, setDeleteState] = useState({ status: 'idle' })
+  const hasProtectedData = detail.references.length > 0 || detail.submissions.length > 0
   const selectedSubmission = selectTeacherSubmission(detail.submissions, selectedSubmissionId)
 
   async function handleDeleteAssignment() {
@@ -99,19 +100,38 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
 
       <section className="assignment-detail-hero teacher-assignment-hero" aria-labelledby="assignment-detail-title">
         {!isEditing ? (
-          <>
+          <div className="teacher-assignment-hero-content">
             <div className="teacher-assignment-summary">
               <p className="state-kicker">Bài kiểm tra bài ghi</p>
               <h1 id="assignment-detail-title">{detail.title}</h1>
-              <p>{detail.dueDate} · Ngưỡng đạt {detail.threshold} · {detail.submissions.length} bài nộp</p>
+              <div className="teacher-assignment-meta" aria-label="Thông tin bài kiểm tra">
+                <span>Hạn nộp: {detail.dueDate}</span>
+                <span>Ngưỡng đạt: {detail.threshold}</span>
+                <span>{detail.submissions.length} bài nộp</span>
+              </div>
             </div>
-            <div className="assignment-form-actions teacher-form-actions teacher-assignment-actions">
-              <button className="button button-outline" onClick={() => setIsEditing(true)} type="button">Chỉnh sửa</button>
-              <button className="button button-danger" disabled={deleteState.status === 'loading'} onClick={handleDeleteAssignment} type="button">
-                {deleteState.status === 'loading' ? 'Đang xóa...' : 'Xóa'}
-              </button>
+            <div className="teacher-assignment-actions">
+              <div className="teacher-assignment-action-buttons">
+                <button className="button button-outline" onClick={() => setIsEditing(true)} type="button">Chỉnh sửa</button>
+                <button
+                  aria-describedby={hasProtectedData ? 'assignment-delete-help' : undefined}
+                  className="button button-danger"
+                  disabled={deleteState.status === 'loading' || hasProtectedData}
+                  onClick={handleDeleteAssignment}
+                  title={hasProtectedData ? 'Không thể xóa bài kiểm tra đã có bài mẫu hoặc bài nộp.' : undefined}
+                  type="button"
+                >
+                  {deleteState.status === 'loading' ? 'Đang xóa...' : 'Xóa'}
+                </button>
+              </div>
+              {hasProtectedData && (
+                <p className="form-field-help assignment-delete-help" id="assignment-delete-help" role="note">
+                  Không thể xóa bài kiểm tra đã có bài mẫu hoặc bài nộp.
+                </p>
+              )}
+              {deleteState.status === 'error' && <p className="form-field-error" role="alert">{deleteState.message}</p>}
             </div>
-          </>
+          </div>
         ) : (
           <AssignmentEditor
             assignment={detail}
@@ -119,7 +139,6 @@ function AssignmentDetailWorkspace({ detail, onRefresh }) {
             onSaved={() => { setIsEditing(false); onRefresh() }}
           />
         )}
-        {deleteState.status === 'error' && <p className="form-field-error" role="alert">{deleteState.message}</p>}
       </section>
 
       <div className="assignment-detail-grid teacher-assignment-grid">

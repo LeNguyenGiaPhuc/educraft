@@ -126,6 +126,7 @@ export function createDependencies(config) {
   const provider = createAiProvider(config)
   const aiEvaluationService = createAiEvaluationService({
     adminClient: gateway.adminClient,
+    assignmentService,
     submissionService,
     inputService,
     provider,

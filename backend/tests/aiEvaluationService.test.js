@@ -153,6 +153,7 @@ function buildService({
   submissionError,
   provider,
   inputService,
+  assignmentService,
   logger = { error() {} },
 } = {}) {
   const events = []
@@ -182,6 +183,11 @@ function buildService({
       }
     },
   }
+  const defaultAssignmentService = {
+    async getAssignment() {
+      return { coverage_threshold: 80 }
+    },
+  }
   const defaultProvider = {
     async evaluate(input) {
       events.push('provider:evaluate')
@@ -200,6 +206,7 @@ function buildService({
     supabase,
     service: createAiEvaluationService({
       adminClient,
+      assignmentService: assignmentService ?? defaultAssignmentService,
       submissionService,
       inputService: inputService ?? defaultInputService,
       provider: provider ?? defaultProvider,
@@ -230,7 +237,7 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     submission_id: submissionIds[0],
     coverage_score: 82,
     confidence: 0.84,
-    suggested_status: 'REQUIRES_TEACHER_REVIEW',
+    suggested_status: 'COMPLETED',
     missing_content: ['Bổ sung phần kết luận.'],
     feedback_draft: PROVIDER_RESULT.feedback_draft,
     provider: 'ollama',
@@ -263,7 +270,7 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     submission_id: submissionIds[0],
     coverage_score: 82,
     confidence: 0.84,
-    suggested_status: 'REQUIRES_TEACHER_REVIEW',
+    suggested_status: 'COMPLETED',
     missing_content: ['Bổ sung phần kết luận.'],
     feedback_draft: PROVIDER_RESULT.feedback_draft,
     model_name: 'qwen3-vl:2b',
@@ -302,6 +309,42 @@ test('existing evaluation is returned idempotently without creating a duplicate'
   assert.deepEqual(first, second)
   assert.equal(context.adminClient.calls.length, 0)
   assert.equal(context.supabase.calls.length, 2)
+})
+
+test('assignment threshold overrides the model status before evaluation is saved', async () => {
+  const savedEvaluation = {
+    ...evaluation(),
+    coverage_score: 79,
+    suggested_status: 'COMPLETED',
+  }
+  const context = buildService({
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: savedEvaluation, error: null },
+      { data: { id: submissionIds[0], status: 'REQUIRES_REVIEW' }, error: null },
+    ],
+    provider: {
+      async evaluate() {
+        return {
+          ...PROVIDER_RESULT,
+          coverage_score: 79,
+          suggested_status: 'COMPLETED',
+          missing_content: [...PROVIDER_RESULT.missing_content],
+          uncertain_content: [],
+        }
+      },
+    },
+  })
+
+  const result = await context.service.runEvaluation(
+    teacherAuth(context.supabase),
+    submissionIds[0],
+  )
+
+  assert.equal(result.evaluation.coverage_score, 79)
+  assert.equal(result.evaluation.suggested_status, 'NEEDS_COMPLETION')
+  assert.equal(context.adminClient.calls[1].value.suggested_status, 'NEEDS_COMPLETION')
 })
 
 test('provider receives only the prepared image input, never auth or profile data', async () => {

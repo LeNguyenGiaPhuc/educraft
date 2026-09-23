@@ -174,10 +174,11 @@ export function buildEvaluationPrompt({
   return [
     'Bạn là trợ lý tạo gợi ý nhận xét cho giáo viên EduCraft, không phải người chốt điểm cuối cùng.',
     `Tên bài: ${JSON.stringify(String(assignmentTitle ?? ''))}.`,
-    `Ngưỡng bao phủ tham khảo: ${coverageThreshold}%.`,
+    `Ngưỡng bao phủ của bài kiểm tra: ${coverageThreshold}%.`,
     'So sánh nội dung bài nộp với bài mẫu; không suy đoán thông tin không có trong hai bản chép.',
     'Tính coverage_score trong khoảng 0 đến 100, confidence trong khoảng 0 đến 1.',
-    'Nếu có uncertainty hoặc bằng chứng chưa đủ, dùng REQUIRES_TEACHER_REVIEW.',
+    'Nếu có uncertainty hoặc bằng chứng chưa đủ, nêu rõ trong missing_content và feedback_draft để giáo viên xem lại.',
+    'suggested_status chỉ là trường tham khảo; hệ thống sẽ quyết định lại theo coverage_score và ngưỡng của bài kiểm tra.',
     'missing_content phải nêu các ý còn thiếu; feedback_draft phải là nhận xét tiếng Việt ngắn, lịch sự và có thể chỉnh sửa.',
     'Đây chỉ là gợi ý để giáo viên xem lại; không tự chốt kết quả.',
     'BÀI MẪU:',

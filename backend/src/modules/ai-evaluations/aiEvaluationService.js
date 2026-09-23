@@ -1,5 +1,10 @@
 import { AppError } from '../../common/errors.js'
 import { parseProviderResult } from './aiEvaluationSchema.js'
+import {
+  applyCoveragePolicy,
+  deriveSuggestedStatus,
+  validateCoverageThreshold,
+} from './coveragePolicy.js'
 
 const AI_EVALUATION_COLUMNS = [
   'id',
@@ -39,13 +44,16 @@ function safeDatabaseError(code, message) {
   return new AppError(500, code, message)
 }
 
-function projectEvaluation(evaluation) {
+function projectEvaluation(evaluation, coverageThreshold) {
   return {
     id: evaluation.id,
     submission_id: evaluation.submission_id,
     coverage_score: evaluation.coverage_score,
     confidence: evaluation.confidence,
-    suggested_status: evaluation.suggested_status,
+    suggested_status: deriveSuggestedStatus({
+      coverageScore: evaluation.coverage_score,
+      coverageThreshold,
+    }),
     missing_content: evaluation.missing_content ?? [],
     feedback_draft: evaluation.feedback_draft,
     provider: evaluation.provider ?? null,
@@ -62,6 +70,7 @@ function projectEvaluation(evaluation) {
 
 export function createAiEvaluationService({
   adminClient,
+  assignmentService,
   submissionService,
   inputService,
   provider,
@@ -95,6 +104,11 @@ export function createAiEvaluationService({
     }
 
     return result.data
+  }
+
+  async function readCoverageThreshold(auth, submission) {
+    const assignment = await assignmentService.getAssignment(auth, submission.assignment_id)
+    return validateCoverageThreshold(assignment?.coverage_threshold)
   }
 
   async function updateSubmissionStatus(submissionId, currentStatus, nextStatus) {
@@ -132,8 +146,11 @@ export function createAiEvaluationService({
     return result.data
   }
 
-  async function persistEvaluation(submissionId, providerResult) {
-    const normalized = parseProviderResult(providerResult)
+  async function persistEvaluation(submissionId, providerResult, coverageThreshold) {
+    const normalized = applyCoveragePolicy(
+      parseProviderResult(providerResult),
+      coverageThreshold,
+    )
     const value = {
       submission_id: submissionId,
       ...normalized,
@@ -160,7 +177,7 @@ export function createAiEvaluationService({
       )
     }
 
-    return projectEvaluation(result.data)
+    return projectEvaluation(result.data, coverageThreshold)
   }
 
   async function recoverSubmittedStatus(submissionId) {
@@ -200,6 +217,8 @@ export function createAiEvaluationService({
         )
       }
 
+      const coverageThreshold = await readCoverageThreshold(auth, submission)
+
       const existingEvaluation = await readEvaluation(supabase, submissionId)
       if (existingEvaluation) {
         if (submission.status !== 'REQUIRES_REVIEW') {
@@ -213,7 +232,7 @@ export function createAiEvaluationService({
         return {
           submission_id: submissionId,
           submission_status: 'REQUIRES_REVIEW',
-          evaluation: projectEvaluation(existingEvaluation),
+          evaluation: projectEvaluation(existingEvaluation, coverageThreshold),
         }
       }
 
@@ -236,7 +255,11 @@ export function createAiEvaluationService({
       let evaluation
       try {
         const providerResult = await provider.evaluate(input)
-        evaluation = await persistEvaluation(submissionId, providerResult)
+        evaluation = await persistEvaluation(
+          submissionId,
+          providerResult,
+          coverageThreshold,
+        )
       } catch (error) {
         if (transitionedToProcessing) {
           await recoverSubmittedStatus(submissionId)
@@ -255,7 +278,8 @@ export function createAiEvaluationService({
 
     async getEvaluation(auth, submissionId) {
       const { supabase } = requireTeacherContext(auth)
-      await authorizeTeacher(auth, submissionId)
+      const submission = await authorizeTeacher(auth, submissionId)
+      const coverageThreshold = await readCoverageThreshold(auth, submission)
       const evaluation = await readEvaluation(supabase, submissionId)
 
       if (!evaluation) {
@@ -266,7 +290,7 @@ export function createAiEvaluationService({
         )
       }
 
-      return projectEvaluation(evaluation)
+      return projectEvaluation(evaluation, coverageThreshold)
     },
   }
 }

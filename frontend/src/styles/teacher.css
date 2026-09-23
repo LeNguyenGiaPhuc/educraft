@@ -319,8 +319,9 @@
 }
 
 .teacher-assignment-hero {
-  align-items: center;
-  padding: 24px 28px;
+  display: block;
+  overflow: hidden;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -328,22 +329,80 @@
   color: var(--ink);
 }
 
+.teacher-assignment-hero-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  align-items: center;
+  gap: 32px;
+  padding: 28px;
+}
+
+.teacher-assignment-summary {
+  min-width: 0;
+}
+
 .teacher-assignment-hero h1 {
   color: var(--ink);
+  font-size: clamp(30px, 4vw, 46px);
+  letter-spacing: -0.04em;
+  line-height: 1.08;
 }
 
 .teacher-assignment-summary .state-kicker {
+  margin-bottom: 8px !important;
   color: var(--accent-hover) !important;
 }
 
-.teacher-assignment-summary > p:last-child {
+.teacher-assignment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
   color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.teacher-assignment-meta span {
+  overflow-wrap: anywhere;
 }
 
 .teacher-assignment-actions {
+  display: grid;
+  justify-items: end;
+  align-content: center;
+  gap: 12px;
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+.teacher-assignment-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.teacher-assignment-action-buttons .button {
+  min-width: 96px;
+}
+
+.teacher-assignment-actions .assignment-delete-help,
+.teacher-assignment-actions .form-field-error {
+  max-width: 320px;
+  margin: 0;
+  text-align: right;
+}
+
+.teacher-assignment-actions .assignment-delete-help {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  color: var(--muted);
 }
 
 .teacher-assignment-grid {
@@ -700,13 +759,32 @@
 
   .teacher-assignment-hero {
     align-items: stretch;
-    flex-direction: column;
-    gap: 18px;
+    padding: 0;
+  }
+
+  .teacher-assignment-hero-content {
+    grid-template-columns: 1fr;
+    gap: 22px;
     padding: 20px;
   }
 
   .teacher-assignment-actions {
     width: 100%;
+    justify-items: stretch;
+  }
+
+  .teacher-assignment-action-buttons {
+    justify-content: stretch;
+  }
+
+  .teacher-assignment-action-buttons .button {
+    flex: 1 1 0;
+  }
+
+  .teacher-assignment-actions .assignment-delete-help,
+  .teacher-assignment-actions .form-field-error {
+    max-width: none;
+    text-align: left;
   }
 
   .teacher-detail-card {
