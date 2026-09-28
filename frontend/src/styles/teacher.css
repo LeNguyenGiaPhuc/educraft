@@ -329,6 +329,20 @@
   color: var(--ink);
 }
 
+/* The edit form sits inside the light hero, so it must not inherit the old dark-hero button color. */
+.teacher-assignment-hero .teacher-edit-form .button-outline {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.teacher-assignment-hero .teacher-edit-form .button-outline:hover,
+.teacher-assignment-hero .teacher-edit-form .button-outline:focus-visible {
+  border-color: var(--accent);
+  background: var(--surface-subtle);
+  color: var(--ink);
+}
+
 .teacher-assignment-hero-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);

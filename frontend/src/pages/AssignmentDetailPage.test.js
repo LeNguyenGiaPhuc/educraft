@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { after, before, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
@@ -185,6 +186,15 @@ test('selected review panel keeps the Student name and attempt visible', async (
 
   assert.match(markup, /Nguyen An Binh/)
   assert.match(markup, /student01 · Lần 2/)
+})
+
+test('assignment edit cancel button keeps readable ink text on the light hero', async () => {
+  const css = await readFile(new URL('../styles/teacher.css', import.meta.url), 'utf8')
+
+  assert.match(
+    css,
+    /\.teacher-assignment-hero \.teacher-edit-form \.button-outline\s*\{[^}]*color:\s*var\(--ink\)/s,
+  )
 })
 
 test('AI result card discloses teacher ownership, transcriptions, and uncertain segments', async () => {
