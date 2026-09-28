@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import AdminShell from './components/AdminShell.jsx'
 import AppShell from './components/AppShell.jsx'
@@ -8,6 +8,7 @@ import RequireTeacherClass from './components/RequireTeacherClass.jsx'
 import RoleRoute from './components/RoleRoute.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { useAuth } from './contexts/useAuth.js'
+import { getPageTitle } from './data/pageTitle.js'
 import { getRoleHome, ROLES } from './services/authService.js'
 import './App.css'
 import './styles/tokens.css'
@@ -50,6 +51,11 @@ function HomeRedirect() {
 
 function AppRoutes() {
   const { user, isLoading } = useAuth()
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    document.title = getPageTitle(pathname)
+  }, [pathname])
 
   if (isLoading) {
     return (

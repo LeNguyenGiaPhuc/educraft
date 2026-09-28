@@ -303,76 +303,27 @@ export function createOllamaAiProvider({
   }
 
   async function transcribeInput(input) {
-    const referenceTranscription = await transcribeImages({
-      images: input.referenceImages,
-      source: 'reference',
-    })
-    const submissionTranscription = await transcribeImages({
-      images: input.submissionImages,
-      source: 'submission',
-    })
+    const referenceResults = []
+    for (const image of input.referenceImages) {
+      referenceResults.push(await transcribePage(image, 'reference'))
+    }
+
+    const submissionResults = []
+    for (const image of input.submissionImages) {
+      submissionResults.push(await transcribePage(image, 'submission'))
+    }
 
     return {
-      reference_transcription: referenceTranscription.transcription,
-      student_transcription: submissionTranscription.transcription,
+      reference_transcription: referenceResults.map((result) => result.transcription).join('\n\n'),
+      student_transcription: submissionResults.map((result) => result.transcription).join('\n\n'),
       uncertain_content: [
-        ...referenceTranscription.uncertain_content,
-        ...submissionTranscription.uncertain_content,
+        ...referenceResults.flatMap((result) => result.uncertain_content),
+        ...submissionResults.flatMap((result) => result.uncertain_content),
       ],
     }
   }
 
-  async function transcribeImages({ images = [], source }) {
-    const results = []
-    for (const image of images) {
-      results.push(await transcribePage(image, source))
-    }
-
-    return {
-      transcription: results.map((result) => result.transcription).join('\n\n'),
-      uncertain_content: results.flatMap((result) => result.uncertain_content),
-    }
-  }
-
-  async function generateEvaluation({
-    assignmentTitle,
-    coverageThreshold,
-    studentTranscription,
-    retrievedContext,
-    uncertainContent = [],
-  }) {
-    const startedAt = now()
-    const referenceTranscription = (retrievedContext ?? [])
-      .map((chunk) => String(chunk?.content ?? '').trim())
-      .filter(Boolean)
-      .join('\n\n')
-    const evaluationResponse = await createChat({
-      content: buildEvaluationPrompt({
-        assignmentTitle,
-        coverageThreshold,
-        referenceTranscription,
-        studentTranscription,
-      }),
-      schema: evaluationSuggestionJsonSchema,
-    })
-    const suggestion = parseJsonResponse(evaluationResponse, parseEvaluationSuggestion)
-
-    return parseProviderResult({
-      ...suggestion,
-      reference_transcription: referenceTranscription,
-      student_transcription: studentTranscription,
-      uncertain_content: uncertainContent,
-      provider: 'ollama',
-      model_name: model,
-      model_version: model,
-      prompt_version: AI_PROMPT_VERSION,
-      latency_ms: Math.max(0, now() - startedAt),
-    })
-  }
-
   return {
-    transcribeImages,
-    generateEvaluation,
     async evaluate(input) {
       const startedAt = now()
       const transcription = await transcribeInput(input)

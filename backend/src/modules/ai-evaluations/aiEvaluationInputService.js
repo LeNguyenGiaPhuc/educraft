@@ -77,8 +77,6 @@ function buildImageDescriptor(file, order) {
   }
 
   return {
-    referenceFileId: file.id ?? null,
-    originalFilename: file.original_filename ?? null,
     path: file.storage_path,
     mimeType: file.mime_type,
     sizeBytes: fileSize(file),
@@ -96,8 +94,6 @@ export function createAiEvaluationInputService({
 } = {}) {
   async function downloadImages(descriptors, bucket) {
     return Promise.all(descriptors.map(async (descriptor) => ({
-      reference_file_id: descriptor.referenceFileId ?? null,
-      original_filename: descriptor.originalFilename ?? null,
       mimeType: descriptor.mimeType,
       buffer: await storageService.downloadPrivateImage({
         client: adminClient,
@@ -162,7 +158,6 @@ export function createAiEvaluationInputService({
       return {
         assignmentTitle: assignment.title,
         coverageThreshold: assignment.coverage_threshold,
-        referenceFiles: orderedReferences,
         referenceImages,
         submissionImages,
       }

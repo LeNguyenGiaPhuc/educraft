@@ -8,9 +8,7 @@ import { createAiEvaluationRouter } from './modules/ai-evaluations/aiEvaluationR
 import { createAiEvaluationInputService } from './modules/ai-evaluations/aiEvaluationInputService.js'
 import { createAiEvaluationService } from './modules/ai-evaluations/aiEvaluationService.js'
 import { createGeminiAiProvider } from './modules/ai-evaluations/providers/geminiAiProvider.js'
-import { createOllamaEmbeddingProvider } from './modules/ai-evaluations/providers/ollamaEmbeddingProvider.js'
 import { createOllamaAiProvider } from './modules/ai-evaluations/providers/ollamaAiProvider.js'
-import { createRagService } from './modules/ai-evaluations/ragService.js'
 import { createAssignmentController } from './modules/assignments/assignmentController.js'
 import { createAssignmentRouter } from './modules/assignments/assignmentRoutes.js'
 import { createAssignmentService } from './modules/assignments/assignmentService.js'
@@ -126,34 +124,12 @@ export function createDependencies(config) {
     maxTotalBytes: config.AI_MAX_TOTAL_BYTES,
   })
   const provider = createAiProvider(config)
-  const embeddingProvider = createOllamaEmbeddingProvider({
-    baseUrl: config.OLLAMA_BASE_URL,
-    model: config.OLLAMA_EMBEDDING_MODEL,
-    dimensions: config.RAG_EMBEDDING_DIMENSIONS,
-    timeoutMs: config.AI_TIMEOUT_MS,
-    fetchImpl: config.OLLAMA_FETCH_IMPL,
-  })
-  const ragService = createRagService({
-    adminClient: gateway.adminClient,
-    embeddingProvider,
-    visionProvider: provider,
-    config: {
-      embeddingModel: config.OLLAMA_EMBEDDING_MODEL,
-      embeddingDimensions: config.RAG_EMBEDDING_DIMENSIONS,
-      chunkSize: config.RAG_CHUNK_SIZE,
-      chunkOverlap: config.RAG_CHUNK_OVERLAP,
-      matchCount: config.RAG_MATCH_COUNT,
-      minSimilarity: config.RAG_MIN_SIMILARITY,
-      indexVersion: config.RAG_INDEX_VERSION,
-    },
-  })
   const aiEvaluationService = createAiEvaluationService({
     adminClient: gateway.adminClient,
     assignmentService,
     submissionService,
     inputService,
     provider,
-    ragService,
   })
   const aiEvaluationController = createAiEvaluationController({ aiEvaluationService })
   const aiEvaluationRouter = createAiEvaluationRouter({

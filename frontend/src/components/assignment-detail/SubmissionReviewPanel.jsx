@@ -5,7 +5,6 @@ import { aiEvaluationService } from '../../services/aiEvaluationService.js'
 import { submissionService } from '../../services/submissionService.js'
 import AiResultCard from './AiResultCard.jsx'
 import FieldError from './FieldError.jsx'
-import { formatAiEvaluationError } from './aiEvaluationMessages.js'
 import {
   finalStatusForForm,
   formatSubmissionDate,
@@ -54,7 +53,7 @@ export default function SubmissionReviewPanel({ submission, onReviewed }) {
         setEvaluationState({
           status: 'error',
           data: null,
-          message: formatAiEvaluationError(error),
+          message: error?.message ?? 'Chưa có đề xuất AI cho bài nộp này.',
         })
       })
 
@@ -79,7 +78,7 @@ export default function SubmissionReviewPanel({ submission, onReviewed }) {
       setEvaluationState({
         status: 'error',
         data: null,
-        message: formatAiEvaluationError(error),
+        message: error?.message ?? 'Không thể phân tích bài nộp lúc này. Vui lòng thử lại.',
       })
     }
   }
@@ -150,15 +149,15 @@ export default function SubmissionReviewPanel({ submission, onReviewed }) {
       </div>
 
       {evaluationState.status === 'loading' && (
-        <p className="form-field-help" aria-live="polite">Đang lập chỉ mục bài mẫu và tạo đề xuất AI...</p>
+        <p className="form-field-help" aria-live="polite">Đang tải đề xuất AI...</p>
       )}
       {evaluationState.status === 'not-started' && (
         <div className="ai-consent-panel teacher-ai-consent">
           <p className="state-kicker">Phân tích tùy chọn</p>
           <h4>Phân tích bằng AI</h4>
           <p>
-            Ảnh bài mẫu sẽ được lập chỉ mục một lần; sau đó AI local đọc bài nộp và đối chiếu
-            với các đoạn phù hợp. Chỉ sử dụng dữ liệu phù hợp với chính sách bảo mật của nhà trường.
+            Ảnh bài mẫu và bài nộp sẽ được gửi tới dịch vụ AI để tạo bản chép và gợi ý.
+            Chỉ sử dụng dữ liệu phù hợp với chính sách bảo mật của nhà trường.
           </p>
           <button className="button button-primary" onClick={handleRunEvaluation} type="button">
             Phân tích bằng AI

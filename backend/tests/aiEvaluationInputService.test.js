@@ -20,9 +20,7 @@ const auth = {
 
 function reference(path, sizeBytes, createdAt) {
   return {
-    id: `reference-${path}`,
     storage_path: path,
-    original_filename: path.split('/').at(-1),
     mime_type: 'image/jpeg',
     size_bytes: sizeBytes,
     created_at: createdAt,
@@ -106,14 +104,6 @@ test('loads authorized references and submission images in page order', async ()
   assert.deepEqual(result.assignmentTitle, 'Lực ma sát')
   assert.equal(result.coverageThreshold, 80)
   assert.deepEqual(result.referenceImages.map((image) => image.order), [1, 2])
-  assert.deepEqual(
-    result.referenceImages.map((image) => image.reference_file_id),
-    [`reference-${assignmentId}/first.jpg`, `reference-${assignmentId}/second.jpg`],
-  )
-  assert.deepEqual(
-    result.referenceImages.map((image) => image.original_filename),
-    ['first.jpg', 'second.jpg'],
-  )
   assert.deepEqual(result.submissionImages.map((image) => image.order), [1, 2])
   assert.deepEqual(
     result.referenceImages.map((image) => image.buffer.toString()),

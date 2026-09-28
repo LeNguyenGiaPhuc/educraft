@@ -22,9 +22,6 @@ const AI_EVALUATION_COLUMNS = [
   'uncertain_content',
   'model_name',
   'model_version',
-  'retrieved_context',
-  'embedding_model',
-  'rag_version',
   'created_at',
 ].join(',')
 
@@ -48,7 +45,7 @@ function safeDatabaseError(code, message) {
 }
 
 function projectEvaluation(evaluation, coverageThreshold) {
-  const result = {
+  return {
     id: evaluation.id,
     submission_id: evaluation.submission_id,
     coverage_score: evaluation.coverage_score,
@@ -69,18 +66,6 @@ function projectEvaluation(evaluation, coverageThreshold) {
     model_version: evaluation.model_version,
     created_at: evaluation.created_at,
   }
-
-  if (Object.hasOwn(evaluation, 'retrieved_context')) {
-    result.retrieved_context = evaluation.retrieved_context ?? []
-  }
-  if (Object.hasOwn(evaluation, 'embedding_model')) {
-    result.embedding_model = evaluation.embedding_model ?? null
-  }
-  if (Object.hasOwn(evaluation, 'rag_version')) {
-    result.rag_version = evaluation.rag_version ?? null
-  }
-
-  return result
 }
 
 export function createAiEvaluationService({
@@ -89,7 +74,6 @@ export function createAiEvaluationService({
   submissionService,
   inputService,
   provider,
-  ragService,
   logger = console,
 }) {
   async function authorizeTeacher(auth, submissionId) {
@@ -163,25 +147,13 @@ export function createAiEvaluationService({
   }
 
   async function persistEvaluation(submissionId, providerResult, coverageThreshold) {
-    const {
-      retrieved_context: retrievedContext,
-      embedding_model: embeddingModel,
-      rag_version: ragVersion,
-      ...providerFields
-    } = providerResult
     const normalized = applyCoveragePolicy(
-      parseProviderResult(providerFields),
+      parseProviderResult(providerResult),
       coverageThreshold,
     )
     const value = {
       submission_id: submissionId,
       ...normalized,
-    }
-
-    if (Object.hasOwn(providerResult, 'retrieved_context')) {
-      value.retrieved_context = retrievedContext ?? []
-      value.embedding_model = embeddingModel ?? null
-      value.rag_version = ragVersion ?? null
     }
 
     let result
@@ -282,42 +254,7 @@ export function createAiEvaluationService({
 
       let evaluation
       try {
-        let providerResult
-
-        if (ragService) {
-          await ragService.ensureAssignmentIndexed({
-            assignmentId: submission.assignment_id,
-            referenceFiles: input.referenceFiles,
-            referenceImages: input.referenceImages,
-          })
-
-          const studentTranscription = await provider.transcribeImages({
-            images: input.submissionImages,
-            source: 'submission',
-          })
-          const retrievedContext = await ragService.retrieveContext({
-            assignmentId: submission.assignment_id,
-            studentTranscription: studentTranscription.transcription,
-          })
-
-          providerResult = await provider.generateEvaluation({
-            assignmentTitle: input.assignmentTitle,
-            coverageThreshold: input.coverageThreshold,
-            studentTranscription: studentTranscription.transcription,
-            retrievedContext: retrievedContext.chunks,
-            uncertainContent: studentTranscription.uncertain_content,
-          })
-          providerResult = {
-            ...providerResult,
-            retrieved_context: retrievedContext.chunks,
-            embedding_model: retrievedContext.embeddingModel,
-            rag_version: retrievedContext.ragVersion,
-          }
-        } else {
-          // Compatibility path for older unit fixtures. Production wiring always supplies ragService.
-          providerResult = await provider.evaluate(input)
-        }
-
+        const providerResult = await provider.evaluate(input)
         evaluation = await persistEvaluation(
           submissionId,
           providerResult,

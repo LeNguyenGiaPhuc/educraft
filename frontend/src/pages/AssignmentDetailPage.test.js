@@ -197,6 +197,24 @@ test('assignment edit cancel button keeps readable ink text on the light hero', 
   )
 })
 
+test('assignment editor keeps fields inside a padded responsive grid', async () => {
+  const css = await readFile(new URL('../styles/teacher.css', import.meta.url), 'utf8')
+
+  assert.match(css, /\.teacher-edit-form\s*\{[^}]*padding:\s*28px/s)
+  assert.match(
+    css,
+    /\.teacher-edit-form \.teacher-fields-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1\.8fr\)\s+minmax\(150px, 0\.6fr\)\s+minmax\(170px, 0\.7fr\)/s,
+  )
+  assert.match(
+    css,
+    /\.teacher-edit-form \.teacher-field-narrow\s*\{[^}]*max-width:\s*none/s,
+  )
+  assert.match(
+    css,
+    /\.teacher-edit-form \.teacher-fields-grid\s*\{[^}]*grid-template-columns:\s*1fr/s,
+  )
+})
+
 test('AI result card discloses teacher ownership, transcriptions, and uncertain segments', async () => {
   const { AiResultCard } = await vite.ssrLoadModule('/src/pages/AssignmentDetailPage.jsx')
   const evaluation = {
@@ -225,89 +243,4 @@ test('AI result card discloses teacher ownership, transcriptions, and uncertain 
   assert.match(markup, /Bài nộp · trang 2/)
   assert.match(markup, /kết quả cuối cùng do giáo viên quyết định/)
   assert.doesNotMatch(markup, /Kết quả mô phỏng/)
-})
-
-test('AI result card shows saved RAG evidence and model metadata', async () => {
-  const { AiResultCard } = await vite.ssrLoadModule('/src/pages/AssignmentDetailPage.jsx')
-  const evaluation = {
-    provider: 'ollama',
-    modelName: 'qwen3-vl:2b',
-    embeddingModel: 'nomic-embed-text-v2-moe:latest',
-    ragVersion: 1,
-    coverageScore: 82,
-    confidence: 0.84,
-    suggestedStatus: 'REQUIRES_TEACHER_REVIEW',
-    strengths: ['Độ bao phủ nội dung: 82%'],
-    weaknesses: ['Bổ sung kết luận'],
-    feedbackDraft: 'Cần xem lại phần kết luận.',
-    referenceTranscription: 'Bản chép bài mẫu',
-    studentTranscription: 'Bản chép bài nộp',
-    uncertainContent: [],
-    retrievedContext: [{
-      referenceFileId: 'reference-a',
-      originalFilename: 'sample01.png',
-      content: 'Đoạn bài mẫu liên quan đến tiến trình kinh tế.',
-      similarity: 0.82,
-    }],
-  }
-  const markup = renderToStaticMarkup(React.createElement(AiResultCard, { evaluation }))
-
-  assert.match(markup, /Ngữ cảnh RAG/)
-  assert.match(markup, /nomic-embed-text-v2-moe:latest/)
-  assert.match(markup, /sample01\.png/)
-  assert.match(markup, /Đoạn bài mẫu liên quan đến tiến trình kinh tế/)
-  assert.match(markup, /82% tương đồng/)
-})
-
-test('AI result card keeps older evaluations valid without RAG evidence', async () => {
-  const { AiResultCard } = await vite.ssrLoadModule('/src/pages/AssignmentDetailPage.jsx')
-  const markup = renderToStaticMarkup(React.createElement(AiResultCard, {
-    evaluation: {
-      suggestedStatus: 'REQUIRES_TEACHER_REVIEW',
-      confidence: 0,
-      strengths: [],
-      weaknesses: [],
-      feedbackDraft: '',
-      referenceTranscription: '',
-      studentTranscription: '',
-      uncertainContent: [],
-      retrievedContext: [],
-    },
-  }))
-
-  assert.doesNotMatch(markup, /Ngữ cảnh RAG/)
-  assert.match(markup, /Chưa có bản chép bài mẫu/)
-})
-
-test('evaluation mapping keeps RAG fields optional and source readable', async () => {
-  const { mapEvaluation } = await vite.ssrLoadModule('/src/components/assignment-detail/assignmentDetailView.js')
-  const mapped = mapEvaluation({
-    coverage_score: 74,
-    confidence: 0.7,
-    retrieved_context: [{
-      reference_file_id: 'reference-a',
-      original_filename: 'sample01.png',
-      content: 'Đoạn tham chiếu',
-      similarity: 0.73,
-    }],
-    embedding_model: 'nomic-test',
-    rag_version: 1,
-  })
-
-  assert.equal(mapped.embeddingModel, 'nomic-test')
-  assert.equal(mapped.ragVersion, 1)
-  assert.deepEqual(mapped.retrievedContext, [{
-    referenceFileId: 'reference-a',
-    originalFilename: 'sample01.png',
-    content: 'Đoạn tham chiếu',
-    similarity: 0.73,
-  }])
-})
-
-test('AI error mapping gives teachers an actionable local RAG message', async () => {
-  const { formatAiEvaluationError } = await vite.ssrLoadModule('/src/components/assignment-detail/aiEvaluationMessages.js')
-
-  assert.match(formatAiEvaluationError({ code: 'RAG_INDEX_FAILED' }), /lập chỉ mục bài mẫu/i)
-  assert.match(formatAiEvaluationError({ code: 'AI_EMBEDDING_TIMEOUT' }), /embedding local/i)
-  assert.match(formatAiEvaluationError({ code: 'AI_PROVIDER_FAILED', message: 'provider detail' }), /Ollama hoặc Gemini/i)
 })

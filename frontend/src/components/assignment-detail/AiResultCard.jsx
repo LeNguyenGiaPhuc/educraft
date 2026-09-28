@@ -1,11 +1,6 @@
 import { finalStatusLabel } from './assignmentDetailView.js'
 
 export default function AiResultCard({ evaluation }) {
-  const retrievedContext = Array.isArray(evaluation.retrievedContext)
-    ? evaluation.retrievedContext
-    : []
-  const hasRagEvidence = retrievedContext.length > 0 || Boolean(evaluation.embeddingModel)
-
   return (
     <section className="ai-result-card teacher-ai-card" aria-labelledby="ai-result-title">
       <div className="ai-result-heading teacher-ai-heading">
@@ -57,35 +52,6 @@ export default function AiResultCard({ evaluation }) {
           </ul>
         )}
       </div>
-      {hasRagEvidence && (
-        <div className="teacher-ai-rag" data-testid="ai-rag-evidence">
-          <div className="teacher-ai-rag-heading">
-            <div>
-              <h4>Ngữ cảnh RAG</h4>
-              <p>Đoạn bài mẫu được truy hồi để hỗ trợ gợi ý này.</p>
-            </div>
-            <span>
-              {evaluation.embeddingModel || 'Embedding local'}
-              {evaluation.ragVersion ? ` · v${evaluation.ragVersion}` : ''}
-            </span>
-          </div>
-          {retrievedContext.length === 0 ? (
-            <p className="teacher-ai-rag-empty">Chưa lưu được đoạn tham chiếu phù hợp.</p>
-          ) : (
-            <div className="teacher-ai-rag-list">
-              {retrievedContext.map((chunk, index) => (
-                <details key={`${chunk.referenceFileId}-${index}`}>
-                  <summary>
-                    <span>{chunk.originalFilename}</span>
-                    <span>{Math.round(chunk.similarity * 100)}% tương đồng</span>
-                  </summary>
-                  <p>{chunk.content || 'Không có nội dung hiển thị.'}</p>
-                </details>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </section>
   )
 }
