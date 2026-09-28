@@ -601,6 +601,77 @@
   display: block;
 }
 
+.teacher-ai-rag {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #dfe6f7;
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.teacher-ai-rag-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.teacher-ai-rag-heading h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.teacher-ai-rag-heading p,
+.teacher-ai-rag-heading span,
+.teacher-ai-rag-empty {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.teacher-ai-rag-heading span {
+  margin: 0;
+  color: var(--accent-hover);
+  text-align: right;
+}
+
+.teacher-ai-rag-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.teacher-ai-rag-list details {
+  border-top: 1px solid #edf0f8;
+}
+
+.teacher-ai-rag-list summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0 4px;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.teacher-ai-rag-list summary span:last-child {
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+.teacher-ai-rag-list details p {
+  margin: 0;
+  padding: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
 .teacher-ai-heading h3 {
   font-size: 16px;
 }

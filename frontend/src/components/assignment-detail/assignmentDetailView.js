@@ -20,6 +20,9 @@ export function mapEvaluation(result = {}) {
   const uncertainContent = Array.isArray(evaluation.uncertain_content)
     ? evaluation.uncertain_content
     : []
+  const retrievedContext = Array.isArray(evaluation.retrieved_context)
+    ? evaluation.retrieved_context
+    : []
 
   return {
     suggestedStatus: evaluation.suggested_status ?? 'REQUIRES_TEACHER_REVIEW',
@@ -34,10 +37,18 @@ export function mapEvaluation(result = {}) {
     feedbackDraft: evaluation.feedback_draft ?? '',
     provider: evaluation.provider ?? '',
     modelName: evaluation.model_name ?? '',
+    embeddingModel: evaluation.embedding_model ?? '',
+    ragVersion: evaluation.rag_version ?? null,
     promptVersion: evaluation.prompt_version ?? '',
     referenceTranscription: evaluation.reference_transcription ?? '',
     studentTranscription: evaluation.student_transcription ?? '',
     uncertainContent,
+    retrievedContext: retrievedContext.map((chunk) => ({
+      referenceFileId: chunk.reference_file_id ?? '',
+      originalFilename: chunk.original_filename ?? 'Bài mẫu',
+      content: chunk.content ?? '',
+      similarity: Number(chunk.similarity ?? 0),
+    })),
   }
 }
 
