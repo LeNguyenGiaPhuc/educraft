@@ -154,6 +154,7 @@ function buildService({
   provider,
   inputService,
   assignmentService,
+  ragService,
   logger = { error() {} },
 } = {}) {
   const events = []
@@ -210,6 +211,7 @@ function buildService({
       submissionService,
       inputService: inputService ?? defaultInputService,
       provider: provider ?? defaultProvider,
+      ragService,
       logger,
     }),
   }
@@ -611,5 +613,148 @@ test('missing and failed evaluation reads return stable safe errors', async () =
     ),
     (error) => error.code === 'AI_EVALUATION_READ_FAILED'
       && !error.message.includes('private'),
+  )
+})
+
+test('RAG evaluation indexes, transcribes, retrieves, generates, and persists evidence in order', async () => {
+  const savedEvaluation = {
+    ...evaluation(),
+    retrieved_context: [{
+      reference_file_id: 'reference-id',
+      original_filename: 'sample01.png',
+      content: 'Bài mẫu liên quan.',
+      similarity: 0.82,
+    }],
+    embedding_model: 'nomic-test',
+    rag_version: 1,
+  }
+  const events = []
+  const context = buildService({
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: savedEvaluation, error: null },
+      { data: { id: submissionIds[0], status: 'REQUIRES_REVIEW' }, error: null },
+    ],
+    inputService: {
+      async loadEvaluationInput(_auth, submission) {
+        events.push('load-evaluation-input')
+        return {
+          assignmentTitle: 'Lực ma sát',
+          coverageThreshold: 80,
+          referenceFiles: [{
+            id: 'reference-id',
+            storage_path: 'assignment/sample01.png',
+            original_filename: 'sample01.png',
+            size_bytes: 10,
+            created_at: '2026-09-28T00:00:00Z',
+          }],
+          referenceImages: [{
+            reference_file_id: 'reference-id',
+            original_filename: 'sample01.png',
+            buffer: Buffer.from('reference'),
+            mimeType: 'image/png',
+            order: 1,
+          }],
+          submissionImages: submission.files.map((file) => ({
+            buffer: Buffer.from('submission'),
+            mimeType: file.mime_type,
+            order: file.page_order,
+          })),
+        }
+      },
+    },
+    provider: {
+      async transcribeImages(input) {
+        events.push(`provider:transcribe:${input.source}`)
+        return {
+          transcription: 'Bản chép từ bài nộp.',
+          uncertain_content: [],
+        }
+      },
+      async generateEvaluation(input) {
+        events.push('provider:generate')
+        assert.deepEqual(input.retrievedContext, [{
+          reference_file_id: 'reference-id',
+          original_filename: 'sample01.png',
+          content: 'Bài mẫu liên quan.',
+          similarity: 0.82,
+        }])
+        return {
+          ...PROVIDER_RESULT,
+          reference_transcription: 'Bài mẫu liên quan.',
+          student_transcription: input.studentTranscription,
+          uncertain_content: input.uncertainContent,
+          missing_content: [...PROVIDER_RESULT.missing_content],
+        }
+      },
+    },
+    ragService: {
+      async ensureAssignmentIndexed(input) {
+        events.push('rag:index')
+        assert.equal(input.assignmentId, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+        return { indexedReferenceIds: ['reference-id'], reusedReferenceIds: [] }
+      },
+      async retrieveContext(input) {
+        events.push('rag:retrieve')
+        assert.equal(input.studentTranscription, 'Bản chép từ bài nộp.')
+        return {
+          chunks: savedEvaluation.retrieved_context,
+          embeddingModel: 'nomic-test',
+          ragVersion: 1,
+        }
+      },
+    },
+  })
+
+  const result = await context.service.runEvaluation(
+    teacherAuth(context.supabase),
+    submissionIds[0],
+  )
+
+  assert.equal(result.evaluation.embedding_model, 'nomic-test')
+  assert.deepEqual(result.evaluation.retrieved_context, savedEvaluation.retrieved_context)
+  assert.deepEqual(events, [
+    'load-evaluation-input',
+    'rag:index',
+    'provider:transcribe:submission',
+    'rag:retrieve',
+    'provider:generate',
+  ])
+  const persistence = context.adminClient.calls.find((call) => call.table === 'ai_evaluations')
+  assert.deepEqual(persistence.value.retrieved_context, savedEvaluation.retrieved_context)
+  assert.equal(persistence.value.embedding_model, 'nomic-test')
+  assert.equal(persistence.value.rag_version, 1)
+})
+
+test('RAG indexing failure rolls a newly processing submission back to SUBMITTED', async () => {
+  const context = buildService({
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: { id: submissionIds[0], status: 'SUBMITTED' }, error: null },
+    ],
+    ragService: {
+      async ensureAssignmentIndexed() {
+        throw new AppError(502, 'RAG_INDEX_FAILED', 'Không thể lập chỉ mục bài mẫu.')
+      },
+      async retrieveContext() {
+        throw new Error('should not retrieve')
+      },
+    },
+    provider: {
+      async transcribeImages() {
+        throw new Error('should not transcribe')
+      },
+    },
+  })
+
+  await assert.rejects(
+    context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0]),
+    (error) => error.code === 'RAG_INDEX_FAILED',
+  )
+  assert.deepEqual(
+    context.adminClient.calls.filter((call) => call.table === 'submissions').map((call) => call.value),
+    [{ status: 'PROCESSING' }, { status: 'SUBMITTED' }],
   )
 })
