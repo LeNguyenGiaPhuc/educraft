@@ -22,7 +22,22 @@ const envSchema = z.object({
   AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(30000),
   AI_MAX_REFERENCE_IMAGES: z.coerce.number().int().min(1).max(10).default(4),
   AI_MAX_TOTAL_BYTES: z.coerce.number().int().min(1).default(15 * 1024 * 1024),
+  OLLAMA_EMBEDDING_MODEL: z.string().min(1).default('nomic-embed-text-v2-moe:latest'),
+  RAG_EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(768),
+  RAG_CHUNK_SIZE: z.coerce.number().int().min(100).max(4000).default(800),
+  RAG_CHUNK_OVERLAP: z.coerce.number().int().min(0).max(1000).default(120),
+  RAG_MATCH_COUNT: z.coerce.number().int().min(1).max(50).default(5),
+  RAG_MIN_SIMILARITY: z.coerce.number().min(-1).max(1).default(0.35),
+  RAG_INDEX_VERSION: z.coerce.number().int().positive().default(1),
 }).superRefine((config, context) => {
+  if (config.RAG_CHUNK_OVERLAP >= config.RAG_CHUNK_SIZE) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['RAG_CHUNK_OVERLAP'],
+      message: 'RAG_CHUNK_OVERLAP must be smaller than RAG_CHUNK_SIZE.',
+    })
+  }
+
   if (config.AI_PROVIDER === 'gemini' && !config.GEMINI_API_KEY) {
     context.addIssue({
       code: z.ZodIssueCode.custom,

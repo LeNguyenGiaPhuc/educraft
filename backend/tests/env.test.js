@@ -26,6 +26,24 @@ test('loadEnv returns normalized config', () => {
   assert.equal(config.AI_TIMEOUT_MS, 30000)
   assert.equal(config.AI_MAX_REFERENCE_IMAGES, 4)
   assert.equal(config.AI_MAX_TOTAL_BYTES, 15 * 1024 * 1024)
+  assert.equal(config.OLLAMA_EMBEDDING_MODEL, 'nomic-embed-text-v2-moe:latest')
+  assert.equal(config.RAG_EMBEDDING_DIMENSIONS, 768)
+  assert.equal(config.RAG_CHUNK_SIZE, 800)
+  assert.equal(config.RAG_CHUNK_OVERLAP, 120)
+  assert.equal(config.RAG_MATCH_COUNT, 5)
+  assert.equal(config.RAG_MIN_SIMILARITY, 0.35)
+  assert.equal(config.RAG_INDEX_VERSION, 1)
+})
+
+test('loadEnv rejects an overlap that is not smaller than the chunk size', () => {
+  assert.throws(
+    () => loadEnv({
+      ...validEnv,
+      RAG_CHUNK_SIZE: 120,
+      RAG_CHUNK_OVERLAP: 120,
+    }),
+    /RAG_CHUNK_OVERLAP/,
+  )
 })
 
 test('loadEnv rejects a missing Supabase URL', () => {
