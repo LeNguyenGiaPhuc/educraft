@@ -7,8 +7,10 @@ import {
   buildTranscriptionPrompt,
   evaluationSuggestionJsonSchema,
   parseEvaluationSuggestion,
+  parseSingleImageTranscription,
   parseProviderResult,
   parseTranscriptionResult,
+  singleImageTranscriptionJsonSchema,
   transcriptionJsonSchema,
 } from '../aiEvaluationSchema.js'
 
@@ -125,7 +127,73 @@ export function createGeminiAiProvider({
     }
   }
 
+  async function transcribeImages({ images = [], source }) {
+    const results = []
+    for (const image of images) {
+      const response = await createInteraction({
+        model,
+        input: [
+          {
+            type: 'text',
+            text: [
+              'Bạn là bộ phận đọc một trang ảnh cho hệ thống EduCraft.',
+              `Ảnh này là ${source === 'reference' ? 'bài mẫu' : 'bài nộp của học sinh'}.`,
+              'Chỉ trả về JSON theo schema; giữ đúng nội dung nhìn thấy và ghi uncertainty nếu chữ khó đọc.',
+            ].join('\n'),
+          },
+          imagePart(image),
+        ],
+        response_format: responseFormat(singleImageTranscriptionJsonSchema),
+      })
+      results.push(parseJsonResponse(response, parseSingleImageTranscription))
+    }
+
+    return {
+      transcription: results.map((result) => result.transcription).join('\n\n'),
+      uncertain_content: results.flatMap((result) => result.uncertain_content),
+    }
+  }
+
+  async function generateEvaluation({
+    assignmentTitle,
+    coverageThreshold,
+    studentTranscription,
+    retrievedContext,
+    uncertainContent = [],
+  }) {
+    const startedAt = Date.now()
+    const referenceTranscription = (retrievedContext ?? [])
+      .map((chunk) => String(chunk?.content ?? '').trim())
+      .filter(Boolean)
+      .join('\n\n')
+    const response = await createInteraction({
+      model,
+      input: buildEvaluationPrompt({
+        assignmentTitle,
+        coverageThreshold,
+        referenceTranscription,
+        studentTranscription,
+      }),
+      response_format: responseFormat(evaluationSuggestionJsonSchema),
+    })
+    const suggestion = parseJsonResponse(response, parseEvaluationSuggestion)
+
+    return parseProviderResult({
+      ...suggestion,
+      reference_transcription: referenceTranscription,
+      student_transcription: studentTranscription,
+      uncertain_content: uncertainContent,
+      provider: 'gemini',
+      model_name: model,
+      model_version: model,
+      prompt_version: AI_PROMPT_VERSION,
+      latency_ms: Math.max(0, Date.now() - startedAt),
+    })
+  }
+
   return {
+    transcribeImages,
+    generateEvaluation,
     async evaluate(input) {
       const startedAt = now()
       const transcriptionInput = [
