@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { useAuth } from '../contexts/useAuth.js'
 import { getRoleHome, ROLES } from '../services/authService.js'
@@ -9,9 +9,12 @@ function navigationClassName({ isActive }) {
 
 function AppShell() {
   const { logout, user } = useAuth()
+  const { pathname } = useLocation()
   const homePath = getRoleHome(user?.role)
   const isTeacher = user?.role === ROLES.TEACHER
   const hasPrimaryNavigation = user?.role === ROLES.ADMIN || isTeacher
+  const isTeacherAssignmentRoute = pathname === '/assignments/new'
+    || /^\/classes\/[^/]+\/assignments\/new$/.test(pathname)
   const initials = (user?.name ?? 'EduCraft')
     .split(' ')
     .map((part) => part[0])
@@ -21,8 +24,8 @@ function AppShell() {
     .toUpperCase()
 
   return (
-    <div className={`app-shell ${isTeacher ? 'teacher-shell' : 'student-shell'}`}>
-      <header className={`site-header${isTeacher ? ' teacher-sidebar' : ''}`}>
+    <div className={`app-shell ${isTeacher ? 'teacher-shell teacher-kinetic-shell' : 'student-shell'}`}>
+      <header className={`site-header${isTeacher ? ' teacher-sidebar teacher-kinetic-header' : ''}`}>
         <div className="site-header-inner">
           <Link className="brand" to={homePath} aria-label="EduCraft">
             <span className="brand-mark" aria-hidden="true">
@@ -47,7 +50,13 @@ function AppShell() {
                   <NavLink className={navigationClassName} end to="/teacher">
                     Tổng quan
                   </NavLink>
-                  <NavLink className={navigationClassName} to="/assignments/new">
+                  <NavLink
+                    className={({ isActive }) => navigationClassName({
+                      isActive: isActive || isTeacherAssignmentRoute,
+                    })}
+                    aria-current={isTeacherAssignmentRoute ? 'page' : undefined}
+                    to="/assignments/new"
+                  >
                     Tạo bài kiểm tra
                   </NavLink>
                 </>

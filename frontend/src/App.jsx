@@ -18,6 +18,7 @@ import './styles/admin.css'
 import './styles/teacher.css'
 import './styles/student.css'
 import './styles/blueprint.css'
+import './styles/teacher-kinetic.css'
 
 const AdminAccountsPage = lazy(() => import('./pages/AdminAccountsPage.jsx'))
 const AdminClassDetailPage = lazy(() => import('./pages/AdminClassDetailPage.jsx'))
