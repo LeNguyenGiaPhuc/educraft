@@ -1,85 +1,82 @@
 /* eslint-disable react-refresh/only-export-components */
-
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
-
+import { Link, MemoryRouter, Route, Routes, useParams } from 'react-router-dom'
 import AppShell from '../../../src/components/AppShell.jsx'
 import AuthContext from '../../../src/contexts/AuthContext.js'
-import ClassArchive from '../../../src/components/teacher/ClassArchive.jsx'
+import TeacherOverview from '../../../src/components/teacher/TeacherOverview.jsx'
+import { mapTeacherClass } from '../../../src/services/teacherClassService.js'
+// Exactly the production main.jsx + App.jsx CSS order, including the reset.
+import '../../../src/index.css'
 import '../../../src/App.css'
 import '../../../src/styles/tokens.css'
 import '../../../src/styles/shells.css'
+import '../../../src/styles/login.css'
+import '../../../src/styles/admin.css'
+import '../../../src/styles/teacher.css'
+import '../../../src/styles/student.css'
 import '../../../src/styles/blueprint.css'
 import '../../../src/styles/teacher-kinetic.css'
+import '../../../src/styles/teacher-final-states.css'
 
 const subjects = ['Ngữ văn', 'Lịch sử', 'Địa lý', 'Giáo dục công dân']
-
-function fixtureClasses(count) {
-  return Array.from({ length: count }, (_, index) => ({
-    id: `fixture-class-${index + 1}`,
-    code: `${10 + (index % 3)}${String.fromCharCode(65 + (index % 5))}${(index % 4) + 1}`,
-    subject: subjects[index % subjects.length],
-    name: `${subjects[index % subjects.length]} ${10 + (index % 3)}${String.fromCharCode(65 + (index % 5))}${(index % 4) + 1}`,
+function fixtureClasses(count, longLabels) {
+  return Array.from({ length: count }, (_, index) => mapTeacherClass({
+    id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+    code: longLabels && index === 0 ? 'LỚP-CHUYÊN-ĐỀ-LỊCH-SỬ-VĂN-HÓA-VIỆT-NAM-2026' : `${10 + (index % 3)}A${1 + (index % 4)}`,
+    subject: longLabels && index === 0 ? 'Lịch sử văn hóa và các nền văn minh Việt Nam qua nhiều thời kỳ' : subjects[index % 4],
     semester: index % 2 ? 'Học kỳ 2' : 'Học kỳ 1',
-    schoolYear: '2026-2027',
+    school_year: index % 3 ? '2026–2027' : '2025–2026',
     status: index % 9 === 0 ? 'INACTIVE' : 'ACTIVE',
-    studentCount: 24 + (index % 11),
-    assignmentCount: index % 7,
+    student_count: 24 + (index % 11),
+    assignment_count: index % 7,
   }))
 }
-
-function PreviewPage({ count }) {
-  return (
-    <main className="page-content teacher-page teacher-kinetic-overview">
-      <div className="page-container">
-        <section className="tk-intro" aria-labelledby="teacher-overview-title">
-          <div className="tk-intro-copy">
-            <p className="tk-kicker">EDUCRAFT / KHÔNG GIAN GIÁO VIÊN</p>
-            <h1 id="teacher-overview-title">Mỗi lớp học,<span>một hồ sơ.</span></h1>
-            <p className="tk-intro-lede">Xin chào, Trần Gia Phúc. Đây là fixture hiển thị, không gọi API.</p>
-          </div>
-          <div className="tk-intro-note">
-            <span className="tk-note-line" aria-hidden="true" />
-            <p className="tk-note-label">GHI CHÚ CỦA GIÁO VIÊN</p>
-            <p className="tk-note-copy">Bản xem trước dùng dữ liệu tổng hợp để kiểm tra bố cục và scale archive.</p>
-            <a className="tk-button tk-button-primary" href="/assignments/new"><span>Tạo bài kiểm tra</span><span className="tk-button-arrow" aria-hidden="true" /></a>
-          </div>
-        </section>
-        {count > 0 ? <ClassArchive classes={fixtureClasses(count)} /> : <section className="tk-state tk-empty-state"><p className="tk-kicker">ARCHIVE / TRỐNG</p><h2>Chưa có lớp học nào</h2><p>Fixture 0 lớp để kiểm tra empty state.</p></section>}
-      </div>
-    </main>
-  )
+function FixtureDestination({ createAssignment = false }) {
+  const { classId } = useParams()
+  return <div className="teacher-kinetic-overview" style={{ padding: 32 }}>
+    <h1>{createAssignment ? 'Đã mở đường dẫn tạo bài kiểm tra' : 'Đã mở đường dẫn lớp'}</h1>
+    {classId && <p>{classId}</p>}
+    <p>Đích kiểm thử navigation; không phải màn production, không gọi API.</p>
+    <Link to="/teacher">Về fixture Tổng quan</Link>
+  </div>
 }
-
 function PreviewApp() {
-  const [count, setCount] = useState(12)
+  const [count, setCount] = useState(3)
+  const [status, setStatus] = useState('success')
+  const [longLabels, setLongLabels] = useState(false)
+  const data = useMemo(() => fixtureClasses(count, longLabels), [count, longLabels])
   const authValue = {
     user: { id: 'fixture-teacher', role: 'TEACHER', name: 'Trần Gia Phúc', email: 'teacher@example.test' },
-    isLoading: false,
-    isAuthenticated: true,
-    login: async () => undefined,
+    isLoading: false, isAuthenticated: true,
     logout: async () => undefined,
-    refreshUser: async () => undefined,
   }
-
   return (
     <AuthContext.Provider value={authValue}>
-      <div style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 100, padding: '8px 10px', border: '1px solid #182b37', background: '#f7f5e9', color: '#182b37', fontFamily: 'sans-serif', fontSize: 11 }}>
-        <label htmlFor="fixture-count">Fixture lớp: </label>
+      <details style={{ padding: '8px 16px', background: '#f7f5e9', fontSize: 12 }}>
+        <summary>Kiểm thử Phase 1.1 · dữ liệu tổng hợp · không gọi API</summary>
+        <label htmlFor="fixture-count">Số lớp: </label>
         <select id="fixture-count" value={count} onChange={(event) => setCount(Number(event.target.value))}>
-          {[0, 1, 3, 12, 50, 100, 125].map((value) => <option key={value} value={value}>{value}</option>)}
+          {[0, 1, 3, 12, 50, 100, 125].map(value => <option key={value}>{value}</option>)}
         </select>
-      </div>
+        <label htmlFor="fixture-status"> Trạng thái: </label>
+        <select id="fixture-status" value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="success">Có dữ liệu</option><option value="loading">Đang tải</option><option value="error">Lỗi tải</option>
+        </select>
+        <label><input type="checkbox" checked={longLabels} onChange={(event) => setLongLabels(event.target.checked)} /> Tên và mã lớp dài</label>
+      </details>
       <MemoryRouter initialEntries={['/teacher']}>
         <Routes>
           <Route element={<AppShell />}>
-            <Route path="/teacher" element={<PreviewPage count={count} />} />
+            <Route path="/teacher" element={<TeacherOverview snapshot={{ status, data, message: 'Lỗi mạng giả lập trong fixture.' }} onRetry={() => setStatus('success')} />} />
+            <Route path="/classes/:classId" element={<FixtureDestination />} />
+            <Route path="/assignments/new" element={<FixtureDestination createAssignment />} />
           </Route>
         </Routes>
       </MemoryRouter>
     </AuthContext.Provider>
   )
 }
-
-createRoot(document.getElementById('root')).render(<PreviewApp />)
+const root = import.meta.hot?.data.root ?? createRoot(document.getElementById('root'))
+if (import.meta.hot) import.meta.hot.data.root = root
+root.render(<PreviewApp />)

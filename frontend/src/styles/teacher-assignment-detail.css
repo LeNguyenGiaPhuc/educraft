@@ -1,0 +1,59 @@
+.teacher-kinetic-shell .teacher-assignment-detail-page > .page-container { max-width: 1680px; }
+.teacher-kinetic-shell .tk-assignment-detail { color: var(--tk-navy); min-width: 0; }
+.teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-hero { background: var(--tk-paper); background-image: none; border: 1px solid var(--tk-navy); border-radius: 0 20px 0 0; box-shadow: 7px 8px 0 var(--tk-ochre); padding: 24px; margin: 18px 0 32px; overflow: visible; }
+.teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-hero::before,
+.teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-hero::after { display: none; }
+.teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-hero-content { display: flex; justify-content: space-between; align-items: start; gap: 24px; padding: 0; }
+.teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-summary { min-width: 0; }
+.teacher-kinetic-shell .tk-assignment-detail h1 { font: 800 clamp(24px,2.5vw,36px)/1.12 var(--tk-font-display); color: var(--tk-navy); overflow-wrap: anywhere; margin: 0 0 16px; }
+.teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-meta { color: var(--tk-navy); display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 13px; }
+.teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-actions { flex: 0 0 240px; }
+.teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-action-buttons { display: flex; gap: 10px; }
+.teacher-kinetic-shell .tk-assignment-detail .assignment-delete-help { color: var(--tk-muted); font-size: 12px; margin: 10px 0 0; background: transparent; border: 0; padding: 0; }
+.teacher-kinetic-shell .tk-assignment-detail .button { background: var(--tk-navy); color: var(--tk-paper); border: 1px solid var(--tk-navy); min-height: 44px; border-radius: 2px; box-shadow: none; }
+.teacher-kinetic-shell .tk-assignment-detail .button-outline { background: var(--tk-paper); color: var(--tk-navy); }
+.teacher-kinetic-shell .tk-assignment-detail .button-danger { background: var(--tk-russet); color: white; }
+.teacher-kinetic-shell .tk-assignment-detail .button::after { display: none; }
+.teacher-kinetic-shell .tk-detail-folders { display: flex; gap: 5px; padding: 0 12px; }
+.teacher-kinetic-shell .tk-detail-folders button { background: var(--tk-navy); color: var(--tk-paper); border: 1px solid var(--tk-navy); border-radius: 12px 20px 0 0; padding: 14px 22px; min-height: 48px; font-weight: 700; transform: translateY(3px); transition: transform 240ms var(--tk-ease); }
+.teacher-kinetic-shell .tk-detail-folders button[aria-selected=true] { background: var(--tk-paper); color: var(--tk-navy); transform: translateY(0); border-bottom-color: var(--tk-paper); position: relative; z-index: 1; }
+.teacher-kinetic-shell .tk-assignment-detail [role=tabpanel] { border: 1px solid var(--tk-navy); background: var(--tk-paper); padding: 22px; box-shadow: 6px 8px 0 rgba(24,43,55,.22); }
+.teacher-kinetic-shell .tk-assignment-detail [role=tabpanel][hidden] { display: none; }
+.teacher-kinetic-shell .tk-detail-review-grid { display: grid; grid-template-columns: minmax(220px,.7fr) minmax(270px,1.15fr) minmax(300px,1fr); gap: 24px; align-items: start; }
+.teacher-kinetic-shell .tk-detail-review-grid > * { min-width: 0; }
+.teacher-kinetic-shell .tk-assignment-detail h2 { font: 800 22px/1.2 var(--tk-font-display); margin: 0 0 10px; }
+.teacher-kinetic-shell .tk-submission-navigator > p,
+.teacher-kinetic-shell .tk-evidence header p { color: var(--tk-muted); font-size: 12px; line-height: 1.6; margin: 0 0 18px; }
+.teacher-kinetic-shell .tk-submission-archive label,
+.teacher-kinetic-shell .tk-evidence > label { display: block; font-size: 13px; font-weight: 700; margin: 16px 0 8px; }
+.teacher-kinetic-shell .tk-submission-archive input,
+.teacher-kinetic-shell .tk-evidence select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--tk-navy); border-radius: 2px; color: var(--tk-navy); background: white; padding: 10px; font: inherit; font-size: 13px; }
+.teacher-kinetic-shell .tk-queue-current { display: grid; gap: 4px; padding: 12px 0; font-size: 12px; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-submission-archive .teacher-submission-list { display: block; max-height: 580px; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--tk-navy) var(--tk-paper); border: 1px solid var(--tk-navy); }
+.teacher-kinetic-shell .tk-submission-archive .teacher-submission-item { display: grid; grid-template-columns: 1fr; gap: 6px; width: 100%; padding: 14px; margin: 0; border: 0; border-bottom: 1px solid rgba(24,43,55,.25); border-radius: 0; background: var(--tk-paper); color: var(--tk-navy); text-align: left; min-width: 0; }
+.teacher-kinetic-shell .tk-submission-archive .teacher-submission-item-active { background: var(--tk-stock); box-shadow: inset 0 0 0 2px var(--tk-navy); }
+.teacher-kinetic-shell .tk-submission-archive .teacher-submission-item:hover { background: var(--tk-stock); }
+.teacher-kinetic-shell .tk-submission-archive .teacher-submission-item:active { background: var(--tk-ochre); }
+.teacher-kinetic-shell .tk-submission-archive .teacher-submission-mark { display: none; }
+.teacher-kinetic-shell .tk-submission-archive .teacher-submission-main { min-width: 0; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-submission-archive .teacher-submission-main span { color: var(--tk-muted); font-size: 12px; line-height: 1.6; white-space: normal; overflow: visible; text-overflow: clip; }
+.teacher-kinetic-shell .tk-submission-archive .teacher-submission-status { text-align: left; font-size: 11px; color: var(--tk-navy); }
+.teacher-kinetic-shell .tk-queue-pagination { display: grid; gap: 10px; margin-top: 14px; font-size: 11px; }
+.teacher-kinetic-shell .tk-queue-pagination nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.teacher-kinetic-shell .tk-queue-pagination button,
+.teacher-kinetic-shell .tk-queue-current button { min-height: 44px; border: 1px solid var(--tk-navy); color: var(--tk-navy); background: var(--tk-paper); padding: 8px 12px; }
+.teacher-kinetic-shell .tk-evidence-document { margin: 18px 0 26px; padding: 0 0 14px; border-bottom: 1px solid rgba(24,43,55,.3); }
+.teacher-kinetic-shell .tk-evidence-document figcaption { display: grid; gap: 5px; margin-bottom: 12px; overflow-wrap: anywhere; font-size: 12px; }
+.teacher-kinetic-shell .tk-evidence-document a { display: inline-block; padding: 12px 0 0; overflow-wrap: anywhere; color: var(--tk-navy); font-size: 12px; }
+.teacher-kinetic-shell .tk-evidence-image { max-height: 620px; overflow: auto; background: white; border: 1px solid rgba(24,43,55,.3); }
+.teacher-kinetic-shell .tk-evidence img { display: block; width: 100%; height: auto; object-fit: contain; filter: none; }
+.teacher-kinetic-shell .tk-review-empty { grid-column: span 2; padding: 28px; background: var(--tk-stock); border: 1px solid var(--tk-navy); }
+.teacher-kinetic-shell .tk-assignment-detail button { cursor: pointer; }
+.teacher-kinetic-shell .tk-assignment-detail button:disabled { opacity: .55; cursor: not-allowed; }
+.teacher-kinetic-shell .tk-detail-refresh-error { padding: 16px; margin-bottom: 20px; border: 1px solid var(--tk-russet); background: var(--tk-paper); color: var(--tk-russet); }
+.teacher-kinetic-shell .tk-detail-refresh-error button { min-height: 44px; color: var(--tk-navy); background: var(--tk-paper); border: 1px solid var(--tk-navy); padding: 8px 16px; }
+@media(max-width:1100px) { .teacher-kinetic-shell .tk-detail-review-grid { grid-template-columns: minmax(200px,.7fr) minmax(0,1.3fr); } .teacher-kinetic-shell .tk-detail-review-grid > .tk-review-workspace { grid-column: 2; } }
+@media(max-width:800px) { .teacher-kinetic-shell .tk-detail-review-grid { grid-template-columns: 1fr; } .teacher-kinetic-shell .tk-detail-review-grid > .tk-review-workspace,.teacher-kinetic-shell .tk-review-empty { grid-column: auto; } .teacher-kinetic-shell .tk-submission-archive .teacher-submission-list { max-height: 260px; } .teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-hero-content { flex-direction: column; } .teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-actions { flex-basis: auto; } }
+@media(max-width:560px) { .teacher-kinetic-shell .tk-assignment-detail [role=tabpanel] { padding: 16px 12px; } .teacher-kinetic-shell .tk-assignment-detail .teacher-assignment-hero { padding: 18px; } .teacher-kinetic-shell .tk-detail-folders { padding: 0 6px; } .teacher-kinetic-shell .tk-detail-folders button { padding: 12px 16px; } }
+@media(prefers-reduced-motion:reduce) { .teacher-kinetic-shell .tk-detail-folders button { transition: none; } }
+

@@ -6,6 +6,7 @@ import AppShell from './components/AppShell.jsx'
 import RequireStudentAssignment from './components/RequireStudentAssignment.jsx'
 import RequireTeacherClass from './components/RequireTeacherClass.jsx'
 import RoleRoute from './components/RoleRoute.jsx'
+import TeacherPendingState from './components/teacher/TeacherPendingState.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { useAuth } from './contexts/useAuth.js'
 import { getPageTitle } from './data/pageTitle.js'
@@ -19,6 +20,7 @@ import './styles/teacher.css'
 import './styles/student.css'
 import './styles/blueprint.css'
 import './styles/teacher-kinetic.css'
+import './styles/teacher-final-states.css'
 
 const AdminAccountsPage = lazy(() => import('./pages/AdminAccountsPage.jsx'))
 const AdminClassDetailPage = lazy(() => import('./pages/AdminClassDetailPage.jsx'))
@@ -33,6 +35,8 @@ const StudentDashboardPage = lazy(() => import('./pages/StudentDashboardPage.jsx
 const StudentSubmissionPage = lazy(() => import('./pages/StudentSubmissionPage.jsx'))
 
 function RouteLoadingState() {
+  const { user } = useAuth()
+  if (user?.role === ROLES.TEACHER) return <AppShell><TeacherPendingState /></AppShell>
   return (
     <main className="page-content">
       <div className="page-container">
@@ -59,6 +63,10 @@ function AppRoutes() {
   }, [pathname])
 
   if (isLoading) {
+    // Route-themed placeholders only; authentication still blocks every private record.
+    if (pathname === '/teacher' || pathname === '/assignments/new' || pathname.startsWith('/classes/')) {
+      return <TeacherPendingState standalone message="Đang kiểm tra phiên đăng nhập…" />
+    }
     return (
       <main className="page-content">
         <div className="page-container">

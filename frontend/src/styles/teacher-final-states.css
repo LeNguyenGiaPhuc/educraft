@@ -1,0 +1,20 @@
+/* Kinetic completion: role-scoped legacy states, never Student/Admin. */
+.teacher-kinetic-shell .page-content { background-color: var(--tk-stock); background-image: none; color: var(--tk-navy); }
+.teacher-kinetic-shell .state-panel { background: var(--tk-paper); border: 1px solid var(--tk-navy); box-shadow: 5px 7px 0 rgb(24 43 55 / 16%); color: var(--tk-navy); }
+.teacher-kinetic-shell .state-panel h1 { color: var(--tk-navy); font-family: var(--tk-font-display); font-weight: 800; }
+.teacher-kinetic-shell .state-panel p { color: var(--tk-muted); overflow-wrap: anywhere; }
+.teacher-kinetic-shell .state-panel .state-kicker { display: none; }
+.teacher-kinetic-shell .state-panel .button { background: var(--tk-navy); color: var(--tk-paper); border-color: var(--tk-navy); min-height: 44px; }
+.teacher-kinetic-shell .state-panel .button::after { display: none; }
+.teacher-kinetic-shell .tk-teacher-pending { min-width: 0; padding: 32px max(16px,4vw); }
+.teacher-kinetic-shell .tk-teacher-pending section { width: min(700px,100%); padding: 28px; margin: 0 auto; border: 1px solid var(--tk-navy); background: var(--tk-paper); box-shadow: 6px 8px 0 rgb(24 43 55 / 16%); }
+.teacher-kinetic-shell .tk-teacher-pending h1 { margin: 0; font: 800 clamp(22px,3vw,30px)/1.3 var(--tk-font-display); color: var(--tk-navy); }
+.teacher-kinetic-shell .tk-teacher-pending p { font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-pending-lines { display: grid; gap: 16px; padding: 20px 0 0; }
+.teacher-kinetic-shell .tk-pending-lines span { width: 75%; height: 12px; background: rgb(24 43 55 / 15%); }
+.teacher-kinetic-shell .tk-pending-lines span:nth-child(2) { width: 90%; }
+.teacher-kinetic-shell .tk-pending-lines span:last-child { width: 55%; }
+.teacher-kinetic-shell .tk-pending-brand { background: var(--tk-navy); color: var(--tk-paper); padding: 20px 4vw; font: 800 24px var(--tk-font-display); }
+.teacher-kinetic-shell :is(button,a,input,select,textarea):focus-visible { outline: 3px solid var(--tk-russet); outline-offset: 3px; }
+.teacher-kinetic-shell .teacher-kinetic-header :is(button,a):focus-visible { outline-color: var(--tk-paper); }
+@media (max-width:560px) { .teacher-kinetic-shell .tk-teacher-pending section { padding: 20px; } }

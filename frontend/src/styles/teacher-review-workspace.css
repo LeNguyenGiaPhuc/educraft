@@ -1,0 +1,69 @@
+/* One selected attempt: AI annotations and a distinct teacher decision folio. */
+.teacher-kinetic-shell .tk-review-workspace { min-width: 0; color: var(--tk-navy); }
+.teacher-kinetic-shell .tk-review-workspace :is(.tk-primary-action,.tk-secondary-action) { min-height: 46px; padding: 12px 18px; border: 1px solid var(--tk-navy); border-radius: 2px 8px 2px 2px; background: var(--tk-navy); color: var(--tk-paper); font: 600 14px/1.4 var(--tk-font-body); box-shadow: 2px 3px 0 rgb(24 43 55 / 16%); cursor: pointer; transition: transform 180ms var(--tk-ease); }
+.teacher-kinetic-shell .tk-review-workspace .tk-secondary-action { background: var(--tk-paper); color: var(--tk-navy); }
+.teacher-kinetic-shell .tk-review-workspace :is(.tk-primary-action,.tk-secondary-action):active { transform: translate(1px,2px); box-shadow: none; }
+.teacher-kinetic-shell .tk-review-workspace :is(.tk-primary-action,.tk-secondary-action):disabled { cursor: default; opacity: .65; transform: none; }
+.teacher-kinetic-shell .tk-review-identity { display: flex; align-items: start; justify-content: space-between; gap: 14px; padding-bottom: 20px; border-bottom: 1px solid var(--tk-line); }
+.teacher-kinetic-shell .tk-review-identity > div { min-width: 0; }
+.teacher-kinetic-shell .tk-review-identity h3 { margin: 0 0 8px; font: 800 24px/1.2 var(--tk-font-display); overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-review-identity p { margin: 5px 0; color: var(--tk-muted); font-size: 12px; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-review-identity a { display: inline-flex; align-items: center; min-height: 44px; color: var(--tk-navy); font-size: 13px; text-decoration: underline; }
+.teacher-kinetic-shell .tk-review-state { padding: 8px 10px; border: 1px solid var(--tk-navy); background: var(--tk-stock); flex-shrink: 0; font-size: 12px; }
+.teacher-kinetic-shell .tk-insights { margin: 22px 0 32px; }
+.teacher-kinetic-shell .tk-ai-consent h4,
+.teacher-kinetic-shell .tk-ai-result h3 { margin: 0 0 12px; font: 800 22px/1.3 var(--tk-font-display); }
+.teacher-kinetic-shell .tk-ai-consent p { margin: 0 0 16px; font-size: 13px; line-height: 1.8; }
+.teacher-kinetic-shell .tk-review-inline-state { margin: 12px 0; padding: 12px; border: 1px solid var(--tk-line); background: var(--tk-paper); font-size: 13px; line-height: 1.7; }
+.teacher-kinetic-shell .tk-review-error { color: var(--tk-russet); font-size: 13px; line-height: 1.7; }
+.teacher-kinetic-shell .tk-review-error p { margin: 0 0 10px; }
+.teacher-kinetic-shell .tk-ai-result { min-width: 0; }
+.teacher-kinetic-shell .tk-ai-result-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.teacher-kinetic-shell .tk-ai-result-heading span { font-size: 11px; color: var(--tk-muted); }
+.teacher-kinetic-shell .tk-ai-measures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0; padding: 14px 0; border-block: 1px solid var(--tk-line); }
+.teacher-kinetic-shell .tk-ai-measures dt { font-size: 11px; line-height: 1.7; color: var(--tk-muted); }
+.teacher-kinetic-shell .tk-ai-measures dd { margin: 7px 0 0; font: 800 22px/1.3 var(--tk-font-display); overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-ai-disclosure { font-size: 11px; line-height: 1.7; color: var(--tk-muted); }
+.teacher-kinetic-shell .tk-ai-proposal { font-size: 13px; padding: 12px 0; }
+.teacher-kinetic-shell .tk-ai-result-columns { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,240px),1fr)); gap: 20px; margin: 12px 0 20px; }
+.teacher-kinetic-shell .tk-ai-result-columns h4 { margin: 0 0 10px; font-size: 14px; }
+.teacher-kinetic-shell .tk-ai-result-columns ul { padding-left: 22px; margin: 0; max-height: 14rem; overflow: auto; overscroll-behavior: contain; font-size: 16px; line-height: 1.8; }
+.teacher-kinetic-shell .tk-ai-result-columns li { margin-bottom: 8px; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-review-disclosure { border-top: 1px solid var(--tk-line); }
+.teacher-kinetic-shell .tk-review-disclosure summary { padding: 14px 0; min-height: 44px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.teacher-kinetic-shell .tk-review-disclosure > p,
+.teacher-kinetic-shell .tk-review-disclosure > ul { margin: 0 0 18px; max-height: 350px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 16px; line-height: 1.9; }
+.teacher-kinetic-shell .tk-review-disclosure > ul { padding-left: 20px; }
+.teacher-kinetic-shell .tk-review-disclosure li p { white-space: pre-wrap; }
+.teacher-kinetic-shell .tk-teacher-folio { position: relative; isolation: isolate; padding: 22px; margin-top: 32px; border: 1px solid var(--tk-navy); border-top-width: 6px; background: var(--tk-paper); box-shadow: 5px 6px 0 rgb(24 43 55 / 18%); }
+.teacher-kinetic-shell .tk-folio-edge { position: absolute; z-index: -1; pointer-events: none; inset: 4px -6px -8px 4px; border: 1px solid var(--tk-navy); background: var(--tk-ochre); }
+.teacher-kinetic-shell .tk-folio-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.teacher-kinetic-shell .tk-folio-heading h3 { margin: 0; font: 800 22px/1.3 var(--tk-font-display); }
+.teacher-kinetic-shell .tk-folio-confirmed-time { margin: 0 0 18px; color: var(--tk-muted); font-size: 12px; }
+.teacher-kinetic-shell .tk-teacher-seal { display: inline-block; padding: 7px 9px; border: 2px double var(--tk-navy); background: var(--tk-stock); font-size: 11px; font-weight: 700; transform: rotate(-3deg); }
+.teacher-kinetic-shell .tk-teacher-seal-confirmed { animation: tk-seal-press 420ms var(--tk-ease); }
+@keyframes tk-seal-press { from { transform: translateY(-9px) rotate(-7deg) scale(1.06); } to { transform: translateY(0) rotate(-3deg) scale(1); } }
+.teacher-kinetic-shell .tk-review-field { margin-bottom: 20px; min-width: 0; }
+.teacher-kinetic-shell .tk-review-field label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
+.teacher-kinetic-shell .tk-review-field select,
+.teacher-kinetic-shell .tk-review-field textarea { width: 100%; min-width: 0; min-height: 46px; padding: 12px; border: 1px solid var(--tk-navy); border-radius: 0; background: #fffef8; color: var(--tk-navy); font: 400 14px/1.7 var(--tk-font-body); }
+.teacher-kinetic-shell .tk-review-field textarea { resize: vertical; }
+.teacher-kinetic-shell .tk-review-field [aria-invalid="true"] { border-color: var(--tk-russet); outline: 1px solid var(--tk-russet); }
+.teacher-kinetic-shell .tk-review-field :disabled { opacity: 1; color: var(--tk-muted); background: var(--tk-paper); cursor: default; }
+.teacher-kinetic-shell .tk-folio-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-top: 16px; border-top: 1px solid var(--tk-line); }
+.teacher-kinetic-shell .tk-folio-actions p { flex: 1 1 200px; margin: 0; color: var(--tk-muted); font-size: 11px; line-height: 1.8; }
+.teacher-kinetic-shell .tk-review-workspace :focus-visible { outline: 3px solid var(--tk-navy); outline-offset: 4px; }
+@media (max-width: 560px) {
+  .teacher-kinetic-shell .tk-review-identity { flex-wrap: wrap; }
+  .teacher-kinetic-shell .tk-ai-measures { grid-template-columns: 1fr 1fr; }
+  .teacher-kinetic-shell .tk-ai-result-columns { grid-template-columns: 1fr; }
+  .teacher-kinetic-shell .tk-teacher-folio { padding: 16px; }
+  .teacher-kinetic-shell .tk-folio-actions > button { width: 100%; }
+  .teacher-kinetic-shell .tk-review-field select,
+  .teacher-kinetic-shell .tk-review-field textarea { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .teacher-kinetic-shell .tk-review-workspace :is(.tk-primary-action,.tk-secondary-action) { transition: none; transform: none; }
+  .teacher-kinetic-shell .tk-teacher-seal-confirmed { animation: none; }
+  .teacher-kinetic-shell .tk-folio-edge { transform: none !important; }
+}
