@@ -2,11 +2,13 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import AdminShell from './components/AdminShell.jsx'
+import AdminPendingState from './components/admin/AdminPendingState.jsx'
 import AppShell from './components/AppShell.jsx'
 import RequireStudentAssignment from './components/RequireStudentAssignment.jsx'
 import RequireTeacherClass from './components/RequireTeacherClass.jsx'
 import RoleRoute from './components/RoleRoute.jsx'
 import TeacherPendingState from './components/teacher/TeacherPendingState.jsx'
+import StudentPendingState from './components/student/StudentPendingState.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { useAuth } from './contexts/useAuth.js'
 import { getPageTitle } from './data/pageTitle.js'
@@ -37,6 +39,8 @@ const StudentSubmissionPage = lazy(() => import('./pages/StudentSubmissionPage.j
 function RouteLoadingState() {
   const { user } = useAuth()
   if (user?.role === ROLES.TEACHER) return <AppShell><TeacherPendingState /></AppShell>
+  if (user?.role === ROLES.STUDENT) return <AppShell><StudentPendingState message="Đang mở hồ sơ học tập…" /></AppShell>
+  if (user?.role === ROLES.ADMIN) return <AdminShell><AdminPendingState /></AdminShell>
   return (
     <main className="page-content">
       <div className="page-container">
@@ -66,6 +70,12 @@ function AppRoutes() {
     // Route-themed placeholders only; authentication still blocks every private record.
     if (pathname === '/teacher' || pathname === '/assignments/new' || pathname.startsWith('/classes/')) {
       return <TeacherPendingState standalone message="Đang kiểm tra phiên đăng nhập…" />
+    }
+    if (pathname === '/student' || pathname.startsWith('/student/')) {
+      return <StudentPendingState standalone message="Đang kiểm tra phiên đăng nhập…" />
+    }
+    if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+      return <AdminPendingState standalone message="Đang kiểm tra phiên đăng nhập…" />
     }
     return (
       <main className="page-content">

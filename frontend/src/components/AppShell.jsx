@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { useAuth } from '../contexts/useAuth.js'
 import { getRoleHome, ROLES } from '../services/authService.js'
+import '../styles/student-kinetic.css'
 
 function navigationClassName({ isActive }) {
   return `nav-link${isActive ? ' nav-link-active' : ''}`
@@ -21,7 +22,7 @@ function AppShell({ children }) {
     .toUpperCase()
 
   return (
-    <div className={`app-shell ${isTeacher ? 'teacher-shell teacher-kinetic-shell' : 'student-shell'}`}>
+    <div className={`app-shell ${isTeacher ? 'teacher-shell teacher-kinetic-shell' : user?.role === ROLES.STUDENT ? 'student-shell student-kinetic-shell' : 'student-shell'}`}>
       <header className={`site-header${isTeacher ? ' teacher-sidebar teacher-kinetic-header' : ''}`}>
         <div className="site-header-inner">
           <Link className="brand" to={homePath} aria-label="EduCraft">
