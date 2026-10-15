@@ -5,14 +5,16 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { MemoryRouter } from 'react-router-dom'
 import { createServer } from 'vite'
 import { fileURLToPath } from 'node:url'
-import { readFileSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
+import { validateAssignmentForm as validateCreateForm } from '../data/assignmentForm.js'
+import { validateAssignmentTitle as validateEditTitle } from '../data/assignmentTitle.js'
 let vite, Create, Edit, Success
 before(async () => {
   vite = await createServer({ root: fileURLToPath(new URL('../../', import.meta.url)), appType: 'custom', logLevel: 'silent', server: { middlewareMode: true } })
-  Create = (await vite.ssrLoadModule('/src/pages/CreateAssignmentPage.jsx')).CreateAssignmentForm
-  Edit = (await vite.ssrLoadModule('/src/components/assignment-detail/AssignmentEditor.jsx')).default
-  Success = (await vite.ssrLoadModule('/src/pages/CreateAssignmentPage.jsx')).AssignmentSuccess
+  const createModule = await vite.ssrLoadModule('/src/pages/CreateAssignmentPage.jsx')
+  const editModule = await vite.ssrLoadModule('/src/components/assignment-detail/AssignmentEditor.jsx')
+  Create = createModule.CreateAssignmentForm
+  Edit = editModule.default
+  Success = createModule.AssignmentSuccess
 })
 test('submission states preserve values, busy button and server-confirmed success links', () => {
   const classroom = { id: 'c', name: 'Lịch sử 11A2', studentCount: 30 }
@@ -24,16 +26,15 @@ test('submission states preserve values, busy button and server-confirmed succes
   assert.match(success, /href="\/classes\/c"/)
   assert.match(success, /Tạo bài khác/)
 })
-test('validation, deadline, create/edit submit handlers remain identical to pre-redesign source', () => {
-  const repo = fileURLToPath(new URL('../../../', import.meta.url))
-  const read = path => readFileSync(new URL(path, new URL('../../../', import.meta.url)), 'utf8').replaceAll('\r\n','\n')
-  const old = path => execFileSync('git', ['show', `HEAD:${path}`], { cwd: repo, encoding: 'utf8' }).replaceAll('\r\n','\n')
-  const createPath = 'frontend/src/pages/CreateAssignmentPage.jsx', editPath = 'frontend/src/components/assignment-detail/AssignmentEditor.jsx'
-  const between = (text, start, end) => text.slice(text.indexOf(start), text.indexOf(end, text.indexOf(start)))
-  const current = read(createPath), previous = old(createPath)
-  assert.equal(between(current, 'function getDefaultAssignmentForm', 'function fieldDescribedBy'), between(previous, 'function getDefaultAssignmentForm', 'function fieldDescribedBy'))
-  assert.equal(between(current, 'function CreateAssignmentWorkspace', '\n  return ('), between(previous, 'function CreateAssignmentWorkspace', '\n  return ('))
-  assert.equal(between(read(editPath), '  const [form', '\n  return ('), between(old(editPath), '  const [form', '\n  return ('))
+test('create and edit accept 160 title characters and reject 161', () => {
+  const classrooms = [{ id: 'c', name: 'Lịch sử', studentCount: 30 }]
+  const validForm = { title: 'a'.repeat(160), classId: 'c', dueAt: '2026-11-20T17:00', threshold: '80' }
+  assert.equal(typeof validateCreateForm, 'function')
+  assert.equal(typeof validateEditTitle, 'function')
+  assert.equal(validateCreateForm(validForm, classrooms).title, undefined)
+  assert.equal(validateCreateForm({ ...validForm, title: 'a'.repeat(161) }, classrooms).title, 'Tên bài kiểm tra không vượt quá 160 ký tự.')
+  assert.equal(validateEditTitle('a'.repeat(160)), null)
+  assert.equal(validateEditTitle('a'.repeat(161)), 'Tên bài kiểm tra không vượt quá 160 ký tự.')
 })
 after(async () => { await vite?.close() })
 const render = (View, props) => renderToStaticMarkup(React.createElement(MemoryRouter, null, React.createElement(View, props)))
@@ -41,17 +42,18 @@ test('create paper preserves 125 native class options, labels, maxlength and val
   const classrooms = Array.from({ length: 125 }, (_, i) => ({ id: `c-${i}`, name: 'Lịch sử chuyên đề '.repeat(6) + i, studentCount: 30 }))
   const html = render(Create, { classroom: classrooms[0], classrooms, form: { title: '', classId: 'c-0', dueAt: '', threshold: '80' }, errors: { title: 'Nhập tên bài kiểm tra.' }, submission: { status: 'error', message: 'Lỗi mạng' }, onChange: () => {}, onSubmit: () => {} })
   assert.match(html, /tk-assignment-paper/)
-  assert.match(html, /maxLength="120"/i)
+  assert.match(html, /maxLength="160"/i)
   assert.equal((html.match(/<option/g) ?? []).length, 126)
   assert.match(html, /aria-invalid="true"/)
   assert.match(html, /Lỗi mạng/)
   assert.match(html, /value="c-124"/)
 })
-test('edit paper keeps deadline/status/threshold and does not add a title limit or class switch', () => {
+test('edit paper keeps deadline/status/threshold and the shared title limit without a class switch', () => {
   const html = render(Edit, { assignment: { id: 'a', title: 'Bài kiểm tra', dueAt: '2026-10-20T10:00:00Z', coverageThreshold: 80, status: 'OPEN' }, onSaved: () => {}, onCancel: () => {} })
   assert.match(html, /tk-assignment-editor/)
   assert.match(html, /2026-10-20T17:00/)
-  assert.doesNotMatch(html, /maxLength|name="classId"/i)
+  assert.match(html, /maxLength="160"/i)
+  assert.doesNotMatch(html, /name="classId"/i)
   assert.match(html, /value="DRAFT"/)
   assert.match(html, /value="CLOSED"/)
 })

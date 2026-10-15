@@ -1,3 +1,5 @@
+import { normalizeRegistryText } from './adminRegistry.js'
+
 export function normalizeAdminAccount(row = {}) {
   return {
     ...row,
@@ -22,12 +24,12 @@ export function getAccountClassLabel(account) {
 }
 
 export function filterAdminAccounts(accounts, { query = '', role = 'all', classId = 'all' } = {}) {
-  const normalizedQuery = query.trim().toLowerCase()
+  const normalizedQuery = normalizeRegistryText(query)
 
   return accounts.filter((account) => {
     const matchesQuery = !normalizedQuery ||
-      account.username.toLowerCase().includes(normalizedQuery) ||
-      account.name.toLowerCase().includes(normalizedQuery)
+      normalizeRegistryText(account.username).includes(normalizedQuery) ||
+      normalizeRegistryText(account.name).includes(normalizedQuery)
     const matchesRole = role === 'all' || account.role === role
     const matchesClass = classId === 'all' || account.classes.some((classroom) => classroom.id === classId)
 

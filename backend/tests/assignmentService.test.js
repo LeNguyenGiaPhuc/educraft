@@ -89,7 +89,7 @@ function teacherAuth(supabase) {
 }
 
 function assignedClass() {
-  return { data: { id: classId, teacher_id: teacherId }, error: null }
+  return { data: { id: classId, teacher_id: teacherId, status: 'ACTIVE' }, error: null }
 }
 
 test('assigned teacher lists assignments for their class', async () => {
@@ -140,6 +140,25 @@ test('create derives class and creator from authenticated context', async () => 
   assert.equal(insert.value.class_id, classId)
   assert.equal(insert.value.created_by, teacherId)
   assert.equal(Object.hasOwn(insert.value, 'teacherId'), false)
+})
+
+test('assigned teacher cannot create an assignment in an archived class', async () => {
+  const supabase = createQueuedSupabase([
+    { data: { id: classId, teacher_id: teacherId, status: 'ARCHIVED' }, error: null },
+    { data: assignment, error: null },
+  ])
+  const service = createAssignmentService({ now: () => Date.parse('2026-09-14T00:00:00Z') })
+
+  await assert.rejects(
+    service.createAssignment(teacherAuth(supabase), classId, {
+      title: assignment.title,
+      due_at: assignment.due_at,
+      coverage_threshold: 80,
+      status: 'OPEN',
+    }),
+    (error) => error.status === 409 && error.code === 'CLASS_ARCHIVED',
+  )
+  assert.equal(supabase.calls.some((call) => call.operation === 'insert'), false)
 })
 
 test('assigned teacher updates allowed fields without moving the assignment', async () => {

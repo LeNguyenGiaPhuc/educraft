@@ -51,7 +51,7 @@ export function createAssignmentService({ now = Date.now } = {}) {
   async function getManagedClass(supabase, teacherId, classId) {
     const result = await supabase
       .from('classes')
-      .select('id,teacher_id')
+      .select('id,teacher_id,status')
       .eq('id', classId)
       .maybeSingle()
 
@@ -142,7 +142,14 @@ export function createAssignmentService({ now = Date.now } = {}) {
 
     async createAssignment(auth, classId, input) {
       const { supabase, teacherId } = requireTeacherContext(auth)
-      await getManagedClass(supabase, teacherId, classId)
+      const classroom = await getManagedClass(supabase, teacherId, classId)
+      if (classroom.status === 'ARCHIVED') {
+        throw new AppError(
+          409,
+          'CLASS_ARCHIVED',
+          'Không thể tạo bài kiểm tra trong lớp đã lưu trữ.',
+        )
+      }
 
       const assignment = {
         class_id: classId,

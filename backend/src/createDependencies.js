@@ -6,7 +6,10 @@ import { createAccountService } from './modules/accounts/accountService.js'
 import { createAiEvaluationController } from './modules/ai-evaluations/aiEvaluationController.js'
 import { createAiEvaluationRouter } from './modules/ai-evaluations/aiEvaluationRoutes.js'
 import { createAiEvaluationInputService } from './modules/ai-evaluations/aiEvaluationInputService.js'
-import { createAiEvaluationService } from './modules/ai-evaluations/aiEvaluationService.js'
+import {
+  createAiEvaluationService,
+  createAssignmentEvaluationInvalidator,
+} from './modules/ai-evaluations/aiEvaluationService.js'
 import { createGeminiAiProvider } from './modules/ai-evaluations/providers/geminiAiProvider.js'
 import { createOllamaAiProvider } from './modules/ai-evaluations/providers/ollamaAiProvider.js'
 import { createAssignmentController } from './modules/assignments/assignmentController.js'
@@ -68,7 +71,11 @@ export function createDependencies(config) {
     authenticate,
   })
 
-  const classService = createClassService({ adminClient: gateway.adminClient })
+  const storageService = createStorageService({ adminClient: gateway.adminClient })
+  const classService = createClassService({
+    adminClient: gateway.adminClient,
+    storageService,
+  })
   const classController = createClassController({ classService })
   const classRouter = createClassRouter({
     controller: classController,
@@ -90,8 +97,14 @@ export function createDependencies(config) {
     controller: assignmentController,
     authenticate,
   })
-  const storageService = createStorageService({ adminClient: gateway.adminClient })
-  const referenceService = createReferenceService({ assignmentService, storageService })
+  const invalidateEvaluations = createAssignmentEvaluationInvalidator({
+    adminClient: gateway.adminClient,
+  })
+  const referenceService = createReferenceService({
+    assignmentService,
+    storageService,
+    invalidateEvaluations,
+  })
   const referenceController = createReferenceController({ referenceService })
   const referenceRouter = createReferenceRouter({
     controller: referenceController,

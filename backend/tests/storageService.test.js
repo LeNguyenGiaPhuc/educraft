@@ -175,6 +175,29 @@ test('reference and submission removal use the requested private bucket', async 
   ])
 })
 
+test('bulk cleanup validates paths and removes each bucket in one request', async () => {
+  const client = createFakeClient()
+  const service = buildService()
+  const referencePaths = [
+    `${assignmentId}/reference-1.png`,
+    `${assignmentId}/reference-2.jpg`,
+  ]
+  const submissionPaths = [
+    `${submissionId}/submission-1.webp`,
+    `${submissionId}/submission-2.jpg`,
+  ]
+
+  assert.equal(typeof service.removeReferenceFiles, 'function')
+  assert.equal(typeof service.removeSubmissionFiles, 'function')
+  await service.removeReferenceFiles({ client, paths: referencePaths })
+  await service.removeSubmissionFiles({ client, paths: submissionPaths })
+
+  assert.deepEqual(client.calls, [
+    { operation: 'remove', bucket: REFERENCE_MATERIALS_BUCKET, paths: referencePaths },
+    { operation: 'remove', bucket: STUDENT_SUBMISSIONS_BUCKET, paths: submissionPaths },
+  ])
+})
+
 test('private file access returns a short-lived signed URL', async () => {
   const client = createFakeClient()
   const service = buildService()

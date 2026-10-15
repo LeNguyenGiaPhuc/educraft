@@ -33,6 +33,7 @@ const ClassDetailPage = lazy(() => import('./pages/ClassDetailPage.jsx'))
 const CreateAssignmentPage = lazy(() => import('./pages/CreateAssignmentPage.jsx'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'))
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage.jsx'))
 const StudentDashboardPage = lazy(() => import('./pages/StudentDashboardPage.jsx'))
 const StudentSubmissionPage = lazy(() => import('./pages/StudentSubmissionPage.jsx'))
 
@@ -156,6 +157,7 @@ function AppRoutes() {
           </Route>
         </Route>
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   )

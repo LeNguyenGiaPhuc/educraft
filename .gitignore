@@ -149,3 +149,10 @@ vite.config.ts.timestamp-*
 # Local documentation
 docs/
 
+# Local design audit and migration plans
+/GLOBAL-KINETIC-DESIGN.md
+/PRODUCT-UI-INVENTORY.md
+/COMPONENT-REUSE-PLAN.md
+/STUDENT-ADMIN-REDESIGN-ROADMAP.md
+/OPEN-ISSUES.md
+

@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
+import '../styles/admin-kinetic.css'
 import { useAuth } from '../contexts/useAuth.js'
 
 const adminNavigation = [
@@ -12,7 +13,7 @@ function adminNavClassName({ isActive }) {
   return `admin-nav-link${isActive ? ' admin-nav-link-active' : ''}`
 }
 
-function AdminShell() {
+function AdminShell({ children }) {
   const { logout, user } = useAuth()
   const initials = (user?.name ?? 'AD')
     .split(' ')
@@ -23,7 +24,7 @@ function AdminShell() {
     .toUpperCase()
 
   return (
-    <div className="admin-shell">
+    <div className="admin-shell admin-kinetic">
       <aside className="admin-sidebar" aria-label="Điều hướng quản trị">
         <div>
             <Link
@@ -69,7 +70,7 @@ function AdminShell() {
       </aside>
 
       <main className="admin-main">
-        <Outlet />
+        {children ?? <Outlet />}
       </main>
     </div>
   )

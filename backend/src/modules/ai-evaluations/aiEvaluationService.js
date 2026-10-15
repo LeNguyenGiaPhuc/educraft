@@ -44,6 +44,58 @@ function safeDatabaseError(code, message) {
   return new AppError(500, code, message)
 }
 
+export function createAssignmentEvaluationInvalidator({ adminClient } = {}) {
+  return async function invalidateAssignmentEvaluations(assignmentId) {
+    if (!adminClient?.from) {
+      throw safeDatabaseError(
+        'AI_INVALIDATION_NOT_CONFIGURED',
+        'Không thể đồng bộ lại đề xuất AI sau khi thay đổi bài mẫu.',
+      )
+    }
+
+    let submissionResult
+    try {
+      submissionResult = await adminClient
+        .from('submissions')
+        .select('id')
+        .eq('assignment_id', assignmentId)
+    } catch {
+      throw safeDatabaseError('AI_INVALIDATION_FAILED', 'Không thể vô hiệu hóa đề xuất AI cũ.')
+    }
+    if (submissionResult.error) {
+      throw safeDatabaseError('AI_INVALIDATION_FAILED', 'Không thể vô hiệu hóa đề xuất AI cũ.')
+    }
+
+    const submissionIds = (submissionResult.data ?? []).map((row) => row.id)
+    if (submissionIds.length === 0) return { invalidated: 0 }
+
+    let evaluationResult
+    let statusResult
+    try {
+      evaluationResult = await adminClient
+        .from('ai_evaluations')
+        .delete()
+        .in('submission_id', submissionIds)
+      if (evaluationResult.error) {
+        throw evaluationResult.error
+      }
+
+      statusResult = await adminClient
+        .from('submissions')
+        .update({ status: 'SUBMITTED' })
+        .in('id', submissionIds)
+        .eq('status', 'REQUIRES_REVIEW')
+    } catch {
+      throw safeDatabaseError('AI_INVALIDATION_FAILED', 'Không thể vô hiệu hóa đề xuất AI cũ.')
+    }
+    if (statusResult.error) {
+      throw safeDatabaseError('AI_INVALIDATION_FAILED', 'Không thể vô hiệu hóa đề xuất AI cũ.')
+    }
+
+    return { invalidated: submissionIds.length }
+  }
+}
+
 function projectEvaluation(evaluation, coverageThreshold) {
   return {
     id: evaluation.id,

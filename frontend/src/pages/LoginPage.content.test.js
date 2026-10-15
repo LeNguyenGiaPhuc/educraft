@@ -30,3 +30,12 @@ test('landing copy describes only capabilities available in the current prototyp
   assert.match(source, /mô phỏng deterministic/)
 })
 
+test('production login source contains no plaintext demo credentials', () => {
+  const source = readFileSync(join(currentDirectory, 'LoginPage.jsx'), 'utf8')
+
+  assert.doesNotMatch(source, /(?:admin|teacher|student)@educraft\.test/)
+  assert.doesNotMatch(source, /(?:admin|teacher|student)123/)
+  assert.match(source, /import\.meta\.env\??\.DEV/)
+  assert.match(source, /demoAccounts\.length > 0/)
+})
+

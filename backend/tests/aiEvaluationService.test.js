@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { AppError } from '../src/common/errors.js'
-import { createAiEvaluationService } from '../src/modules/ai-evaluations/aiEvaluationService.js'
+import {
+  createAiEvaluationService,
+  createAssignmentEvaluationInvalidator,
+} from '../src/modules/ai-evaluations/aiEvaluationService.js'
 
 const submissionIds = [
   '11111111-1111-4111-8111-111111111111',
@@ -84,6 +87,10 @@ function createAdminClient(results, events = []) {
           call.value = value
           return builder
         },
+        delete() {
+          call.operation = 'delete'
+          return builder
+        },
         upsert(value, options) {
           call.operation = 'upsert'
           call.value = value
@@ -98,6 +105,10 @@ function createAdminClient(results, events = []) {
           call.filters.push(['neq', column, value])
           return builder
         },
+        in(column, value) {
+          call.filters.push(['in', column, value])
+          return builder
+        },
         select(columns) {
           call.select = columns
           return builder
@@ -110,11 +121,49 @@ function createAdminClient(results, events = []) {
           events.push(`admin:${table}:${call.operation}`)
           return queue.shift()
         },
+        then(resolve, reject) {
+          events.push(`admin:${table}:${call.operation ?? 'select'}`)
+          return Promise.resolve(queue.shift()).then(resolve, reject)
+        },
       }
       return builder
     },
   }
 }
+
+test('reference changes invalidate cached AI rows and reopen reviewable submissions', async () => {
+  const adminClient = createAdminClient([
+    { data: submissionIds.map((id) => ({ id })), error: null },
+    { data: null, error: null },
+    { data: null, error: null },
+  ])
+  const invalidate = createAssignmentEvaluationInvalidator({ adminClient })
+
+  const result = await invalidate('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+
+  assert.deepEqual(result, { invalidated: 2 })
+  assert.deepEqual(adminClient.calls.map((call) => ({
+    table: call.table,
+    operation: call.operation,
+    filters: call.filters,
+  })), [
+    {
+      table: 'submissions', operation: null,
+      filters: [['eq', 'assignment_id', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']],
+    },
+    {
+      table: 'ai_evaluations', operation: 'delete',
+      filters: [['in', 'submission_id', submissionIds]],
+    },
+    {
+      table: 'submissions', operation: 'update',
+      filters: [
+        ['in', 'id', submissionIds],
+        ['eq', 'status', 'REQUIRES_REVIEW'],
+      ],
+    },
+  ])
+})
 
 function createSubmissionService({ statuses = ['SUBMITTED'], error = null, events = [] } = {}) {
   const queue = [...statuses]

@@ -2,6 +2,11 @@ import { sendData } from '../../common/response.js'
 
 export function createAccountController({ accountService }) {
   return {
+    async stats(request, response) {
+      const result = await accountService.getDashboardStats(request.auth)
+      return sendData(response, result)
+    },
+
     async list(request, response) {
       const result = await accountService.listAccounts(request.auth, request.validated.query)
       return sendData(response, result)

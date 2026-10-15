@@ -15,6 +15,7 @@ export function createAccountRouter({ controller, authenticate }) {
   router.use(authenticate)
   router.use(requireRole('ADMIN'))
 
+  router.get('/stats', controller.stats)
   router.get('/accounts', validate(accountListQuerySchema), controller.list)
   router.get('/accounts/:accountId', validate(accountIdParamsSchema), controller.get)
   router.post('/accounts', validate(createAccountSchema), controller.create)

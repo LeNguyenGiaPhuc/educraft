@@ -318,6 +318,31 @@ test('account list includes classes assigned to teachers and students', async ()
   ])
 })
 
+test('dashboard metrics use exact head counts without loading row collections', async () => {
+  const adminClient = createClient({
+    plans: {
+      profiles: [
+        { data: null, count: 12, error: null },
+        { data: null, count: 3, error: null },
+        { data: null, count: 8, error: null },
+      ],
+      classes: [{ data: null, count: 5, error: null }],
+    },
+  })
+  const service = createAccountService({ adminClient })
+
+  assert.equal(typeof service.getDashboardStats, 'function')
+  assert.deepEqual(await service.getDashboardStats(adminAuth(createClient())), {
+    users: 12,
+    teachers: 3,
+    students: 8,
+    classes: 5,
+  })
+  const countSelects = adminClient.calls.filter((call) => call.method === 'select')
+  assert.equal(countSelects.length, 4)
+  assert.equal(countSelects.every((call) => call.args[1]?.count === 'exact' && call.args[1]?.head === true), true)
+})
+
 test('import creates Auth users then uses one transactional RPC for profiles and memberships', async () => {
   const userClient = createClient({
     plans: {
@@ -454,6 +479,42 @@ test('class creation rejects a teacher that is not active', async () => {
     }),
     (error) => error instanceof AppError && error.code === 'TEACHER_NOT_ACTIVE',
   )
+})
+
+test('class deletion removes reference and submission objects after database cascade', async () => {
+  const assignmentId = '55555555-5555-4555-8555-555555555555'
+  const submissionId = '66666666-6666-4666-8666-666666666666'
+  const referencePath = `${assignmentId}/reference.png`
+  const submissionPath = `${submissionId}/submission.jpg`
+  const userClient = createClient({
+    plans: {
+      classes: [
+        { data: { id: classId, code: '10A1' }, error: null },
+        { data: null, error: null },
+      ],
+    },
+  })
+  const adminClient = createClient({
+    plans: {
+      assignments: [{ data: [{ id: assignmentId }], error: null }],
+      reference_files: [{ data: [{ storage_path: referencePath }], error: null }],
+      submissions: [{ data: [{ id: submissionId }], error: null }],
+      submission_files: [{ data: [{ storage_path: submissionPath }], error: null }],
+    },
+  })
+  const cleanupCalls = []
+  const storageService = {
+    async removeReferenceFiles(input) { cleanupCalls.push({ type: 'reference', ...input }) },
+    async removeSubmissionFiles(input) { cleanupCalls.push({ type: 'submission', ...input }) },
+  }
+
+  const service = createClassService({ adminClient, storageService })
+  await service.deleteClass(adminAuth(userClient), classId)
+
+  assert.deepEqual(cleanupCalls.map(({ type, paths }) => ({ type, paths })), [
+    { type: 'reference', paths: [referencePath] },
+    { type: 'submission', paths: [submissionPath] },
+  ])
 })
 
 test('class roster returns profile fields and the per-class student number', async () => {

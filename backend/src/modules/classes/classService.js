@@ -21,7 +21,7 @@ function normalizePersonName(value) {
     .replace(/\s+/g, ' ')
 }
 
-export function createClassService({ adminClient } = {}) {
+export function createClassService({ adminClient, storageService } = {}) {
   async function requireAdmin(auth) {
     if (!auth?.profile || auth.profile.role !== 'ADMIN' || auth.profile.status !== 'ACTIVE') {
       throw new AppError(403, 'FORBIDDEN', 'Bạn không có quyền thực hiện thao tác này.')
@@ -94,6 +94,42 @@ export function createClassService({ adminClient } = {}) {
     if (result.error) throw result.error
     if (result.data?.some((row) => row.id !== excludeId)) {
       throw new AppError(409, 'CLASS_CODE_CONFLICT', 'Mã lớp đã tồn tại.')
+    }
+  }
+
+  async function collectClassStoragePaths(client, classId) {
+    const assignmentResult = await client
+      .from('assignments')
+      .select('id')
+      .eq('class_id', classId)
+    if (assignmentResult.error) throw assignmentResult.error
+
+    const assignmentIds = (assignmentResult.data ?? []).map((row) => row.id)
+    if (assignmentIds.length === 0) {
+      return { referencePaths: [], submissionPaths: [] }
+    }
+
+    const [referenceResult, submissionResult] = await Promise.all([
+      client.from('reference_files').select('storage_path').in('assignment_id', assignmentIds),
+      client.from('submissions').select('id').in('assignment_id', assignmentIds),
+    ])
+    if (referenceResult.error) throw referenceResult.error
+    if (submissionResult.error) throw submissionResult.error
+
+    const submissionIds = (submissionResult.data ?? []).map((row) => row.id)
+    let submissionFiles = []
+    if (submissionIds.length > 0) {
+      const submissionFileResult = await client
+        .from('submission_files')
+        .select('storage_path')
+        .in('submission_id', submissionIds)
+      if (submissionFileResult.error) throw submissionFileResult.error
+      submissionFiles = submissionFileResult.data ?? []
+    }
+
+    return {
+      referencePaths: (referenceResult.data ?? []).map((row) => row.storage_path),
+      submissionPaths: submissionFiles.map((row) => row.storage_path),
     }
   }
 
@@ -280,11 +316,30 @@ export function createClassService({ adminClient } = {}) {
       await requireAdmin(auth)
       const supabase = auth.supabase
       await ensureClassExists(supabase, classId)
+      const cleanupClient = adminClient ?? supabase
+      const paths = await collectClassStoragePaths(cleanupClient, classId)
+      const hasFiles = paths.referencePaths.length > 0 || paths.submissionPaths.length > 0
+      if (hasFiles && (!storageService?.removeReferenceFiles || !storageService?.removeSubmissionFiles)) {
+        throw new AppError(500, 'STORAGE_NOT_CONFIGURED', 'Dịch vụ lưu trữ chưa sẵn sàng.')
+      }
       const result = await supabase
         .from('classes')
         .delete()
         .eq('id', classId)
       if (result.error) throw result.error
+
+      try {
+        await Promise.all([
+          storageService?.removeReferenceFiles({ client: cleanupClient, paths: paths.referencePaths }),
+          storageService?.removeSubmissionFiles({ client: cleanupClient, paths: paths.submissionPaths }),
+        ])
+      } catch {
+        throw new AppError(
+          500,
+          'CLASS_STORAGE_CLEANUP_FAILED',
+          'Lớp đã được xóa nhưng một số file liên quan chưa được dọn khỏi lưu trữ.',
+        )
+      }
       return null
     },
 
