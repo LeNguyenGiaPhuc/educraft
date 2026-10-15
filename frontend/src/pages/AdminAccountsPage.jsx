@@ -4,6 +4,7 @@ import { useAdminScope, useRegistryPage } from '../components/admin/registryHook
 import RegistryPagination from '../components/admin/RegistryPagination.jsx'
 import { registryFieldErrors } from '../data/adminRegistry.js'
 import AdminModal from '../components/AdminModal.jsx'
+import FormField from '../components/kinetic/FormField.jsx'
 import { ApiError } from '../services/apiClient.js'
 import { adminAccountService } from '../services/adminAccountService.js'
 import { authService, ROLES, roleLabels } from '../services/authService.js'
@@ -93,17 +94,13 @@ export function AccountForm({ initialForm, onCancel, onSaved }) {
 
         <form className="admin-form" onSubmit={handleSubmit} noValidate>
           <fieldset className="form-grid" disabled={submitting}>
-            <label className="field-label">
-              <span>Email</span>
+            <FormField label="Email" error={errors.email}>
               <input value={form.email ?? ''} onChange={(event) => updateField('email', event.target.value)} />
-              {errors.email && <small className="field-error">{errors.email}</small>}
-            </label>
+            </FormField>
 
-            <label className="field-label">
-              <span>Tên tài khoản</span>
+            <FormField label="Tên tài khoản" error={errors.username}>
               <input value={form.username ?? ''} onChange={(event) => updateField('username', event.target.value)} />
-              {errors.username && <small className="field-error">{errors.username}</small>}
-            </label>
+            </FormField>
 
             <div className="field-label">
               <label htmlFor="account-password">{initialForm?.id ? 'Mật khẩu mới (không bắt buộc)' : 'Mật khẩu'}</label>
@@ -135,20 +132,17 @@ export function AccountForm({ initialForm, onCancel, onSaved }) {
               {errors.password && <small className="field-error" id="account-password-error">{errors.password}</small>}
             </div>
 
-            <label className="field-label">
-              <span>Họ và tên</span>
+            <FormField label="Họ và tên" error={errors.name}>
               <input value={form.name ?? ''} onChange={(event) => updateField('name', event.target.value)} />
-              {errors.name && <small className="field-error">{errors.name}</small>}
-            </label>
+            </FormField>
 
-            <label className="field-label">
-              <span>Vai trò</span>
+            <FormField label="Vai trò" error={errors.role}>
               <select value={form.role} onChange={(event) => updateField('role', event.target.value)}>
                 <option value={ROLES.ADMIN}>{roleLabels[ROLES.ADMIN]}</option>
                 <option value={ROLES.TEACHER}>{roleLabels[ROLES.TEACHER]}</option>
                 <option value={ROLES.STUDENT}>{roleLabels[ROLES.STUDENT]}</option>
               </select>
-            </label>
+            </FormField>
 
             <div className="admin-form-help">
               <strong>Phân công lớp</strong>

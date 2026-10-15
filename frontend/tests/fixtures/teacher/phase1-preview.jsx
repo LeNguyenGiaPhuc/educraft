@@ -18,6 +18,7 @@ import '../../../src/styles/student.css'
 import '../../../src/styles/blueprint.css'
 import '../../../src/styles/teacher-kinetic.css'
 import '../../../src/styles/teacher-final-states.css'
+import '../../../src/styles/common-kinetic.css'
 
 const subjects = ['Ngữ văn', 'Lịch sử', 'Địa lý', 'Giáo dục công dân']
 function fixtureClasses(count, longLabels) {

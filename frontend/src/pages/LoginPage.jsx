@@ -131,7 +131,7 @@ function LoginPage() {
 
       <dialog
         aria-labelledby="login-title"
-        className="login-panel"
+        className="login-panel kf-login"
         onCancel={handleDialogCancel}
         onClose={handleDialogClose}
         ref={dialogRef}
@@ -144,6 +144,7 @@ function LoginPage() {
           <button
             aria-label="Đóng đăng nhập"
             className="login-close-button"
+            disabled={status.tone === 'loading'}
             onClick={closeLoginPanel}
             ref={closeButtonRef}
             title="Đóng"
@@ -154,7 +155,6 @@ function LoginPage() {
         </div>
 
         <div className="login-panel-heading">
-          <span className="login-panel-index" aria-hidden="true">01</span>
           <div>
             <h1 id="login-title">Chào mừng trở lại.</h1>
             <p>Đăng nhập để tiếp tục công việc trong EduCraft.</p>
@@ -168,6 +168,7 @@ function LoginPage() {
                 aria-pressed={form.email === account.email}
                 className={`demo-login-button${form.email === account.email ? ' demo-login-button-active' : ''}`}
                 key={account.role}
+                disabled={status.tone === 'loading'}
                 onClick={() => applyDemoAccount(account)}
                 type="button"
               >
@@ -178,11 +179,12 @@ function LoginPage() {
           </div>
         )}
 
-        <form className="login-form" noValidate onSubmit={handleSubmit}>
+        <form className="login-form" aria-busy={status.tone === 'loading'} noValidate onSubmit={handleSubmit}>
           <div className="form-field">
             <label htmlFor="login-email">Email</label>
             <input
               autoComplete="username"
+              aria-describedby={status.tone === 'error' ? 'login-result' : undefined}
               id="login-email"
               onChange={(event) => updateField('email', event.target.value)}
               type="email"
@@ -194,6 +196,7 @@ function LoginPage() {
             <div className="password-row">
               <input
                 autoComplete="current-password"
+                aria-describedby={status.tone === 'error' ? 'login-result' : undefined}
                 id="login-password"
                 onChange={(event) => updateField('password', event.target.value)}
                 type={showPassword ? 'text' : 'password'}
@@ -218,6 +221,7 @@ function LoginPage() {
 
           {status.message && (
             <div
+              id="login-result"
               className={`form-submit-message ${status.tone === 'error' ? 'form-submit-error' : status.tone === 'success' ? 'form-submit-success' : 'login-submit-pending'}`}
               role={status.tone === 'error' ? 'alert' : 'status'}
             >
@@ -236,7 +240,6 @@ function LoginPage() {
           </button>
         </form>
 
-        <p className="login-panel-note">Ba vai trò. Một luồng học tập liền mạch.</p>
       </dialog>
     </main>
   )

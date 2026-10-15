@@ -53,7 +53,7 @@ test('class form preserves an archived class status when editing metadata',()=>{
   code:'11A2',subject:'Lịch sử',semester:'Học kỳ 1',school_year:'2026-2027',teacher_id:null,status:'ARCHIVED'
  })
  const html=render(ClassForm,{initialClass:{id:'uuid',code:'11A2',subject:'Lịch sử',status:'ARCHIVED'},teachers:[{id:'t',full_name:'Giáo viên'}]})
- assert.match(html,/disabled="" value="11A2"/)
+ assert.match(html,/<input disabled=""[^>]*value="11A2"/)
  assert.doesNotMatch(html,/luồng chỉnh sửa hiện gửi trạng thái ACTIVE/)
 })
 test('class status labels translate uppercase backend enums to Vietnamese',()=>{

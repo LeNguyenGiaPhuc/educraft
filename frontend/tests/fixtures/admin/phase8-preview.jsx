@@ -25,6 +25,7 @@ import '../../../src/styles/student.css'
 import '../../../src/styles/blueprint.css'
 import '../../../src/styles/teacher-kinetic.css'
 import '../../../src/styles/teacher-final-states.css'
+import '../../../src/styles/common-kinetic.css'
 let size=1000,rosterSize=300,candidateSize=5000,long=false,mode='success'
 let gets=0,mutations=0,releases=[]
 const id=i=>'00000000-0000-4000-8000-'+String(i+1).padStart(12,'0')
@@ -38,6 +39,7 @@ async function transport(value,mutation=false) {
  return value
 }
 Object.assign(adminAccountService,{
+ getDashboardStats:()=>transport({users:size,teachers:1,students:Math.max(0,size-1),classes:size}),
  listAccounts:query=>transport(Array.from({length:query?.role==='STUDENT'?candidateSize:query?.role==='TEACHER'?1:size},(_,i)=>query?.role==='TEACHER'?{id:'teacher',full_name:'Trần Minh Phúc',role:'TEACHER',status:'ACTIVE'}:account(i))),
  listClasses:()=>transport(Array.from({length:size},(_,i)=>classroom(i))),
  createAccount:input=>transport({...input,id:'created-account'},true),updateAccount:(key,input)=>transport({...input,id:key},true),

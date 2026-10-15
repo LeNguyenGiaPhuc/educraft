@@ -8,6 +8,7 @@ function NotFoundPage() {
 
   return (
     <PageErrorState
+      standalone
       kicker="Lỗi 404"
       message="Đường dẫn bạn vừa mở không tồn tại hoặc đã được thay đổi."
       returnTo={returnTo}

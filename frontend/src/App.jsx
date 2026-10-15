@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-route
 import AdminShell from './components/AdminShell.jsx'
 import AdminPendingState from './components/admin/AdminPendingState.jsx'
 import AppShell from './components/AppShell.jsx'
+import CommonPendingState from './components/CommonPendingState.jsx'
 import RequireStudentAssignment from './components/RequireStudentAssignment.jsx'
 import RequireTeacherClass from './components/RequireTeacherClass.jsx'
 import RoleRoute from './components/RoleRoute.jsx'
@@ -23,6 +24,7 @@ import './styles/student.css'
 import './styles/blueprint.css'
 import './styles/teacher-kinetic.css'
 import './styles/teacher-final-states.css'
+import './styles/common-kinetic.css'
 
 const AdminAccountsPage = lazy(() => import('./pages/AdminAccountsPage.jsx'))
 const AdminClassDetailPage = lazy(() => import('./pages/AdminClassDetailPage.jsx'))
@@ -42,15 +44,7 @@ function RouteLoadingState() {
   if (user?.role === ROLES.TEACHER) return <AppShell><TeacherPendingState /></AppShell>
   if (user?.role === ROLES.STUDENT) return <AppShell><StudentPendingState message="Đang mở hồ sơ học tập…" /></AppShell>
   if (user?.role === ROLES.ADMIN) return <AdminShell><AdminPendingState /></AdminShell>
-  return (
-    <main className="page-content">
-      <div className="page-container">
-        <section className="state-panel" aria-live="polite">
-          <h1>Đang mở không gian làm việc...</h1>
-        </section>
-      </div>
-    </main>
-  )
+  return <CommonPendingState />
 }
 
 function HomeRedirect() {
@@ -78,15 +72,7 @@ function AppRoutes() {
     if (pathname === '/admin' || pathname.startsWith('/admin/')) {
       return <AdminPendingState standalone message="Đang kiểm tra phiên đăng nhập…" />
     }
-    return (
-      <main className="page-content">
-        <div className="page-container">
-          <section className="state-panel" aria-live="polite">
-            <h1>Đang kiểm tra phiên đăng nhập...</h1>
-          </section>
-        </div>
-      </main>
-    )
+    return <CommonPendingState message="Đang kiểm tra phiên đăng nhập…" />
   }
 
   // Chuyển cấu trúc user của Auth sang cấu trúc Student portal đang sử dụng.

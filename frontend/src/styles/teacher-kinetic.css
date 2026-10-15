@@ -3,14 +3,17 @@
 /* KINETIC FIELD NOTES / Operate: real folders, one open dossier, no marketing hero.
    All selectors belong to Teacher; role contracts and other page styles stay intact. */
 .teacher-kinetic-shell {
-  --tk-navy: #182b37;
-  --tk-stock: #d6df78;
-  --tk-stock-closed: #b7c16c;
-  --tk-paper: #f7f5e9;
-  --tk-ochre: #e4b64b;
-  --tk-russet: #a64c35;
-  --tk-muted: #52625c;
-  --tk-line: rgb(24 43 55 / 30%);
+  --tk-navy: #1f3340;
+  --tk-deep: #234254;
+  --tk-hover: #1d3644;
+  --tk-stock: #dce8ec;
+  --tk-stock-closed: #eaf1f3;
+  --tk-selected: #d9e7ec;
+  --tk-paper: #f7f5ef;
+  --tk-ochre: #c9a66b;
+  --tk-russet: #965044;
+  --tk-muted: #536873;
+  --tk-line: #b6c7cd;
   --tk-ease: cubic-bezier(.2, .8, .2, 1);
   --tk-font-display: 'Archivo', Arial, sans-serif;
   --tk-font-body: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
@@ -34,7 +37,7 @@
   min-height: 72px;
   padding: 0;
   border: 0;
-  background: var(--tk-navy);
+  background: var(--tk-deep);
   color: var(--tk-paper);
 }
 .teacher-kinetic-shell .teacher-kinetic-header .site-header-inner {
@@ -92,7 +95,7 @@
   border: 1px solid transparent;
   border-bottom: 0;
   border-radius: 10px 10px 0 0;
-  background: #344550;
+  background: var(--tk-deep);
   color: var(--tk-paper);
   font: 600 14px/1.4 var(--tk-font-body);
   white-space: normal;
@@ -100,7 +103,7 @@
 }
 .teacher-kinetic-shell .teacher-kinetic-header .nav-link::before,
 .teacher-kinetic-shell .teacher-kinetic-header .nav-link::after { display: none; }
-.teacher-kinetic-shell .teacher-kinetic-header .nav-link:hover { background: #4b5d62; }
+.teacher-kinetic-shell .teacher-kinetic-header .nav-link:hover { background: var(--tk-hover); }
 .teacher-kinetic-shell .teacher-kinetic-header .nav-link-active,
 .teacher-kinetic-shell .teacher-kinetic-header .nav-link-active:hover {
   padding-top: 19px;
@@ -120,7 +123,7 @@
 .teacher-kinetic-shell .teacher-kinetic-header .profile-monogram {
   width: 36px;
   height: 36px;
-  border: 1px solid rgb(247 245 233 / 50%);
+  border: 1px solid rgb(247 245 239 / 50%);
   border-radius: 50%;
   background: transparent;
   color: var(--tk-stock);
@@ -135,7 +138,7 @@
 .teacher-kinetic-shell .teacher-kinetic-header .logout-button {
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid rgb(247 245 233 / 50%);
+  border: 1px solid rgb(247 245 239 / 50%);
   border-radius: 2px;
   background: transparent;
   color: var(--tk-paper);
@@ -183,8 +186,8 @@
   cursor: pointer;
   transition: transform 180ms var(--tk-ease), box-shadow 180ms var(--tk-ease), background-color 180ms var(--tk-ease);
 }
-.teacher-kinetic-shell .tk-button-primary { background: var(--tk-navy); color: var(--tk-paper); box-shadow: 3px 4px 0 rgb(24 43 55 / 22%); }
-.teacher-kinetic-shell .tk-button-primary:hover { transform: translate(-1px, -2px); box-shadow: 4px 6px 0 rgb(24 43 55 / 22%); }
+.teacher-kinetic-shell .tk-button-primary { background: var(--tk-deep); color: var(--tk-paper); box-shadow: 3px 4px 0 rgb(31 51 64 / 22%); }
+.teacher-kinetic-shell .tk-button-primary:hover { transform: translate(-1px, -2px); box-shadow: 4px 6px 0 rgb(31 51 64 / 22%); }
 .teacher-kinetic-shell .tk-button-secondary { background: var(--tk-paper); color: var(--tk-navy); }
 .teacher-kinetic-shell .tk-button-secondary:hover { background: var(--tk-stock); }
 .teacher-kinetic-shell :is(.tk-button, .tk-page-button, .tk-index-open, .tk-folder-open):active { transform: translate(1px, 2px); box-shadow: none; }
@@ -210,7 +213,7 @@
 .teacher-kinetic-shell .tk-folder-tabs { display: grid; grid-template-columns: repeat(var(--tk-tab-count), minmax(0, 1fr)); align-items: end; position: relative; width: min(100%, 780px); gap: 6px; padding-top: 8px; z-index: 3; }
 .teacher-kinetic-shell .tk-folder-slot { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; min-width: 0; margin-bottom: -1px; border: 1px solid var(--tk-navy); border-bottom: 0; border-radius: 12px 16px 0 0; background: var(--tk-stock-closed); transform: translateY(0); transition: background-color 250ms var(--tk-ease), transform 250ms var(--tk-ease), box-shadow 250ms var(--tk-ease); }
 .teacher-kinetic-shell .tk-folder-slot:nth-of-type(2) { background: var(--tk-ochre); }
-.teacher-kinetic-shell .tk-folder-slot:nth-of-type(3) { background: #b9c6b9; }
+.teacher-kinetic-shell .tk-folder-slot:nth-of-type(3) { background: #9ebcc4; }
 .teacher-kinetic-shell .tk-folder-slot.is-selected { background: var(--tk-paper); transform: translateY(-7px); box-shadow: 0 7px 0 var(--tk-paper); }
 .teacher-kinetic-shell .tk-folder-tab { display: grid; gap: 6px; width: 100%; min-height: 94px; padding: 18px 20px 14px; border: 0; background: transparent; color: var(--tk-navy); text-align: left; cursor: pointer; }
 .teacher-kinetic-shell .tk-folder-tab strong { font: 800 28px/1.1 var(--tk-font-display); overflow-wrap: anywhere; letter-spacing: -.03em; }
@@ -223,7 +226,7 @@
 .teacher-kinetic-shell .tk-paper-backplate { position: absolute; inset: 8px 3px -10px; z-index: 0; border: 1px solid var(--tk-navy); pointer-events: none; }
 .teacher-kinetic-shell .tk-paper-underlay { background: var(--tk-ochre); transform: translate(8px, 4px) rotate(.8deg); }
 .teacher-kinetic-shell .tk-paper-backplate { background: var(--tk-stock-closed); transform: rotate(-1deg); }
-.teacher-kinetic-shell .tk-dossier-content { position: relative; z-index: 1; min-height: 340px; padding: clamp(24px, 3vw, 44px); background: var(--tk-paper); border: 1px solid var(--tk-navy); box-shadow: 6px 8px 0 rgb(24 43 55 / 16%); }
+.teacher-kinetic-shell .tk-dossier-content { position: relative; z-index: 1; min-height: 340px; padding: clamp(24px, 3vw, 44px); background: var(--tk-paper); border: 1px solid var(--tk-navy); box-shadow: 6px 8px 0 rgb(31 51 64 / 16%); }
 .teacher-kinetic-shell .tk-dossier-topline { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--tk-line); font-size: 12px; line-height: 1.5; }
 .teacher-kinetic-shell .tk-dossier-selection { color: var(--tk-russet); font-weight: 600; overflow-wrap: anywhere; }
 .teacher-kinetic-shell .tk-class-status { display: inline-flex; align-items: center; gap: 7px; flex: 0 1 auto; }
@@ -253,9 +256,9 @@
 .teacher-kinetic-shell .tk-class-index { list-style: none; margin: 0; padding: 0; }
 .teacher-kinetic-shell .tk-index-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; border-bottom: 1px solid var(--tk-line); }
 .teacher-kinetic-shell .tk-index-row:last-child { border-bottom: 0; }
-.teacher-kinetic-shell .tk-index-row.is-selected { background: var(--tk-stock); }
+.teacher-kinetic-shell .tk-index-row.is-selected { background: var(--tk-selected); }
 .teacher-kinetic-shell .tk-index-select { display: flex; align-items: start; gap: 12px; width: 100%; min-height: 80px; padding: 16px 12px; border: 0; background: transparent; color: var(--tk-navy); text-align: left; font-family: var(--tk-font-body); cursor: pointer; }
-.teacher-kinetic-shell .tk-index-select:hover { background: rgb(24 43 55 / 5%); }
+.teacher-kinetic-shell .tk-index-select:hover { background: rgb(127 169 184 / 16%); }
 .teacher-kinetic-shell .tk-index-number { width: 24px; flex: 0 0 auto; padding-top: 2px; color: var(--tk-russet); font: 700 14px var(--tk-font-display); }
 .teacher-kinetic-shell .tk-index-copy { display: grid; gap: 4px; min-width: 0; }
 .teacher-kinetic-shell .tk-index-copy strong { font: 800 18px/1.2 var(--tk-font-display); }
@@ -264,17 +267,17 @@
 .teacher-kinetic-shell .tk-index-copy > * { overflow-wrap: anywhere; }
 .teacher-kinetic-shell .tk-index-copy .tk-index-selected-label { font-size: 11px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .teacher-kinetic-shell .tk-index-open { display: flex; align-items: center; justify-content: center; min-width: 60px; min-height: 44px; padding: 10px; color: var(--tk-navy); font: 600 12px/1.5 var(--tk-font-body); text-underline-offset: 4px; }
-.teacher-kinetic-shell .tk-index-open:hover { background: var(--tk-navy); color: var(--tk-paper); }
+.teacher-kinetic-shell .tk-index-open:hover { background: var(--tk-hover); color: var(--tk-paper); }
 .teacher-kinetic-shell .tk-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; font-size: 12px; }
 .teacher-kinetic-shell .tk-pagination-buttons { display: flex; align-items: center; gap: 8px; }
 .teacher-kinetic-shell .tk-page-button { min-width: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--tk-navy); background: var(--tk-paper); color: var(--tk-navy); font: 600 12px var(--tk-font-body); cursor: pointer; }
 .teacher-kinetic-shell .tk-page-button:disabled { opacity: .5; cursor: default; }
-.teacher-kinetic-shell .tk-page-button:hover:not(:disabled) { background: var(--tk-navy); color: var(--tk-paper); }
+.teacher-kinetic-shell .tk-page-button:hover:not(:disabled) { background: var(--tk-hover); color: var(--tk-paper); }
 .teacher-kinetic-shell .tk-index-empty { display: grid; gap: 16px; padding: 24px; border: 1px solid var(--tk-navy); background: var(--tk-paper); font-size: 14px; line-height: 1.6; }
-.teacher-kinetic-shell .tk-state { position: relative; margin-top: 44px; padding: 36px; border: 1px solid var(--tk-navy); background: var(--tk-paper); box-shadow: 6px 8px 0 rgb(24 43 55 / 16%); }
+.teacher-kinetic-shell .tk-state { position: relative; margin-top: 44px; padding: 36px; border: 1px solid var(--tk-navy); background: var(--tk-paper); box-shadow: 6px 8px 0 rgb(31 51 64 / 16%); }
 .teacher-kinetic-shell .tk-state h2 { margin: 0; font: 800 28px/1.2 var(--tk-font-display); letter-spacing: -.025em; }
 .teacher-kinetic-shell .tk-state p { max-width: 65ch; margin: 14px 0 20px; font-size: 15px; line-height: 1.7; }
-.teacher-kinetic-shell .tk-error-state { border-color: #ba1a1a; }
+.teacher-kinetic-shell .tk-error-state { border-color: var(--tk-russet); }
 .teacher-kinetic-shell .tk-empty-folder { display: block; width: 56px; height: 34px; margin-bottom: 22px; border: 1px solid var(--tk-navy); background: var(--tk-stock); border-radius: 10px 10px 0 0; box-shadow: 4px 4px 0 var(--tk-ochre); }
 .teacher-kinetic-shell .tk-loading-paper { position: relative; height: 70px; }
 .teacher-kinetic-shell .tk-loading-paper span { position: absolute; width: 100px; height: 54px; left: 10px; top: 0; border: 1px solid var(--tk-line); background: var(--tk-stock); }

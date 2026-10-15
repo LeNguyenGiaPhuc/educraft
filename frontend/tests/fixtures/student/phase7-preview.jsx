@@ -21,6 +21,7 @@ import '../../../src/styles/student.css'
 import '../../../src/styles/blueprint.css'
 import '../../../src/styles/teacher-kinetic.css'
 import '../../../src/styles/teacher-final-states.css'
+import '../../../src/styles/common-kinetic.css'
 
 const id = i => `00000000-0000-4000-8000-${String(i + 1).padStart(12,'0')}`
 let metrics = { get: 0, post: 0 }, transport = 'success', release

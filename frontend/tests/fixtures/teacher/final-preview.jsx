@@ -22,6 +22,7 @@ import '../../../src/styles/student.css'
 import '../../../src/styles/blueprint.css'
 import '../../../src/styles/teacher-kinetic.css'
 import '../../../src/styles/teacher-final-states.css'
+import '../../../src/styles/common-kinetic.css'
 
 let mode = 'absent', transport = 'success', release, metrics = { get: 0, post: 0, finalize: 0, reference: 0 }
 const evaluations = new Map()

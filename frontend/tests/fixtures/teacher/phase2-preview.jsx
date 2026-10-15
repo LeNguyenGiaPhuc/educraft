@@ -18,6 +18,7 @@ import '../../../src/styles/student.css'
 import '../../../src/styles/blueprint.css'
 import '../../../src/styles/teacher-kinetic.css'
 import '../../../src/styles/teacher-final-states.css'
+import '../../../src/styles/common-kinetic.css'
 
 function Preview() {
   const [classId, setClassId] = useState('fixture-class')
