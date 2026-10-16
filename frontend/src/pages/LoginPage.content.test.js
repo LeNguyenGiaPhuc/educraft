@@ -27,7 +27,13 @@ test('landing copy describes only capabilities available in the current prototyp
   assert.doesNotMatch(source, /Bài nộp đa trang|2 trang JPG|Điểm chốt:\s*8\.5|quyết định điểm số/)
   assert.doesNotMatch(source, /ngăn chặn triệt để/)
   assert.doesNotMatch(source, /v1\.0\.0/)
-  assert.match(source, /mô phỏng deterministic/)
+  assert.match(source, /Hồ sơ minh họa/)
+  assert.match(source, /Gợi ý chỉ để tham khảo/)
+  assert.match(source, /Giáo viên chốt kết quả cuối cùng/)
+  assert.match(source, /Quản trị|Quản trị viên/)
+  assert.match(source, /Giáo viên/)
+  assert.match(source, /Học sinh/)
+  assert.doesNotMatch(source, /href="#blueprint-/)
 })
 
 test('production login source contains no plaintext demo credentials', () => {
