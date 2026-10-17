@@ -5,6 +5,8 @@ import { createAccountRouter } from './modules/accounts/accountRoutes.js'
 import { createAccountService } from './modules/accounts/accountService.js'
 import { createAiEvaluationController } from './modules/ai-evaluations/aiEvaluationController.js'
 import { createAiEvaluationRouter } from './modules/ai-evaluations/aiEvaluationRoutes.js'
+import { createAiEvaluationStreamRouter } from './modules/ai-evaluations/aiEvaluationStreamRoutes.js'
+import { createAiUsageRouter } from './modules/ai-evaluations/aiUsageRoutes.js'
 import { createAiEvaluationInputService } from './modules/ai-evaluations/aiEvaluationInputService.js'
 import { createAiEvaluationService } from './modules/ai-evaluations/aiEvaluationService.js'
 import { createGeminiAiProvider } from './modules/ai-evaluations/providers/geminiAiProvider.js'
@@ -56,7 +58,7 @@ export function createAiProvider(config) {
   throw new Error(`Unsupported AI provider: ${config.AI_PROVIDER}`)
 }
 
-export function createDependencies(config) {
+export function createDependencies(config, { aiUsageService = null } = {}) {
   const gateway = createSupabaseGateway(config)
   const authService = createAuthService(gateway)
   const authenticate = createAuthenticate(gateway)
@@ -136,6 +138,8 @@ export function createDependencies(config) {
     controller: aiEvaluationController,
     authenticate,
   })
+  const aiEvaluationStreamRouter = createAiEvaluationStreamRouter({ aiEvaluationService, authenticate })
+  const aiUsageRouter = createAiUsageRouter({ aiUsageService, authenticate })
   const authController = createAuthController({
     authService,
     nodeEnv: config.NODE_ENV,
@@ -149,6 +153,8 @@ export function createDependencies(config) {
     accountRouter,
     assignmentRouter,
     aiEvaluationRouter,
+    aiEvaluationStreamRouter,
+    aiUsageRouter,
     authRouter,
     authenticate,
     classRouter,

@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { formatSubmissionAttempt } from '../../data/teacherSubmissionView.js'
 import { aiEvaluationService } from '../../services/aiEvaluationService.js'
+import { AI_STAGE_LABELS } from '../../services/aiEvaluationStream.js'
+import { createReviewSession } from './reviewSession.js'
 import { submissionService } from '../../services/submissionService.js'
 import AiResultCard from './AiResultCard.jsx'
 import FieldError from './FieldError.jsx'
@@ -30,57 +32,32 @@ export default function SubmissionReviewPanel({ submission, onReviewed }) {
   })
   const [errors, setErrors] = useState({})
   const [review, setReview] = useState({ status: 'idle' })
+  const sessionRef = useRef(null)
 
   useEffect(() => {
-    let isMounted = true
-
-    aiEvaluationService.getEvaluation(submission.id)
-      .then((result) => {
-        if (!isMounted) return
-        const evaluation = mapEvaluation(result)
-        setEvaluationState({ status: 'success', data: evaluation })
+    const session = createReviewSession({
+      service: aiEvaluationService,
+      submissionId: submission.id,
+      onChange(state) {
+        const evaluation = state.status === 'success' ? mapEvaluation(state.data) : null
+        setEvaluationState({ ...state, data: evaluation })
+        if (!evaluation) return
         setForm((current) => ({
           finalStatus: finalStatusForForm(submission.finalStatus, evaluation.suggestedStatus),
           feedback: current.feedback || evaluation.feedbackDraft,
         }))
-      })
-      .catch((error) => {
-        if (!isMounted) return
-        if (error?.status === 404 || error?.code === 'AI_EVALUATION_NOT_FOUND') {
-          setEvaluationState({ status: 'not-started', data: null })
-          return
-        }
-        setEvaluationState({
-          status: 'error',
-          data: null,
-          message: error?.message ?? 'Chưa có đề xuất AI cho bài nộp này.',
-        })
-      })
-
-    return () => { isMounted = false }
+      },
+    })
+    sessionRef.current = session
+    void session.load()
+    return () => { session.dispose() }
   }, [submission.id, submission.finalStatus])
 
   const isFinalized = submission.status === 'approved'
 
   async function handleRunEvaluation() {
-    if (evaluationState.status === 'loading' || isFinalized) return
-
-    setEvaluationState({ status: 'loading', data: null })
-    try {
-      const result = await aiEvaluationService.createEvaluation(submission.id)
-      const evaluation = mapEvaluation(result)
-      setEvaluationState({ status: 'success', data: evaluation })
-      setForm((current) => ({
-        finalStatus: finalStatusForForm(submission.finalStatus, evaluation.suggestedStatus),
-        feedback: current.feedback || evaluation.feedbackDraft,
-      }))
-    } catch (error) {
-      setEvaluationState({
-        status: 'error',
-        data: null,
-        message: error?.message ?? 'Không thể phân tích bài nộp lúc này. Vui lòng thử lại.',
-      })
-    }
+    if (isFinalized || review.status === 'loading') return
+    await sessionRef.current?.run()
   }
 
   function handleChange(event) {
@@ -97,6 +74,7 @@ export default function SubmissionReviewPanel({ submission, onReviewed }) {
 
   async function handleSubmit(event) {
     event.preventDefault()
+    if (isFinalized || review.status === 'loading' || evaluationState.status === 'running') return
     const nextErrors = validateReviewForm(form)
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
@@ -151,7 +129,19 @@ export default function SubmissionReviewPanel({ submission, onReviewed }) {
       {evaluationState.status === 'loading' && (
         <p className="form-field-help" aria-live="polite">Đang tải đề xuất AI...</p>
       )}
-      {evaluationState.status === 'not-started' && (
+      {evaluationState.status === 'running' && (
+        <p className="form-field-help" role="status" aria-live="polite">
+          {AI_STAGE_LABELS[evaluationState.stage] ?? 'Đang chờ máy chủ xử lý AI...'}
+        </p>
+      )}
+      {evaluationState.status === 'interrupted' && (
+        <div className="ai-error-state teacher-ai-error">
+          <p className="form-field-help" role="status">{evaluationState.message}</p>
+          <button className="button button-outline" type="button"
+            onClick={() => sessionRef.current?.load({ uncertain: true })}>Tải lại đề xuất</button>
+        </div>
+      )}
+      {evaluationState.status === 'not-started' && !isFinalized && (
         <div className="ai-consent-panel teacher-ai-consent">
           <p className="state-kicker">Phân tích tùy chọn</p>
           <h4>Phân tích bằng AI</h4>
@@ -159,7 +149,7 @@ export default function SubmissionReviewPanel({ submission, onReviewed }) {
             Ảnh bài mẫu và bài nộp sẽ được gửi tới dịch vụ AI để tạo bản chép và gợi ý.
             Chỉ sử dụng dữ liệu phù hợp với chính sách bảo mật của nhà trường.
           </p>
-          <button className="button button-primary" onClick={handleRunEvaluation} type="button">
+          <button className="button button-primary" disabled={review.status === 'loading'} onClick={handleRunEvaluation} type="button">
             Phân tích bằng AI
           </button>
         </div>
@@ -168,7 +158,7 @@ export default function SubmissionReviewPanel({ submission, onReviewed }) {
         <div className="ai-error-state teacher-ai-error">
           <div className="form-submit-message form-submit-error" role="alert">{evaluationState.message}</div>
           {!isFinalized && (
-            <button className="button button-outline" onClick={handleRunEvaluation} type="button">
+            <button className="button button-outline" disabled={review.status === 'loading'} onClick={handleRunEvaluation} type="button">
               Thử phân tích lại
             </button>
           )}
@@ -219,7 +209,7 @@ export default function SubmissionReviewPanel({ submission, onReviewed }) {
           <button
             aria-busy={review.status === 'loading'}
             className="button button-primary"
-            disabled={isFinalized || review.status === 'loading'}
+            disabled={isFinalized || review.status === 'loading' || evaluationState.status === 'running'}
             type="submit"
           >
             {isFinalized ? 'Đã chốt' : review.status === 'loading' ? 'Đang lưu...' : 'Chốt kết quả'}

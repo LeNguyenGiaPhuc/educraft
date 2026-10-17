@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { useEffect, useState } from 'react'
+import AdminAiUsagePanel from '../components/AdminAiUsagePanel.jsx'
 
 import { adminAccountService } from '../services/adminAccountService.js'
 import { adminClassService } from '../services/adminClassService.js'
@@ -95,6 +96,8 @@ function AdminDashboardPage() {
           <strong>Tổng số lớp học</strong>
         </section>
       </div>
+
+      <AdminAiUsagePanel />
 
       <section className="admin-panel admin-quick-panel">
         <div className="admin-panel-heading">
