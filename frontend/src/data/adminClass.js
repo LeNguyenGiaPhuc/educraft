@@ -1,5 +1,16 @@
 import { searchRegistry } from './adminRegistry.js'
 
+const classCollator = new Intl.Collator('vi', {
+  numeric: true,
+  sensitivity: 'base',
+})
+
+const classComparators = {
+  'code-asc': (left, right) => classCollator.compare(left.code ?? '', right.code ?? ''),
+  'code-desc': (left, right) => classCollator.compare(right.code ?? '', left.code ?? ''),
+  'subject-asc': (left, right) => classCollator.compare(left.subject ?? '', right.subject ?? ''),
+}
+
 export function buildClassPayload(form) {
   return {
     code: form.id.trim().toUpperCase(),
@@ -37,4 +48,14 @@ export function filterAdminClasses(rows, query, teacher = 'all', status = 'all')
     (teacher === 'all' || row.teacher_id === teacher)
     && (status === 'all' || row.status === status)
   ))
+}
+
+export function sortAdminClasses(classes, sort = 'default') {
+  const compare = classComparators[sort]
+  if (!compare) return [...classes]
+
+  return classes
+    .map((classroom, index) => ({ classroom, index }))
+    .sort((left, right) => compare(left.classroom, right.classroom) || left.index - right.index)
+    .map(({ classroom }) => classroom)
 }

@@ -1,5 +1,16 @@
 import { normalizeRegistryText } from './adminRegistry.js'
 
+const accountCollator = new Intl.Collator('vi', {
+  numeric: true,
+  sensitivity: 'base',
+})
+
+const accountComparators = {
+  'name-asc': (left, right) => accountCollator.compare(left.name ?? '', right.name ?? ''),
+  'name-desc': (left, right) => accountCollator.compare(right.name ?? '', left.name ?? ''),
+  'username-asc': (left, right) => accountCollator.compare(left.username ?? '', right.username ?? ''),
+}
+
 export function normalizeAdminAccount(row = {}) {
   return {
     ...row,
@@ -35,4 +46,14 @@ export function filterAdminAccounts(accounts, { query = '', role = 'all', classI
 
     return matchesQuery && matchesRole && matchesClass
   })
+}
+
+export function sortAdminAccounts(accounts, sort = 'default') {
+  const compare = accountComparators[sort]
+  if (!compare) return [...accounts]
+
+  return accounts
+    .map((account, index) => ({ account, index }))
+    .sort((left, right) => compare(left.account, right.account) || left.index - right.index)
+    .map(({ account }) => account)
 }

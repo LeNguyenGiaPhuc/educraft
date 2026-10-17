@@ -9,7 +9,12 @@ import { ApiError } from '../services/apiClient.js'
 import { adminAccountService } from '../services/adminAccountService.js'
 import { authService, ROLES, roleLabels } from '../services/authService.js'
 import { validateAccountPassword } from '../data/accountPassword.js'
-import { filterAdminAccounts, getAccountClassLabel, normalizeAdminAccount } from '../data/adminAccountView.js'
+import {
+  filterAdminAccounts,
+  getAccountClassLabel,
+  normalizeAdminAccount,
+  sortAdminAccounts,
+} from '../data/adminAccountView.js'
 
 function normalizeClass(item) {
   return {
@@ -168,6 +173,7 @@ function AdminAccountsPage() {
   const [query, setQuery] = useState('')
   const [role, setRole] = useState('all')
   const [classId, setClassId] = useState('all')
+  const [sortOrder, setSortOrder] = useState('default')
   const [showAccountForm, setShowAccountForm] = useState(false)
   const [editingAccount, setEditingAccount] = useState(null)
   const [notice, setNotice] = useState('')
@@ -187,8 +193,13 @@ function AdminAccountsPage() {
   useEffect(() => { void loadData() }, [loadData])
 
   const filteredAccounts = filterAdminAccounts(accounts, { query, role, classId })
+  const sortedAccounts = sortAdminAccounts(filteredAccounts, sortOrder)
 
-  const page = useRegistryPage(filteredAccounts, 25, JSON.stringify([query,role,classId]))
+  const page = useRegistryPage(
+    sortedAccounts,
+    25,
+    JSON.stringify([query, role, classId, sortOrder]),
+  )
 
   function openCreate() {
     setEditingAccount(null)
@@ -290,6 +301,19 @@ function AdminAccountsPage() {
               <h2>Danh sách tài khoản</h2>
               <p>{filteredAccounts.length} tài khoản trong dữ liệu đã tải phù hợp với bộ lọc.</p>
             </div>
+            <label className="search-box admin-sort-control">
+              <span>Sắp xếp</span>
+              <select
+                aria-label="Sắp xếp tài khoản"
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value)}
+              >
+                <option value="default">Mặc định</option>
+                <option value="name-asc">Họ tên A→Z</option>
+                <option value="name-desc">Họ tên Z→A</option>
+                <option value="username-asc">Tên tài khoản A→Z</option>
+              </select>
+            </label>
           </div>
           <div className="admin-table-wrap">
             <table className="admin-data-table">

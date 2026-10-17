@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 import { useAdminScope, useRegistryPage } from '../components/admin/registryHooks.js'
 import RegistryPagination from '../components/admin/RegistryPagination.jsx'
-import { filterAdminClasses } from '../data/adminClass.js'
+import { filterAdminClasses, sortAdminClasses } from '../data/adminClass.js'
 import AdminClassForm from '../components/AdminClassForm.jsx'
 import { adminClassService } from '../services/adminClassService.js'
 import { adminAccountService } from '../services/adminAccountService.js'
@@ -46,6 +46,7 @@ function AdminClassesPage() {
   const [query, setQuery] = useState('')
   const [teacher, setTeacher] = useState('all')
   const [status, setStatus] = useState('all')
+  const [sortOrder, setSortOrder] = useState('default')
   const [classes, setClasses] = useState([])
   const [teachers, setTeachers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -59,7 +60,12 @@ function AdminClassesPage() {
   },[scope])
   useEffect(()=>{void loadData()},[loadData])
   const filteredClasses = filterAdminClasses(classes, query, teacher, status)
-  const page = useRegistryPage(filteredClasses,25,JSON.stringify([query,teacher,status]))
+  const sortedClasses = sortAdminClasses(filteredClasses, sortOrder)
+  const page = useRegistryPage(
+    sortedClasses,
+    25,
+    JSON.stringify([query, teacher, status, sortOrder]),
+  )
   const teacherById = new Map(teachers.map(row=>[row.id,row.full_name]))
 
   function onCreate(savedClass) {
@@ -120,7 +126,22 @@ function AdminClassesPage() {
         <section className="admin-state-panel" aria-live="polite"><h2>Đang tải danh sách lớp...</h2></section>
       ) : (
         <section className="admin-table-panel ar-class-register" aria-label="Danh mục lớp đã tải">
-          <div className="admin-table-heading"><div><h2>Danh mục lớp</h2><p>{filteredClasses.length} kết quả trong dữ liệu đã tải</p></div></div>
+          <div className="admin-table-heading">
+            <div><h2>Danh mục lớp</h2><p>{filteredClasses.length} kết quả trong dữ liệu đã tải</p></div>
+            <label className="search-box admin-sort-control">
+              <span>Sắp xếp</span>
+              <select
+                aria-label="Sắp xếp lớp học"
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value)}
+              >
+                <option value="default">Mặc định</option>
+                <option value="code-asc">Mã lớp A→Z</option>
+                <option value="code-desc">Mã lớp Z→A</option>
+                <option value="subject-asc">Môn học A→Z</option>
+              </select>
+            </label>
+          </div>
           <div className="ar-class-index">
           {page.items.length===0 ? <div className="admin-empty-panel"><h2>Không tìm thấy lớp phù hợp.</h2><p>Thử đổi mã lớp, môn học hoặc bộ lọc giáo viên.</p></div> : page.items.map((classroom,index)=>(
             <Link className="ar-class-record" data-record-id={classroom.id} key={classroom.id} to={`/admin/classes/${classroom.id}`}>
