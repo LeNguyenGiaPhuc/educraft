@@ -22,6 +22,10 @@ export function createAdminAccountService({ api = apiClient } = {}) {
   }
 
   return {
+    getDashboardStats() {
+      return api.get('/api/admin/stats')
+    },
+
     listAccounts(query = {}) {
       return api.get(buildAccountQuery(query))
     },

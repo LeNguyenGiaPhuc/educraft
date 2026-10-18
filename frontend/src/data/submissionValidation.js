@@ -8,9 +8,9 @@ export const FINAL_REVIEW_STATUSES = Object.freeze([
 ])
 
 const FINAL_REVIEW_STATUS_LABELS = Object.freeze({
-  completed: 'Completed',
-  needs_completion: 'Needs Completion',
-  requires_teacher_review: 'Requires Teacher Review',
+  completed: 'Hoàn thành',
+  needs_completion: 'Cần bổ sung',
+  requires_teacher_review: 'Cần giáo viên xem lại',
 })
 
 export function getFinalReviewStatusLabel(status) {

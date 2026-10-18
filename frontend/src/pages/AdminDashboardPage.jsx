@@ -2,27 +2,8 @@ import { Link } from 'react-router-dom'
 
 import { useEffect, useState } from 'react'
 
-import { adminAccountService } from '../services/adminAccountService.js'
-import { adminClassService } from '../services/adminClassService.js'
+import { fetchDashboardStats } from '../data/adminDashboard.js'
 import { ApiError } from '../services/apiClient.js'
-import { ROLES } from '../services/authService.js'
-
-async function fetchDashboardStats() {
-  const [accounts, classes] = await Promise.all([
-    adminAccountService.listAccounts(),
-    adminClassService.listClasses(),
-  ])
-
-  const users = Array.isArray(accounts) ? accounts : []
-  const classRows = Array.isArray(classes) ? classes : []
-
-  return {
-    users: users.length,
-    teachers: users.filter((user) => user.role === ROLES.TEACHER).length,
-    students: users.filter((user) => user.role === ROLES.STUDENT).length,
-    classes: classRows.length,
-  }
-}
 
 function AdminDashboardPage() {
   const [stats, setStats] = useState({ users: 0, teachers: 0, students: 0, classes: 0 })
@@ -73,46 +54,25 @@ function AdminDashboardPage() {
       <div className="admin-page-header">
         <div className="admin-page-title">
           <h1>Tổng quan</h1>
-          <p>Số liệu tài khoản và lớp học hiện có trong hệ thống.</p>
+          <p>Sổ đăng ký tài khoản và lớp học — số liệu tổng hợp từ hệ thống.</p>
         </div>
       </div>
 
-      <div className="admin-stat-grid">
-        <section className="admin-stat-card">
-          <span className="admin-stat-value">{stats.users}</span>
-          <strong>Tổng số tài khoản</strong>
+      <div className="ar-overview">
+        <section className="ar-register-volume">
+          <div className="ar-volume-tab">Tài khoản</div>
+          <div className="ar-volume-content"><h2>Sổ tài khoản</h2><dl className="ar-stat-ledger">
+            <div><dt>Tài khoản</dt><dd>{stats.users}</dd></div>
+            <div><dt>Giáo viên</dt><dd>{stats.teachers}</dd></div>
+            <div><dt>Học sinh</dt><dd>{stats.students}</dd></div>
+          </dl><Link className="button button-primary" to="/admin/accounts">Mở sổ tài khoản →</Link></div>
         </section>
-        <section className="admin-stat-card">
-          <span className="admin-stat-value">{stats.teachers}</span>
-          <strong>Tổng số giáo viên</strong>
-        </section>
-        <section className="admin-stat-card">
-          <span className="admin-stat-value">{stats.students}</span>
-          <strong>Tổng số học sinh</strong>
-        </section>
-        <section className="admin-stat-card">
-          <span className="admin-stat-value">{stats.classes}</span>
-          <strong>Tổng số lớp học</strong>
+        <section className="ar-register-volume ar-volume-classes">
+          <div className="ar-volume-tab">Lớp học</div>
+          <div className="ar-volume-content"><h2>Hồ sơ lớp học</h2><dl className="ar-stat-ledger"><div><dt>Lớp học</dt><dd>{stats.classes}</dd></div></dl>
+          <p>Phân công giáo viên, quản lý thành viên và nhập danh sách học sinh.</p><Link className="button button-primary" to="/admin/classes">Mở danh mục lớp →</Link></div>
         </section>
       </div>
-
-      <section className="admin-panel admin-quick-panel">
-        <div className="admin-panel-heading">
-          <div>
-            <h2>Truy cập nhanh</h2>
-            <p>Đi đến các công việc quản trị thường dùng.</p>
-          </div>
-        </div>
-
-        <div className="admin-quick-links">
-          <Link className="admin-quick-link" to="/admin/accounts">
-            <span>Quản lý tài khoản</span>
-          </Link>
-          <Link className="admin-quick-link" to="/admin/classes">
-            <span>Quản lý lớp học</span>
-          </Link>
-        </div>
-      </section>
     </section>
   )
 }

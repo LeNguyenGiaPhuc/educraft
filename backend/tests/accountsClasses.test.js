@@ -55,6 +55,7 @@ function buildClassApp({ service = createClassService(), authenticate = authenti
 
 function createAccountService(overrides = {}) {
   return {
+    async getDashboardStats() { return { users: 3, teachers: 1, students: 1, classes: 2 } },
     async listAccounts() { return [] },
     async getAccount() { return { id: adminId, email: 'admin@educraft.test' } },
     async createAccount() { return { id: adminId, email: 'admin@educraft.test' } },
@@ -65,6 +66,15 @@ function createAccountService(overrides = {}) {
     ...overrides,
   }
 }
+
+test('admin stats route returns aggregate counts from the service', async () => {
+  const response = await request(buildAccountApp())
+    .get('/api/admin/stats')
+    .set('Origin', frontendOrigin)
+
+  assert.equal(response.status, 200)
+  assert.deepEqual(response.body.data, { users: 3, teachers: 1, students: 1, classes: 2 })
+})
 
 function createClassService(overrides = {}) {
   return {
@@ -168,6 +178,37 @@ test('admin import route validation rejects unauthenticated and wrong-role calls
   assert.equal(failAuthResponse.body.error.code, 'AUTH_REQUIRED')
   assert.equal(wrongRoleResponse.status, 403)
   assert.equal(wrongRoleResponse.body.error.code, 'FORBIDDEN')
+})
+
+test('admin import accepts at most 100 students before controller execution', async () => {
+  let controllerCalls = 0
+  const app = buildClassApp({
+    service: createClassService({
+      importStudents(_auth, _classId, input) {
+        controllerCalls += 1
+        return { created: input.students.length, memberships: [] }
+      },
+    }),
+  })
+  const students = Array.from({ length: 101 }, (_, index) => ({
+    studentNumber: String(index + 1),
+    name: `Học sinh ${index + 1}`,
+    email: `student-${index + 1}@example.com`,
+  }))
+
+  const accepted = await request(app)
+    .post(`/api/admin/classes/${classId}/import-students`)
+    .set('Origin', frontendOrigin)
+    .send({ students: students.slice(0, 100) })
+  const rejected = await request(app)
+    .post(`/api/admin/classes/${classId}/import-students`)
+    .set('Origin', frontendOrigin)
+    .send({ students })
+
+  assert.equal(accepted.status, 201)
+  assert.equal(rejected.status, 400)
+  assert.equal(rejected.body.error.fields.students, 'Mỗi lần chỉ được import tối đa 100 học sinh.')
+  assert.equal(controllerCalls, 1)
 })
 
 test('admin account create returns a successful data envelope and validation rejects bad payloads', async () => {

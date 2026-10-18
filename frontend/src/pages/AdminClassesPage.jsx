@@ -1,10 +1,12 @@
-  import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { useAdminScope, useRegistryPage } from '../components/admin/registryHooks.js'
+import RegistryPagination from '../components/admin/RegistryPagination.jsx'
+import { filterAdminClasses } from '../data/adminClass.js'
 import AdminClassForm from '../components/AdminClassForm.jsx'
 import { adminClassService } from '../services/adminClassService.js'
 import { adminAccountService } from '../services/adminAccountService.js'
-import { ApiError } from '../services/apiClient.js'
 import { ROLES } from '../services/authService.js'
 
 function normalizeClass(row) {
@@ -38,68 +40,27 @@ async function fetchClassesPageData() {
 }
 
 function AdminClassesPage() {
+  const scope = useAdminScope()
   const [showClassForm, setShowClassForm] = useState(false)
   const [notice, setNotice] = useState('')
   const [query, setQuery] = useState('')
   const [teacher, setTeacher] = useState('all')
+  const [status, setStatus] = useState('all')
   const [classes, setClasses] = useState([])
   const [teachers, setTeachers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  async function loadData() {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const [classRows, teacherRows] = await Promise.all([
-        adminClassService.listClasses(),
-        adminAccountService.listAccounts({ role: ROLES.TEACHER, status: 'ACTIVE' }),
-      ])
-
-      const mappedClasses = classRows.map(normalizeClass)
-      const mappedTeachers = teacherRows.map(normalizeTeacher)
-
-      setClasses(mappedClasses)
-      setTeachers(mappedTeachers)
-    } catch (caughtError) {
-      const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể tải danh sách lớp.'
-      setError(message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    let active = true
-
-    fetchClassesPageData()
-      .then(({ classRows, teacherRows }) => {
-        if (!active) return
-        setClasses(classRows.map(normalizeClass))
-        setTeachers(teacherRows.map(normalizeTeacher))
-      })
-      .catch((caughtError) => {
-        if (!active) return
-        const message = caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể tải danh sách lớp.'
-        setError(message)
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [])
-
-  const filteredClasses = classes.filter((classroom) => {
-    const normalizedQuery = query.trim().toLowerCase()
-    const matchesQuery = !normalizedQuery || classroom.code?.toLowerCase().includes(normalizedQuery) || classroom.subject?.toLowerCase().includes(normalizedQuery)
-    const matchesTeacher = teacher === 'all' || classroom.teacher_id === teacher
-
-    return matchesQuery && matchesTeacher
-  })
+  const loadData = useCallback(() => {
+    return scope.read('load',fetchClassesPageData,{
+      success:({classRows,teacherRows})=>{setError(null);setClasses(classRows.map(normalizeClass));setTeachers(teacherRows.map(normalizeTeacher))},
+      error:error=>setError(error.message ?? 'Không thể tải danh sách lớp.'),settled:()=>setLoading(false)
+    })
+  },[scope])
+  useEffect(()=>{void loadData()},[loadData])
+  const filteredClasses = filterAdminClasses(classes, query, teacher, status)
+  const page = useRegistryPage(filteredClasses,25,JSON.stringify([query,teacher,status]))
+  const teacherById = new Map(teachers.map(row=>[row.id,row.full_name]))
 
   function onCreate(savedClass) {
     setShowClassForm(false)
@@ -121,7 +82,7 @@ function AdminClassesPage() {
         <button className="button button-primary" type="button" onClick={() => setShowClassForm(true)}>+ Tạo lớp</button>
       </div>
 
-      {notice && <div className="admin notice-bar">{notice}</div>}
+      {notice && <div className="admin notice-bar" role="status">{notice}</div>}
 
       <section className="admin-filter-card">
         <div className="admin-filter-row">
@@ -129,7 +90,7 @@ function AdminClassesPage() {
             <span>Tìm kiếm</span>
             <input
               value={query}
-              placeholder="Tìm theo mã lớp, tên lớp hoặc giáo viên"
+              placeholder="Tìm theo mã lớp hoặc môn học"
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
@@ -143,33 +104,34 @@ function AdminClassesPage() {
               ))}
             </select>
           </label>
+
+          <label className="search-box">
+            <span>Trạng thái</span>
+            <select value={status} onChange={(event) => setStatus(event.target.value)}>
+              <option value="all">Tất cả</option>
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="ARCHIVED">Đã lưu trữ</option>
+            </select>
+          </label>
         </div>
       </section>
 
       {loading ? (
         <section className="admin-state-panel" aria-live="polite"><h2>Đang tải danh sách lớp...</h2></section>
       ) : (
-        <section className="admin-class-list">
-          {filteredClasses.length === 0 ? (
-            <div className="admin-empty-panel"><h2>Không tìm thấy lớp phù hợp.</h2><p>Thử đổi nội dung tìm kiếm hoặc bộ lọc giáo viên.</p></div>
-          ) : filteredClasses.map((classroom) => {
-            const teacherName = teachers.find((person) => person.id === classroom.teacher_id)?.full_name ?? 'Chưa phân công'
-            const classCode = classroom.code ?? classroom.id
-
-            return (
-              <Link className="admin-class-card" key={classroom.id} to={`/admin/classes/${classroom.id}`}>
-                <div className="admin-class-card-top">
-                  <span className="class-code">{classCode}</span>
-                  <span className={`class-status ${classroom.status === 'ACTIVE' ? 'class-status-active' : 'class-status-inactive'}`}><span aria-hidden="true" />{classroom.status === 'ACTIVE' ? 'Đang hoạt động' : classroom.status}</span>
-                </div>
-                <div className="admin-class-card-body">
-                  <h3>{classroom.subject}</h3>
-                  <p>Giáo viên: {teacherName}</p>
-                  <p>{classroom.semester} · {classroom.school_year}</p>
-                </div>
-              </Link>
-            )
-          })}
+        <section className="admin-table-panel ar-class-register" aria-label="Danh mục lớp đã tải">
+          <div className="admin-table-heading"><div><h2>Danh mục lớp</h2><p>{filteredClasses.length} kết quả trong dữ liệu đã tải</p></div></div>
+          <div className="ar-class-index">
+          {page.items.length===0 ? <div className="admin-empty-panel"><h2>Không tìm thấy lớp phù hợp.</h2><p>Thử đổi mã lớp, môn học hoặc bộ lọc giáo viên.</p></div> : page.items.map((classroom,index)=>(
+            <Link className="ar-class-record" data-record-id={classroom.id} key={classroom.id} to={`/admin/classes/${classroom.id}`}>
+              <span className="ar-record-index" aria-hidden="true">{String(page.start+index+1).padStart(2,'0')}</span>
+              <div><strong>{classroom.code ?? classroom.id}</strong><h3>{classroom.subject}</h3><p>{classroom.semester} · {classroom.school_year}</p></div>
+              <div><span className="ar-record-label">Giáo viên phụ trách</span><span>{teacherById.get(classroom.teacher_id) ?? 'Chưa phân công'}</span></div>
+              <div><span className={`class-status ${classroom.status==='ACTIVE'?'class-status-active':'class-status-inactive'}`}>{classroom.status==='ACTIVE'?'Đang hoạt động':classroom.status==='ARCHIVED'?'Đã lưu trữ':classroom.status}</span><span className="ar-open-record">Mở hồ sơ →</span></div>
+            </Link>
+          ))}
+          </div>
+          <RegistryPagination view={page} label="Phân trang lớp học" />
         </section>
       )}
 

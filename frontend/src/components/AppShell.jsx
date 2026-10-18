@@ -1,20 +1,18 @@
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { useAuth } from '../contexts/useAuth.js'
 import { getRoleHome, ROLES } from '../services/authService.js'
+import '../styles/student-kinetic.css'
 
 function navigationClassName({ isActive }) {
   return `nav-link${isActive ? ' nav-link-active' : ''}`
 }
 
-function AppShell() {
+function AppShell({ children }) {
   const { logout, user } = useAuth()
-  const { pathname } = useLocation()
   const homePath = getRoleHome(user?.role)
   const isTeacher = user?.role === ROLES.TEACHER
-  const hasPrimaryNavigation = user?.role === ROLES.ADMIN || isTeacher
-  const isTeacherAssignmentRoute = pathname === '/assignments/new'
-    || /^\/classes\/[^/]+\/assignments\/new$/.test(pathname)
+  const hasPrimaryNavigation = user?.role === ROLES.ADMIN
   const initials = (user?.name ?? 'EduCraft')
     .split(' ')
     .map((part) => part[0])
@@ -24,7 +22,7 @@ function AppShell() {
     .toUpperCase()
 
   return (
-    <div className={`app-shell ${isTeacher ? 'teacher-shell teacher-kinetic-shell' : 'student-shell'}`}>
+    <div className={`app-shell ${isTeacher ? 'teacher-shell teacher-kinetic-shell' : user?.role === ROLES.STUDENT ? 'student-shell student-kinetic-shell' : 'student-shell'}`}>
       <header className={`site-header${isTeacher ? ' teacher-sidebar teacher-kinetic-header' : ''}`}>
         <div className="site-header-inner">
           <Link className="brand" to={homePath} aria-label="EduCraft">
@@ -45,22 +43,6 @@ function AppShell() {
                 </NavLink>
               )}
 
-              {isTeacher && (
-                <>
-                  <NavLink className={navigationClassName} end to="/teacher">
-                    Tổng quan
-                  </NavLink>
-                  <NavLink
-                    className={({ isActive }) => navigationClassName({
-                      isActive: isActive || isTeacherAssignmentRoute,
-                    })}
-                    aria-current={isTeacherAssignmentRoute ? 'page' : undefined}
-                    to="/assignments/new"
-                  >
-                    Tạo bài kiểm tra
-                  </NavLink>
-                </>
-              )}
             </nav>
           )}
 
@@ -82,7 +64,7 @@ function AppShell() {
       </header>
 
       <div className="shell-content">
-        <Outlet />
+        {children ?? <Outlet />}
       </div>
     </div>
   )

@@ -1,40 +1,27 @@
 const activeAnimations = new WeakMap()
 
-function prefersReducedMotion() {
-  return typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
-/**
- * Animate only the currently selected paper. A new selection cancels the
- * previous animation so the latest user intent always wins.
- */
+/** Only paper chrome moves. Text stays still; cleanup and latest intent cancel. */
 export function animateTeacherDossier(node) {
-  if (!node || prefersReducedMotion() || typeof node.animate !== 'function') {
-    return
-  }
-
+  if (!node || typeof node.animate !== 'function') return undefined
   activeAnimations.get(node)?.cancel()
-
-  const animation = node.animate(
-    [
-      { opacity: 0.72, transform: 'translateY(14px) rotate(-0.7deg)' },
-      { opacity: 1, transform: 'translateY(0) rotate(0deg)' },
-    ],
-    {
-      duration: 520,
-      easing: 'cubic-bezier(.2,.8,.2,1)',
-      fill: 'both',
-    },
-  )
-
+  const media = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)') : null
+  if (media?.matches) return undefined
+  const animation = node.animate([
+    { transform: 'translate(12px, -16px) rotate(-1deg)' },
+    { transform: 'translate(-2px, 3px) rotate(-1deg)', offset: 0.8 },
+    { transform: 'translate(0, 0) rotate(-1deg)' },
+  ], { duration: 520, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'none' })
   activeAnimations.set(node, animation)
-  animation.finished
-    ?.catch(() => {})
-    .finally(() => {
-      if (activeAnimations.get(node) === animation) {
-        activeAnimations.delete(node)
-      }
-    })
+  const cancel = () => {
+    animation.cancel()
+    if (activeAnimations.get(node) === animation) activeAnimations.delete(node)
+  }
+  const onMotionChange = (event) => { if (event.matches) cancel() }
+  media?.addEventListener?.('change', onMotionChange)
+  animation.finished?.catch(() => {}).finally(() => {
+    if (activeAnimations.get(node) === animation) activeAnimations.delete(node)
+    media?.removeEventListener?.('change', onMotionChange)
+  })
+  return () => { media?.removeEventListener?.('change', onMotionChange); cancel() }
 }

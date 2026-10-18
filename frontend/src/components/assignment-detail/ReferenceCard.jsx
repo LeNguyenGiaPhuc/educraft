@@ -1,4 +1,4 @@
-import { useReducer, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 
 import {
   createReferenceEditorState,
@@ -7,6 +7,8 @@ import {
 import { referenceService } from '../../services/referenceService.js'
 import FieldError from './FieldError.jsx'
 import { formatSubmissionDate } from './assignmentDetailView.js'
+import { animateTeacherDossier } from '../teacher/teacherMotion.js'
+import '../../styles/teacher-reference-archive.css'
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024
 const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -38,7 +40,7 @@ export function ReferenceEditor({ editor, onCancel, onFileChange, onSubmit }) {
   const isAdd = editor.mode === 'add'
 
   return (
-    <form className="reference-form reference-inline-form teacher-reference-form" noValidate onSubmit={onSubmit}>
+    <form className="reference-form reference-inline-form teacher-reference-form tk-reference-editor" aria-busy={editor.status === 'loading'} noValidate onSubmit={onSubmit}>
       <div className="form-field teacher-field">
         <label htmlFor={inputId}>
           {isAdd ? 'Chọn bài mẫu mới' : 'Chọn file thay thế'} <span aria-hidden="true">*</span>
@@ -50,6 +52,7 @@ export function ReferenceEditor({ editor, onCancel, onFileChange, onSubmit }) {
           id={inputId}
           onChange={onFileChange}
           type="file"
+          disabled={editor.status === 'loading'}
         />
         <p className="form-field-help" id={helpId}>JPG, JPEG, PNG hoặc WebP, tối đa 5 MB.</p>
         {editor.file && <p className="form-field-help">Đã chọn: {editor.file.name}</p>}
@@ -92,6 +95,10 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
     createReferenceEditorState,
   )
   const [deleteState, setDeleteState] = useState({ status: 'idle', referenceId: null })
+  const paperEdge = useRef(null)
+  useEffect(() => {
+    if (editor.notice?.status === 'success') return animateTeacherDossier(paperEdge.current)
+  }, [editor.notice])
 
   function handleFileChange(event) {
     dispatchEditor({ type: 'SELECT_FILE', file: event.target.files?.[0] ?? null })
@@ -151,17 +158,17 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
   }
 
   return (
-    <section className="assignment-detail-card teacher-detail-card teacher-reference-card" aria-labelledby="reference-title">
+    <section className="assignment-detail-card teacher-detail-card teacher-reference-card tk-reference-archive" aria-labelledby="reference-title">
+      <div className="tk-reference-paper-edge" ref={paperEdge} aria-hidden="true" />
       <div className="assignment-detail-card-heading teacher-detail-card-heading">
         <div>
-          <p className="state-kicker">Tài liệu đối chiếu</p>
           <h2 id="reference-title">Bài mẫu của giáo viên</h2>
         </div>
         <span className="detail-card-label teacher-count-label">{references.length} bài mẫu</span>
       </div>
 
       <p className="assignment-detail-card-description">
-        Upload ảnh bài ghi mẫu để làm tài liệu tham chiếu khi AI phân tích và giáo viên chấm duyệt.
+        Ảnh bài mẫu dùng để đối chiếu khi AI phân tích và giáo viên chấm duyệt.
       </p>
 
       <ReferenceFeedback
@@ -172,12 +179,13 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
       {references.length === 0 ? (
         <div className="reference-empty teacher-reference-empty">Chưa có bài mẫu cho bài kiểm tra này.</div>
       ) : (
-        <div className="reference-list teacher-reference-list">
+        <div className="reference-list teacher-reference-list" role="region" aria-label="Danh sách bài mẫu đã tải" tabIndex={0}>
+          <ul className="tk-reference-records">
           {references.map((reference) => (
-            <div className="reference-entry teacher-reference-entry" key={reference.id}>
+            <li className="reference-entry teacher-reference-entry" key={reference.id}>
               <div className="reference-file teacher-reference-file">
                 <div className="reference-file-details teacher-reference-file-details">
-                  <strong title={reference.fileName}>{reference.fileName}</strong>
+                  <strong id={`reference-name-${reference.id}`} title={reference.fileName}>{reference.fileName}</strong>
                   <span>Tạo lúc {formatSubmissionDate(reference.uploadedAt)}</span>
                   {reference.url && (
                     <a href={reference.url} target="_blank" rel="noreferrer">Xem bài mẫu</a>
@@ -186,6 +194,7 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
                 <div className="reference-actions teacher-reference-actions">
                   <button
                     aria-label="Thay bài mẫu"
+                    aria-describedby={`reference-name-${reference.id}`}
                     className="icon-button reference-action-button"
                     disabled={deleteState.status === 'loading'}
                     onClick={() => dispatchEditor({
@@ -202,6 +211,8 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
                   </button>
                   <button
                     aria-label="Xóa bài mẫu"
+                    aria-describedby={`reference-name-${reference.id}`}
+                    aria-busy={deleteState.status === 'loading' && deleteState.referenceId === reference.id}
                     className="icon-button reference-action-button reference-action-delete"
                     disabled={deleteState.status === 'loading'}
                     onClick={() => handleDelete(reference.id)}
@@ -228,8 +239,9 @@ export function ReferenceCard({ assignment, references = [], onChanged }) {
               {deleteState.status === 'error' && deleteState.referenceId === reference.id && (
                 <ReferenceFeedback state={deleteState} successMessage="" />
               )}
-            </div>
+            </li>
           ))}
+          </ul>
         </div>
       )}
 

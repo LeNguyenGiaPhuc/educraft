@@ -5,19 +5,36 @@ import LandingShowcase from '../components/landing/LandingShowcase.jsx'
 import { useAuth } from '../contexts/useAuth.js'
 import { getRoleHome, ROLES } from '../services/authService.js'
 
-const demoAccounts = [
-  { role: ROLES.ADMIN, title: 'Quản trị', email: 'admin@educraft.test', password: 'admin123' },
-  { role: ROLES.TEACHER, title: 'Giáo viên', email: 'teacher@educraft.test', password: 'teacher123' },
-  { role: ROLES.STUDENT, title: 'Học sinh', email: 'student@educraft.test', password: 'student123' },
-]
+const demoAccounts = import.meta.env?.DEV
+  ? [
+      {
+        role: ROLES.ADMIN,
+        title: 'Quản trị',
+        email: import.meta.env.VITE_DEMO_ADMIN_EMAIL,
+        password: import.meta.env.VITE_DEMO_ADMIN_PASSWORD,
+      },
+      {
+        role: ROLES.TEACHER,
+        title: 'Giáo viên',
+        email: import.meta.env.VITE_DEMO_TEACHER_EMAIL,
+        password: import.meta.env.VITE_DEMO_TEACHER_PASSWORD,
+      },
+      {
+        role: ROLES.STUDENT,
+        title: 'Học sinh',
+        email: import.meta.env.VITE_DEMO_STUDENT_EMAIL,
+        password: import.meta.env.VITE_DEMO_STUDENT_PASSWORD,
+      },
+    ].filter((account) => account.email && account.password)
+  : []
 
 function LoginPage() {
   const { user, login } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const [form, setForm] = useState({
-    email: demoAccounts[0].email,
-    password: demoAccounts[0].password,
+    email: '',
+    password: '',
   })
   const [status, setStatus] = useState({ tone: 'idle', message: '' })
   const [showPassword, setShowPassword] = useState(false)
@@ -114,7 +131,7 @@ function LoginPage() {
 
       <dialog
         aria-labelledby="login-title"
-        className="login-panel"
+        className="login-panel kf-login"
         onCancel={handleDialogCancel}
         onClose={handleDialogClose}
         ref={dialogRef}
@@ -127,6 +144,7 @@ function LoginPage() {
           <button
             aria-label="Đóng đăng nhập"
             className="login-close-button"
+            disabled={status.tone === 'loading'}
             onClick={closeLoginPanel}
             ref={closeButtonRef}
             title="Đóng"
@@ -137,33 +155,36 @@ function LoginPage() {
         </div>
 
         <div className="login-panel-heading">
-          <span className="login-panel-index" aria-hidden="true">01</span>
           <div>
             <h1 id="login-title">Chào mừng trở lại.</h1>
             <p>Đăng nhập để tiếp tục công việc trong EduCraft.</p>
           </div>
         </div>
 
-        <div className="demo-login-grid" aria-label="Tài khoản mẫu">
-          {demoAccounts.map((account) => (
-            <button
-              aria-pressed={form.email === account.email}
-              className={`demo-login-button${form.email === account.email ? ' demo-login-button-active' : ''}`}
-              key={account.role}
-              onClick={() => applyDemoAccount(account)}
-              type="button"
-            >
-              <strong>{account.title}</strong>
-              <span>{account.email}</span>
-            </button>
-          ))}
-        </div>
+        {demoAccounts.length > 0 && (
+          <div className="demo-login-grid" aria-label="Tài khoản mẫu">
+            {demoAccounts.map((account) => (
+              <button
+                aria-pressed={form.email === account.email}
+                className={`demo-login-button${form.email === account.email ? ' demo-login-button-active' : ''}`}
+                key={account.role}
+                disabled={status.tone === 'loading'}
+                onClick={() => applyDemoAccount(account)}
+                type="button"
+              >
+                <strong>{account.title}</strong>
+                <span>{account.email}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
-        <form className="login-form" noValidate onSubmit={handleSubmit}>
+        <form className="login-form" aria-busy={status.tone === 'loading'} noValidate onSubmit={handleSubmit}>
           <div className="form-field">
             <label htmlFor="login-email">Email</label>
             <input
               autoComplete="username"
+              aria-describedby={status.tone === 'error' ? 'login-result' : undefined}
               id="login-email"
               onChange={(event) => updateField('email', event.target.value)}
               type="email"
@@ -175,6 +196,7 @@ function LoginPage() {
             <div className="password-row">
               <input
                 autoComplete="current-password"
+                aria-describedby={status.tone === 'error' ? 'login-result' : undefined}
                 id="login-password"
                 onChange={(event) => updateField('password', event.target.value)}
                 type={showPassword ? 'text' : 'password'}
@@ -199,6 +221,7 @@ function LoginPage() {
 
           {status.message && (
             <div
+              id="login-result"
               className={`form-submit-message ${status.tone === 'error' ? 'form-submit-error' : status.tone === 'success' ? 'form-submit-success' : 'login-submit-pending'}`}
               role={status.tone === 'error' ? 'alert' : 'status'}
             >
@@ -217,7 +240,6 @@ function LoginPage() {
           </button>
         </form>
 
-        <p className="login-panel-note">Ba vai trò. Một luồng học tập liền mạch.</p>
       </dialog>
     </main>
   )

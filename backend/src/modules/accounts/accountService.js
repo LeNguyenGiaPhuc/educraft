@@ -244,6 +244,28 @@ export function createAccountService({ adminClient } = {}) {
   }
 
   return {
+    async getDashboardStats(auth) {
+      await requireAdmin(auth)
+      const client = getWriteClient(auth)
+      const [users, teachers, students, classes] = await Promise.all([
+        client.from('profiles').select('id', { count: 'exact', head: true }),
+        client.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'TEACHER'),
+        client.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'STUDENT'),
+        client.from('classes').select('id', { count: 'exact', head: true }),
+      ])
+
+      for (const result of [users, teachers, students, classes]) {
+        if (result.error) throw result.error
+      }
+
+      return {
+        users: users.count ?? 0,
+        teachers: teachers.count ?? 0,
+        students: students.count ?? 0,
+        classes: classes.count ?? 0,
+      }
+    },
+
     async listAccounts(auth, query = {}) {
       await requireAdmin(auth)
       const supabase = auth.supabase

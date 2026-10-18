@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+export const MAX_IMPORT_STUDENTS = 100
+
 export const classIdParamsSchema = {
   params: z.object({ classId: z.string().uuid('ID không hợp lệ.') }),
 }
@@ -69,6 +71,8 @@ export const importStudentsSchema = {
       studentNumber: z.string().trim().min(1, 'Số thứ tự học sinh không được để trống.').max(20, 'Số thứ tự học sinh quá dài.'),
       name: z.string().trim().min(1, 'Họ tên không được để trống.').max(120, 'Họ tên quá dài.'),
       email: z.string().trim().toLowerCase().email('Email không hợp lệ.'),
-    }).strict()).min(1, 'Cần ít nhất một học sinh để import.'),
+    }).strict())
+      .min(1, 'Cần ít nhất một học sinh để import.')
+      .max(MAX_IMPORT_STUDENTS, `Mỗi lần chỉ được import tối đa ${MAX_IMPORT_STUDENTS} học sinh.`),
   }).strict(),
 }

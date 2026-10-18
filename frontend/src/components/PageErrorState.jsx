@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
 
-function PageErrorState({ kicker, title, message, returnTo = '/' }) {
+function PageErrorState({ kicker, title, message, returnTo = '/', standalone = false }) {
   return (
-    <main className="page-content">
+    <main className={standalone ? 'page-content kf-common-page kf-common-error' : 'page-content'}>
       <div className="page-container">
         <section className="state-panel state-panel-error" role="alert">
           <p className="state-kicker">{kicker}</p>

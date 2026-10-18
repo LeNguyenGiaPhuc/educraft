@@ -53,7 +53,12 @@ async function withSignedUrl(storageService, supabase, reference) {
   return { ...reference, signed_url: signedUrl }
 }
 
-export function createReferenceService({ assignmentService, storageService, logger = console }) {
+export function createReferenceService({
+  assignmentService,
+  storageService,
+  invalidateEvaluations = async () => {},
+  logger = console,
+}) {
   async function getReferenceForAssignment(supabase, assignmentId, referenceId) {
     const result = await supabase
       .from('reference_files')
@@ -149,6 +154,7 @@ export function createReferenceService({ assignmentService, storageService, logg
         return rollbackNewObject(uploaded, result.error)
       }
 
+      await invalidateEvaluations(assignmentId)
       return withSignedUrl(storageService, supabase, result.data)
     },
 
@@ -181,6 +187,7 @@ export function createReferenceService({ assignmentService, storageService, logg
         bucket: uploaded.bucket,
         path: previous.storage_path,
       })
+      await invalidateEvaluations(assignmentId)
       return withSignedUrl(storageService, supabase, result.data)
     },
 
@@ -216,6 +223,7 @@ export function createReferenceService({ assignmentService, storageService, logg
         )
       }
 
+      await invalidateEvaluations(assignmentId)
       return result.data
     },
   }

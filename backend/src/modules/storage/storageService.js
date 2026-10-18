@@ -123,6 +123,19 @@ export function createStorageService({ adminClient, createFileId = randomUUID } 
     return { bucket, path: validatedPath, fullPath: `${bucket}/${validatedPath}` }
   }
 
+  async function removeMany(client, bucket, paths) {
+    const validatedPaths = [...new Set((paths ?? []).map(validateObjectPath))]
+    if (validatedPaths.length === 0) return []
+
+    const storageClient = requireStorageClient(client)
+    const result = await storageClient.storage.from(bucket).remove(validatedPaths)
+    if (result.error) {
+      throw new AppError(500, 'STORAGE_REMOVE_FAILED', 'Không thể xóa file ảnh khỏi lưu trữ.')
+    }
+
+    return validatedPaths.map((path) => ({ bucket, path, fullPath: `${bucket}/${path}` }))
+  }
+
   async function createSignedUrl(client, bucket, path) {
     const storageClient = requireStorageClient(client)
     const validatedBucket = validateBucket(bucket)
@@ -227,6 +240,14 @@ export function createStorageService({ adminClient, createFileId = randomUUID } 
 
     async removeSubmissionFile({ client, path }) {
       return remove(client, STUDENT_SUBMISSIONS_BUCKET, path)
+    },
+
+    async removeReferenceFiles({ client, paths }) {
+      return removeMany(client, REFERENCE_MATERIALS_BUCKET, paths)
+    },
+
+    async removeSubmissionFiles({ client, paths }) {
+      return removeMany(client, STUDENT_SUBMISSIONS_BUCKET, paths)
     },
 
     async createSignedUrl({ client, bucket, path }) {

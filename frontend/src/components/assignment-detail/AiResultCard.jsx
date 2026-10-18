@@ -1,57 +1,39 @@
 import { finalStatusLabel } from './assignmentDetailView.js'
 
-export default function AiResultCard({ evaluation }) {
+// Model lists have no backend item IDs. Content + duplicate occurrence is stable
+// when a different item is inserted, unlike a key based on its array position.
+function keyedItems(items, identify = item => String(item)) {
+  const occurrences = new Map()
+  return items.map(item => {
+    const identity = identify(item)
+    const occurrence = occurrences.get(identity) ?? 0
+    occurrences.set(identity, occurrence + 1)
+    return { item, key: `${identity}:${occurrence}` }
+  })
+}
+
+export default function AiResultCard({ evaluation, coverageThreshold }) {
+  const confidence = Number.isFinite(evaluation.confidence) ? Math.round(evaluation.confidence * 100) : null
   return (
-    <section className="ai-result-card teacher-ai-card" aria-labelledby="ai-result-title">
-      <div className="ai-result-heading teacher-ai-heading">
-        <div>
-          <p className="state-kicker">Gợi ý AI</p>
-          <h3 id="ai-result-title">AI đề xuất</h3>
-        </div>
-        <strong>{Math.round(evaluation.confidence * 100)}% tin cậy</strong>
+    <section className="tk-ai-result" aria-labelledby="ai-result-title">
+      <header className="tk-ai-result-heading"><h3 id="ai-result-title">Gợi ý AI</h3><span>Đề xuất, không phải quyết định</span></header>
+      <dl className="tk-ai-measures">
+        <div><dt>Độ bao phủ nội dung</dt><dd>{Number.isFinite(evaluation.coverageScore) ? `${evaluation.coverageScore}%` : 'Chưa có dữ liệu'}</dd></div>
+        <div><dt>Ngưỡng đạt của bài</dt><dd>{Number.isFinite(Number(coverageThreshold)) && coverageThreshold != null ? `${coverageThreshold}%` : 'Chưa có dữ liệu'}</dd></div>
+        <div><dt>Độ tin cậy do AI cung cấp</dt><dd>{confidence == null ? 'Chưa có dữ liệu' : `${confidence}%`}</dd></div>
+      </dl>
+      <p className="tk-ai-disclosure">Độ tin cậy là tự đánh giá của model, không phải độ chính xác đã được kiểm chứng. Giáo viên quyết định kết quả cuối cùng.</p>
+      <p className="tk-ai-proposal">AI đề xuất: <strong>{finalStatusLabel(evaluation.suggestedStatus)}</strong></p>
+      <div className="tk-ai-result-columns">
+        <div><h4>Điểm mạnh</h4><ul tabIndex="0" aria-label="Điểm mạnh do AI cung cấp, có thể cuộn">{keyedItems(evaluation.strengths).map(({ item, key }) => <li key={key}>{item}</li>)}</ul></div>
+        <div><h4>Nội dung cần bổ sung</h4><ul tabIndex="0" aria-label="Nội dung cần bổ sung do AI cung cấp, có thể cuộn">{keyedItems(evaluation.weaknesses).map(({ item, key }) => <li key={key}>{item}</li>)}</ul></div>
       </div>
-      <p className="ai-provider-disclosure">
-        Đây là gợi ý hỗ trợ giáo viên; kết quả cuối cùng do giáo viên quyết định.
-      </p>
-      <div className="ai-score-row teacher-ai-status-row">
-        <span>Trạng thái AI đề xuất</span>
-        <strong>{finalStatusLabel(evaluation.suggestedStatus)}</strong>
-      </div>
-      <div className="ai-result-columns teacher-ai-columns">
-        <div>
-          <h4>Điểm mạnh</h4>
-          <ul>{evaluation.strengths.map((item) => <li key={item}>{item}</li>)}</ul>
-        </div>
-        <div>
-          <h4>Cần cải thiện</h4>
-          <ul>{evaluation.weaknesses.map((item) => <li key={item}>{item}</li>)}</ul>
-        </div>
-      </div>
-      <div className="ai-transcripts teacher-ai-transcripts">
-        <details>
-          <summary>Bản chép bài mẫu</summary>
-          <p>{evaluation.referenceTranscription || 'Chưa có bản chép bài mẫu.'}</p>
-        </details>
-        <details>
-          <summary>Bản chép bài nộp</summary>
-          <p>{evaluation.studentTranscription || 'Chưa có bản chép bài nộp.'}</p>
-        </details>
-      </div>
-      <div className="ai-uncertainty teacher-ai-uncertainty">
-        <h4>Không chắc chắn</h4>
-        {evaluation.uncertainContent.length === 0 ? (
-          <p>Không ghi nhận đoạn chưa chắc chắn.</p>
-        ) : (
-          <ul>
-            {evaluation.uncertainContent.map((item, index) => (
-              <li key={`${item.source}-${item.page}-${index}`}>
-                <strong>{item.source === 'reference' ? 'Bài mẫu' : 'Bài nộp'} · trang {item.page}</strong>
-                <span>{item.text} — {item.reason}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {evaluation.feedbackDraft && <details className="tk-review-disclosure"><summary>Nhận xét nháp của AI</summary><p tabIndex="0" aria-label="Nhận xét nháp có thể cuộn">{evaluation.feedbackDraft}</p></details>}
+      <details className="tk-review-disclosure"><summary>Bản chép bài mẫu</summary><p tabIndex="0" aria-label="Bản chép bài mẫu có thể cuộn">{evaluation.referenceTranscription || 'Chưa có bản chép bài mẫu.'}</p></details>
+      <details className="tk-review-disclosure"><summary>Bản chép bài nộp</summary><p tabIndex="0" aria-label="Bản chép bài nộp có thể cuộn">{evaluation.studentTranscription || 'Chưa có bản chép bài nộp.'}</p></details>
+      <details className="tk-review-disclosure"><summary>Đoạn AI chưa chắc chắn ({evaluation.uncertainContent.length})</summary>
+        {evaluation.uncertainContent.length === 0 ? <p>Không ghi nhận đoạn chưa chắc chắn.</p> : <ul tabIndex="0" aria-label="Các đoạn chưa chắc chắn có thể cuộn">{keyedItems(evaluation.uncertainContent, item => JSON.stringify([item.source, item.page, item.text, item.reason])).map(({ item, key }) => <li key={key}><strong>{item.source === 'reference' ? 'Bài mẫu' : 'Bài nộp'} · trang {item.page}</strong><p>{item.text} — {item.reason}</p></li>)}</ul>}
+      </details>
     </section>
   )
 }
