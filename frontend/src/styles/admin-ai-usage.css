@@ -1,0 +1,25 @@
+.admin-kinetic .ar-ai-usage { min-width: 0; }
+
+.ar-ai-ledger {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 0 28px;
+  margin: 24px 0;
+}
+
+.ar-ai-ledger > div {
+  min-width: 0;
+  padding: 16px 0;
+  border-top: 1px solid var(--ar-line, var(--border));
+}
+
+.ar-ai-ledger dt { color: var(--muted); font-size: 13px; }
+
+.ar-ai-ledger dd {
+  margin: 10px 0 0;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 750;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}

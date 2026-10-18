@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { useEffect, useState } from 'react'
+import AdminAiUsagePanel from '../components/AdminAiUsagePanel.jsx'
 
 import { fetchDashboardStats } from '../data/adminDashboard.js'
 import { ApiError } from '../services/apiClient.js'
@@ -73,6 +74,7 @@ function AdminDashboardPage() {
           <p>Phân công giáo viên, quản lý thành viên và nhập danh sách học sinh.</p><Link className="button button-primary" to="/admin/classes">Mở danh mục lớp →</Link></div>
         </section>
       </div>
+      <AdminAiUsagePanel />
     </section>
   )
 }

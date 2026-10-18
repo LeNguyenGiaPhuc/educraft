@@ -38,6 +38,9 @@ export function mapEvaluation(result = {}) {
     referenceTranscription: evaluation.reference_transcription ?? '',
     studentTranscription: evaluation.student_transcription ?? '',
     uncertainContent,
+    checkerStatus: evaluation.checker_status ?? null,
+    checkerSummary: evaluation.checker_summary ?? '',
+    checkerFindings: Array.isArray(evaluation.checker_findings) ? evaluation.checker_findings : [],
   }
 }
 

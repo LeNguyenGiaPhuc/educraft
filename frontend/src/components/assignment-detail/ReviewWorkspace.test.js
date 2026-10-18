@@ -15,6 +15,26 @@ before(async () => {
 after(async () => { await vite?.close() })
 const submission = { id: 'attempt-1', studentName: 'Học sinh trùng tên', studentCode: 'HS-1', attemptNumber: 2, status: 'submitted', fileUrl: 'https://example.invalid/attempt1.png', fileName: 'Bài ghi.jpg' }
 
+test('checker suggestions preserve old evaluations and escape model text', () => {
+  const old = renderToStaticMarkup(React.createElement(AiResultCard, { evaluation: mapEvaluation({}) }))
+  assert.match(old, /Chưa kiểm tra chéo/)
+  const evaluation = mapEvaluation({ checker_status: 'NEEDS_TEACHER_REVIEW', checker_summary: 'Cần đối chiếu',
+    checker_findings: [{ category: 'UNSUPPORTED_CLAIM', message: '<script>unsafe</script>', evidence: 'Thiếu ý này trong bản chép' }] })
+  const html = renderToStaticMarkup(React.createElement(AiResultCard, { evaluation }))
+  assert.match(html, /Cần giáo viên xem lại/); assert.match(html, /Thiếu ý này trong bản chép/)
+  assert.doesNotMatch(html, /<script>/)
+})
+
+test('interrupted analysis offers GET synchronization and keeps manual review available', async () => {
+  const session = createReviewSession('interrupted-markup')
+  const item = { ...submission, id: 'interrupted-markup-attempt' }; session.ensure(item)
+  await session.runEvaluation(item.id, async () => { throw Object.assign(new Error('Mất mạng'), { code: 'AI_STREAM_INTERRUPTED' }) })
+  const html = renderToStaticMarkup(React.createElement(Panel, { submission: item, reviewSession: session }))
+  assert.match(html, /Tải lại đề xuất/)
+  assert.doesNotMatch(html, />Phân tích bằng AI<|>Thử phân tích lại</)
+  assert.doesNotMatch(html, /<textarea[^>]*disabled/)
+})
+
 test('selected-only review keeps manual form usable during GET and has native original evidence link', () => {
   const html = renderToStaticMarkup(React.createElement(Panel, { submission, assignmentId: 'assignment-1' }))
   assert.match(html, /Đang đọc đề xuất AI đã lưu/)

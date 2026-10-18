@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { formatSubmissionAttempt } from '../../data/teacherSubmissionView.js'
 import { aiEvaluationService } from '../../services/aiEvaluationService.js'
+import { AI_STAGE_LABELS } from '../../services/aiEvaluationStream.js'
 import { submissionService } from '../../services/submissionService.js'
 import AiResultCard from './AiResultCard.jsx'
 import FieldError from './FieldError.jsx'
@@ -20,9 +21,11 @@ export default function SubmissionReviewPanel({ submission, onReviewed, assignme
   const folioEdge = useRef(null)
   useEffect(() => {
     mounted.current = true
-    session.syncSubmission(submission)
     session.loadEvaluation(submission.id, (id) => aiEvaluationService.getEvaluation(id))
-    return () => { mounted.current = false }
+    return () => { mounted.current = false; session.cancelEvaluation(submission.id) }
+  }, [session, submission.id])
+  useEffect(() => {
+    session.syncSubmission(submission)
   }, [session, submission])
   useEffect(() => animateTeacherDossier(folioEdge.current), [submission.id])
   const { form, errors, evaluation: evaluationState, review } = entry
@@ -32,6 +35,11 @@ export default function SubmissionReviewPanel({ submission, onReviewed, assignme
   const statusId = `review-status-${submission.id}`
   function handleChange(event) {
     session.change(submission.id, event.target.name, event.target.value)
+  }
+  function runEvaluation() {
+    return session.runEvaluation(submission.id,
+      (id, options) => aiEvaluationService.streamEvaluation(id, options),
+      { getEvaluation: (id) => aiEvaluationService.getEvaluation(id) })
   }
   async function handleSubmit(event) {
     event.preventDefault()
@@ -51,18 +59,23 @@ export default function SubmissionReviewPanel({ submission, onReviewed, assignme
         <span className="tk-review-state">{isFinalized ? 'Đã chốt' : 'Chưa chốt'}</span>
       </header>
       <section className="tk-insights" aria-label="Gợi ý AI">
-        {['idle', 'loading'].includes(evaluationState.status) && <p className="tk-review-inline-state" role="status">{evaluationState.operation === 'analyze' ? 'AI đang phân tích bài nộp… Bạn vẫn có thể nhận xét thủ công.' : 'Đang đọc đề xuất AI đã lưu…'}</p>}
+        {['idle', 'loading'].includes(evaluationState.status) && <p className="tk-review-inline-state" role="status" aria-live="polite">{evaluationState.operation === 'analyze' ? AI_STAGE_LABELS[evaluationState.stage] ?? 'AI đang phân tích bài nộp… Bạn vẫn có thể nhận xét thủ công.' : 'Đang đọc đề xuất AI đã lưu…'}</p>}
+        {evaluationState.status === 'interrupted' && <div className="tk-review-inline-state">
+          <p role="status">{evaluationState.message}</p>
+          <button className="tk-secondary-action" type="button"
+            onClick={() => session.loadEvaluation(submission.id, (id) => aiEvaluationService.getEvaluation(id))}>Tải lại đề xuất</button>
+        </div>}
         {['not-started', 'empty'].includes(evaluationState.status) && (
           <div className="tk-ai-consent">
             <h4>{isFinalized ? 'Không có đề xuất AI đã lưu' : 'Phân tích AI — tùy chọn'}</h4>
             <p>{isFinalized ? 'Giữ nguyên kết quả đã được giáo viên chốt.' : 'Ảnh bài mẫu và bài nộp sẽ được gửi tới dịch vụ AI. Chỉ sử dụng dữ liệu phù hợp với chính sách bảo mật của nhà trường. Bạn có thể chốt thủ công mà không chạy AI.'}</p>
-            {!isFinalized && <button className="tk-primary-action" type="button" onClick={() => session.runEvaluation(submission.id, (id) => aiEvaluationService.createEvaluation(id))}>Phân tích bằng AI</button>}
+            {!isFinalized && <button className="tk-primary-action" type="button" disabled={locked} onClick={runEvaluation}>Phân tích bằng AI</button>}
           </div>
         )}
         {evaluationState.status === 'error' && (
           <div className="tk-review-inline-state tk-review-error">
             <p role="alert">{evaluationState.message}</p>
-            {!isFinalized && <button className="tk-secondary-action" type="button" onClick={() => session.runEvaluation(submission.id, (id) => aiEvaluationService.createEvaluation(id))}>Thử phân tích lại</button>}
+            {!isFinalized && <button className="tk-secondary-action" type="button" disabled={locked} onClick={runEvaluation}>Thử phân tích lại</button>}
           </div>
         )}
         {evaluationState.status === 'success' && <AiResultCard evaluation={evaluationState.data} coverageThreshold={coverageThreshold} />}

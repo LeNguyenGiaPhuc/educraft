@@ -24,6 +24,16 @@ export default function AiResultCard({ evaluation, coverageThreshold }) {
       </dl>
       <p className="tk-ai-disclosure">Độ tin cậy là tự đánh giá của model, không phải độ chính xác đã được kiểm chứng. Giáo viên quyết định kết quả cuối cùng.</p>
       <p className="tk-ai-proposal">AI đề xuất: <strong>{finalStatusLabel(evaluation.suggestedStatus)}</strong></p>
+      <details className="tk-review-disclosure">
+        <summary>Kiểm tra chéo · {evaluation.checkerStatus === 'PASSED' ? 'Đã kiểm tra'
+          : evaluation.checkerStatus === 'NEEDS_TEACHER_REVIEW' ? 'Cần giáo viên xem lại' : 'Chưa kiểm tra chéo'}</summary>
+        <p>{evaluation.checkerSummary || 'Chưa có kết quả kiểm tra chéo. Giáo viên vẫn có thể chốt thủ công.'}</p>
+        {evaluation.checkerFindings?.length > 0 && <ul tabIndex="0" aria-label="Cảnh báo kiểm tra chéo có thể cuộn">
+          {keyedItems(evaluation.checkerFindings, item => JSON.stringify(item)).map(({ item, key }) => (
+            <li key={key}><p>{item.message}</p><p>Bằng chứng: {item.evidence}</p></li>
+          ))}
+        </ul>}
+      </details>
       <div className="tk-ai-result-columns">
         <div><h4>Điểm mạnh</h4><ul tabIndex="0" aria-label="Điểm mạnh do AI cung cấp, có thể cuộn">{keyedItems(evaluation.strengths).map(({ item, key }) => <li key={key}>{item}</li>)}</ul></div>
         <div><h4>Nội dung cần bổ sung</h4><ul tabIndex="0" aria-label="Nội dung cần bổ sung do AI cung cấp, có thể cuộn">{keyedItems(evaluation.weaknesses).map(({ item, key }) => <li key={key}>{item}</li>)}</ul></div>
