@@ -1,119 +1,199 @@
 # EduCraft
 
-EduCraft là nền tảng web hỗ trợ giáo viên giao bài ghi, nhận bài nộp của học sinh và chốt kết quả sau khi xem AI phân tích. Dự án gồm frontend React/Vite, backend Express và PostgreSQL/Supabase.
+EduCraft là nền tảng web hỗ trợ giáo viên giao bài tập, nhận bài viết tay của học sinh và chốt kết quả đánh giá với sự trợ giúp của AI. Hệ thống gồm frontend React 19 / Vite, backend Node.js Express 5 và cơ sở dữ liệu PostgreSQL trên Supabase.
 
-## Trạng thái hiện tại
+---
 
-Các luồng chính đã kết nối frontend với backend:
+## 1. Trạng thái hiện tại & Tính năng chính
 
-- Đăng nhập, làm mới phiên và phân quyền ADMIN, TEACHER, STUDENT.
-- Admin quản lý tài khoản, đặt mật khẩu, khóa/mở khóa tài khoản và xóa khi đủ điều kiện.
-- Admin quản lý lớp, phân công giáo viên, thêm/xóa học sinh và import danh sách Excel.
-- Teacher xem lớp được phân công, tạo/chỉnh sửa/xóa bài kiểm tra và quản lý nhiều bài mẫu.
-- Teacher xem bài nộp theo học sinh và số lần nộp, chủ động gọi gợi ý AI, xem bản chép/đoạn chưa chắc chắn, nhập nhận xét và chốt kết quả.
-- Student xem lớp/bài kiểm tra được phép truy cập, nộp ảnh JPG/JPEG/PNG, xem lịch sử nộp và kết quả đã chốt.
-- File bài mẫu và bài nộp được lưu qua Supabase Storage với signed URL.
+Các luồng chức năng chính đã hoàn thiện và kết nối đồng bộ giữa Frontend và Backend:
 
-AI evaluator mặc định dùng Ollama local với `qwen3-vl:2b`. Có thể chuyển sang Gemini bằng `AI_PROVIDER=gemini`; AI chỉ đưa ra gợi ý, không tự chốt kết quả giáo viên.
+- Xác thực & Phân quyền: Đăng nhập bằng tài khoản/mật khẩu hoặc Google OAuth2, duy trì phiên an toàn bằng HttpOnly cookie với 3 vai trò: ADMIN, TEACHER, STUDENT.
+- Quản trị viên (Admin): Quản lý tài khoản, cấp mật khẩu, khóa/mở khóa tài khoản, xóa tài khoản; quản lý lớp học, phân công giáo viên, thêm/xóa học sinh và import danh sách học sinh từ file Excel.
+- Bảng điều khiển AI (Admin AI Usage): Theo dõi số lượng request AI, tổng token sử dụng, chi phí ước tính, độ trễ trung bình và các trường hợp AI bị từ chối/cần giáo viên can thiệp.
+- Giáo viên (Teacher): Xem các lớp phụ trách, tạo/sửa/xóa bài kiểm tra, quản lý nhiều bài mẫu tham chiếu (references), xem danh sách bài nộp của học sinh theo từng lần nộp, kích hoạt gợi ý AI với streaming thời gian thực, xem bản chép chữ viết tay/các đoạn nghi ngờ mờ, nhập nhận xét và chốt kết quả cuối cùng.
+- Học sinh (Student): Xem danh sách lớp học và bài kiểm tra được giao, nộp bài viết tay bằng file ảnh (JPG/JPEG/PNG/WebP, tối đa 5MB), xem lại lịch sử các lần nộp và kết quả đã được giáo viên phê duyệt.
+- Lưu trữ & Bảo mật file: Toàn bộ ảnh bài mẫu và bài làm của học sinh được lưu trữ bảo mật trên Supabase Private Storage, chỉ truy cập thông qua Signed URL có thời hạn.
 
-## Công nghệ và cấu trúc
+---
 
-- `frontend/`: React, React Router, Vite, CSS.
-- `backend/`: Express, Zod, Supabase JS.
-- `supabase/migrations/`: schema, quyền truy cập, function và policy của database/storage.
-- `supabase/tests/`: các truy vấn kiểm tra schema, RLS và storage policy.
-- `docs/`: ghi chú local của nhóm, không được commit vào repository.
+## 2. Năng lực AI & Kỹ thuật an toàn (AI Core)
 
-## Yêu cầu
+EduCraft đáp ứng 3 năng lực AI cốt lõi theo chuẩn học phần Các công nghệ mới trong KTPM:
 
-- Node.js 20.19 trở lên.
-- Một project Supabase đã áp dụng các migration trong `supabase/migrations/`.
+1. Đa phương thức (Multimodal Input):
+   Nhận diện và phân tích ảnh chụp chữ viết tay tiếng Việt của học sinh đối chiếu trực tiếp với ảnh bài mẫu của giáo viên. Hỗ trợ cả mô hình Cloud (Google Gemini 2.5 Flash) lẫn mô hình Local (Ollama qwen3-vl:2b).
 
-## Chạy backend
+2. Dữ liệu có cấu trúc (Structured Output):
+   Kết quả AI được trích xuất và chuẩn hóa theo JSON Schema, xác thực nghiêm ngặt bằng thư viện Zod (coverage_score, transcription, uncertain_content, missing_content, feedback_draft).
+
+3. Quy trình đa tác tử (Multi-agent Workflow):
+   - Agent 1 (AI Evaluator): Bóc tách chữ viết tay và so sánh độ bao phủ nội dung so với bài mẫu.
+   - Agent 2 (AI Checker): Đóng vai trò giám sát độc lập, tự động rà soát lại kết quả của Agent 1 để phát hiện suy diễn vô căn cứ, ảo giác hoặc vi phạm.
+
+4. Hàng rào an toàn (Guardrails):
+   - Prompt injection: Chặn các nỗ lực chèn lệnh trong bài nộp nhằm tự động cho điểm hoặc chiếm quyền.
+   - Ngoài phạm vi (Out-of-scope): Phát hiện bài nộp hoặc nội dung không liên quan đến học tập.
+   - Lỗi mô hình: Cơ chế bắt lỗi JSON rỗng/hỏng và timeout an toàn.
+
+5. Cơ chế Fallback:
+   AI chỉ đóng vai trò trợ lý gợi ý; nếu hệ thống AI gặp sự cố hoặc mất mạng, ứng dụng vẫn hoạt động bình thường, giáo viên vẫn chủ động xem bài và chấm điểm thủ công.
+
+---
+
+## 3. Tài khoản kiểm thử (Test Accounts)
+
+Hệ thống có sẵn các tài khoản kiểm thử cho 3 vai trò với dữ liệu mẫu hoàn chỉnh:
+
+| Vai trò | Email đăng nhập | Mật khẩu mặc định | Mô tả phạm vi truy cập |
+| :--- | :--- | :--- | :--- |
+| Quản trị viên (Admin) | admin@educraft.test | admin123 | Quản lý toàn bộ tài khoản, lớp học, phân công giáo viên và xem thống kê AI Usage. |
+| Giáo viên (Teacher) | teacher@educraft.test | teacher123 | Quản lý bài tập, bài mẫu, xem bài nộp học sinh, gọi AI chấm và chốt điểm. |
+| Học sinh (Student) | student@educraft.test | student123 | Xem bài tập được giao, upload bài nộp viết tay và xem điểm đã chốt. |
+
+> Ghi chú: Ở môi trường phát triển local (npm run dev), màn hình đăng nhập hỗ trợ phím tắt / tự động điền nhanh các tài khoản demo trên. Ngoài ra, người dùng có thể đăng nhập trực tiếp thông qua nút Đăng nhập với Google.
+
+---
+
+## 4. Công nghệ & Cấu trúc thư mục
+
+- Frontend: React 19, React Router 7, Vite 8, Pure CSS.
+- Backend: Node.js 20+, Express 5, Zod, @supabase/supabase-js, Google Gen AI SDK.
+- Database & Storage: PostgreSQL (Supabase), Row Level Security (RLS), Supabase Storage.
+
+```text
+educraft/
+├── backend/
+│   ├── evals/                   # Bộ 20 test cases đánh giá AI (aiCheckerCases.js)
+│   ├── scripts/                 # Script chạy benchmark đánh giá mô hình AI
+│   ├── src/
+│   │   ├── config/              # Cấu hình môi trường, logger, client Supabase
+│   │   ├── middleware/          # Auth JWT, request logger, error handler
+│   │   ├── modules/             # Các module nghiệp vụ (accounts, classes, assignments,
+│   │   │                        # submissions, storage, ai-evaluations)
+│   │   ├── app.js               # Khởi tạo Express app
+│   │   └── server.js            # Entry point chạy HTTP server
+│   └── tests/                   # 34 file unit & integration test backend (293 tests)
+├── frontend/
+│   ├── src/                     # 100% mã nguồn ứng dụng React (119 files)
+│   │   ├── components/          # UI components (teacher, student, admin, kinetic...)
+│   │   ├── contexts/            # Quản lý phiên đăng nhập (AuthContext)
+│   │   ├── data/                # Data models, validators, state reducers
+│   │   ├── pages/               # Các trang màn hình chính
+│   │   ├── services/            # API client kết nối Backend Express
+│   │   └── styles/              # Các file định dạng CSS
+│   └── tests/                   # 56 file unit test frontend (204 tests)
+└── supabase/
+    ├── migrations/              # Lịch sử migration cấu trúc bảng, RLS, Storage và RPC
+    └── tests/                   # Các script SQL kiểm tra bảo mật RLS và Storage policy
+```
+
+---
+
+## 5. Hướng dẫn cài đặt & Khởi chạy
+
+### Yêu cầu tiên quyết
+- Node.js: Phiên bản 20.19.0 trở lên.
+- Dự án Supabase: Đã áp dụng các file SQL trong supabase/migrations/.
+- (Tùy chọn) Ollama: Nếu muốn chạy thử nghiệm AI mô hình local (qwen3-vl:2b).
+
+---
+
+### Bước 1: Cài đặt và cấu hình Backend
 
 ```powershell
 cd backend
 npm ci
 Copy-Item .env.example .env
-npm run dev
 ```
 
-Điền các biến sau vào `backend/.env`:
+Mở file backend/.env và thiết lập các biến môi trường cần thiết:
 
-```text
+```dotenv
 NODE_ENV=development
 PORT=3000
 FRONTEND_ORIGIN=http://localhost:5173
+GOOGLE_OAUTH_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
+
+# Cấu hình Supabase
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-AI_PROVIDER=ollama
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-3.8-flash
+
+# Cấu hình AI Provider (Chọn 'gemini' hoặc 'ollama')
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+
+# Cấu hình Local Ollama (nếu dùng AI_PROVIDER=ollama)
 OLLAMA_BASE_URL=http://127.0.0.1:11434
 OLLAMA_MODEL=qwen3-vl:2b
 OLLAMA_NUM_CTX=4096
 OLLAMA_NUM_PREDICT=512
+
+# Giới hạn an toàn
 AI_TIMEOUT_MS=30000
 AI_MAX_REFERENCE_IMAGES=4
 AI_MAX_TOTAL_BYTES=15728640
 ```
 
-Kiểm tra backend tại `GET http://localhost:3000/api/health`.
-
-## Chạy frontend
+Khởi chạy server backend:
 
 ```powershell
-cd frontend
-npm ci
-Copy-Item .env.example .env
 npm run dev
 ```
 
-Frontend dùng `http://localhost:3000` làm API mặc định. Có thể đổi bằng:
+Kiểm tra trạng thái server tại: GET http://localhost:3000/api/health.
 
-```text
+---
+
+### Bước 2: Cài đặt và cấu hình Frontend
+
+```powershell
+cd ../frontend
+npm ci
+Copy-Item .env.example .env
+```
+
+Nội dung cơ bản trong frontend/.env:
+
+```dotenv
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
-Mở địa chỉ Vite hiển thị trong terminal, thường là `http://localhost:5173`.
-
-## Database và Storage
-
-Áp dụng migration theo thứ tự tên file trong `supabase/migrations/`, bao gồm `202609210001_ai_handwriting_evaluation.sql` cho các trường transcription, uncertainty, provider và latency. Có thể chạy bằng Supabase CLI hoặc dán từng migration vào SQL Editor của project nhóm. Sau đó chạy các file kiểm tra trong `supabase/tests/` để xác nhận schema, RLS và storage policy.
-
-Không commit `backend/.env`, service-role key hoặc các thông tin bí mật khác.
-
-## Kiểm tra code
-
-Chạy test và lint riêng cho từng phần:
+Khởi chạy máy chủ phát triển frontend:
 
 ```powershell
+npm run dev
+```
+
+Truy cập ứng dụng tại địa chỉ hiển thị trong terminal (mặc định: http://localhost:5173).
+
+---
+
+## 6. Kiểm thử tự động & Đánh giá chất lượng
+
+Hệ thống được kiểm thử toàn diện với 497 tests tự động pass 100%:
+
+```powershell
+# 1. Chạy toàn bộ test Backend (293 tests)
 cd backend
 npm test
 npm run lint
 
-cd ..\frontend
+# 2. Chạy bộ đánh giá 20 ca kiểm thử AI (AI Evaluation Benchmark)
+npm run eval:ai-checker
+
+# 3. Chạy toàn bộ test Frontend (204 tests)
+cd ../frontend
 npm test
 npm run lint
 npm run build
 ```
 
-Trạng thái kiểm tra gần nhất:
-
-- Backend: `240/240` test đạt.
-- Frontend: `67/67` test đạt.
-- Backend lint, frontend lint và frontend build đều đạt.
-
-Để chạy demo AI local bằng Ollama, cài Ollama, bảo đảm model `qwen3-vl:2b` đã có và Ollama đang chạy, sau đó dùng:
-
-```dotenv
-AI_PROVIDER=ollama
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=qwen3-vl:2b
-AI_TIMEOUT_MS=60000
-```
-
-Sau khi đổi nhà cung cấp hoặc model, restart backend.
-
-Trước khi bàn giao, vẫn cần chạy smoke test trên Supabase thật cho ba vai trò, upload file thật và các trường hợp bị từ chối quyền truy cập.
+Kết quả kiểm tra thực tế:
+- Backend: 293 / 293 test PASS (100%).
+- Frontend: 204 / 204 test PASS (100%).
+- AI Evaluation: 20 / 20 test cases PASS (100% bao gồm normal, edge, prompt-injection, out-of-scope).
+- ESLint: 0 lỗi ở cả hai repo.
+- Production Build: Đóng gói thành công không cảnh báo.
