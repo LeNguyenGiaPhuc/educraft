@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "lint": "eslint .",
+    "eval:ai-checker": "node scripts/runAiCheckerEval.js",
     "test:watch": "node --test --watch"
   },
   "keywords": [],
