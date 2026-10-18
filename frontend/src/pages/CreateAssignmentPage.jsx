@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import PageErrorState from '../components/PageErrorState.jsx'
+import AssignmentPaperEdge from '../components/teacher/AssignmentPaperEdge.jsx'
 import { toCanonicalDeadline } from '../data/assignmentDeadline.js'
+import { validateAssignmentForm } from '../data/assignmentForm.js'
+import { MAX_ASSIGNMENT_TITLE_LENGTH } from '../data/assignmentTitle.js'
 import { assignmentService } from '../services/assignmentService.js'
 import { teacherClassService } from '../services/teacherClassService.js'
 
@@ -21,38 +24,6 @@ function getAssignmentClassOptions(classrooms) {
     id: classroom.id,
     label: `${classroom.name} (${classroom.studentCount} học sinh)`,
   }))
-}
-
-function validateAssignmentForm(form = {}, classrooms) {
-  const errors = {}
-  const title = String(form.title ?? '').trim()
-  const classId = String(form.classId ?? '').trim()
-  const dueAt = String(form.dueAt ?? '').trim()
-  const threshold = String(form.threshold ?? '').trim()
-
-  if (!title) {
-    errors.title = 'Nhập tên bài kiểm tra.'
-  } else if (title.length > 120) {
-    errors.title = 'Tên bài kiểm tra không vượt quá 120 ký tự.'
-  }
-
-  if (!classrooms.some((classroom) => classroom.id === classId)) {
-    errors.classId = 'Chọn lớp học.'
-  }
-
-  if (!dueAt) {
-    errors.dueAt = 'Chọn hạn nộp.'
-  } else if (!toCanonicalDeadline(dueAt)) {
-    errors.dueAt = 'Hạn nộp không hợp lệ.'
-  }
-
-  if (!threshold) {
-    errors.threshold = 'Nhập ngưỡng đạt.'
-  } else if (!Number.isFinite(Number(threshold)) || Number(threshold) < 0 || Number(threshold) > 100) {
-    errors.threshold = 'Ngưỡng đạt phải từ 0 đến 100%.'
-  }
-
-  return errors
 }
 
 function fieldDescribedBy(errorId, helpId, hasError) {
@@ -85,18 +56,18 @@ function FormBreadcrumb({ classroom }) {
 
 function CreateAssignmentError({ message }) {
   return (
-    <PageErrorState
+    <div className="tk-assignment-create-error"><PageErrorState
       kicker="Tạo bài kiểm tra"
       message={message}
       title="Không thể mở biểu mẫu"
-    />
+    /></div>
   )
 }
 
 function AssignmentSuccess({ classroom, onCreateAnother, submission }) {
   return (
-    <section className="assignment-success teacher-state-panel teacher-success-panel" role="status" aria-live="polite">
-      <p className="state-kicker">Đã tạo bài kiểm tra</p>
+    <section className="assignment-success teacher-state-panel teacher-success-panel tk-assignment-paper" role="status" aria-live="polite">
+      <AssignmentPaperEdge />
       <h1>Đã tạo bài kiểm tra</h1>
       <p>
         Bài “{submission.data.title}” đã được thêm vào lớp {classroom.name}. Bạn có thể xem lại
@@ -120,9 +91,9 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
   const options = getAssignmentClassOptions(classrooms)
 
   return (
-    <section className="assignment-form-card teacher-form-card" aria-labelledby="assignment-form-title">
+    <section className="assignment-form-card teacher-form-card tk-assignment-paper" aria-labelledby="assignment-form-title">
+      <AssignmentPaperEdge />
       <div className="assignment-form-heading teacher-form-heading">
-        <p className="state-kicker">Thiết lập bài ghi</p>
         <h1 id="assignment-form-title">Tạo bài kiểm tra bài ghi</h1>
         <p>
           Chọn lớp, đặt hạn nộp và ngưỡng đạt để theo dõi bài ghi viết tay của học sinh.
@@ -152,7 +123,7 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
               aria-describedby={fieldDescribedBy('assignment-title-error', 'assignment-title-help', Boolean(errors.title))}
               aria-invalid={Boolean(errors.title)}
               id="assignment-title"
-              maxLength="120"
+              maxLength={MAX_ASSIGNMENT_TITLE_LENGTH}
               name="title"
               onChange={onChange}
               placeholder="Ví dụ: Bài ghi Chuyện người con gái Nam Xương"
@@ -170,7 +141,7 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
               Lớp học <span aria-hidden="true">*</span>
             </label>
             <select
-              aria-describedby={fieldDescribedBy('assignment-class-error', null, Boolean(errors.classId))}
+              aria-describedby={fieldDescribedBy('assignment-class-error', 'assignment-class-help', Boolean(errors.classId))}
               aria-invalid={Boolean(errors.classId)}
               id="assignment-class"
               name="classId"
@@ -184,6 +155,7 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
                 </option>
               ))}
             </select>
+            <p className="form-field-help tk-form-class-context" id="assignment-class-help">{classroom.name}</p>
             <FieldError id="assignment-class-error" message={errors.classId} />
           </div>
 
@@ -371,10 +343,9 @@ function CreateAssignmentPage() {
 
   if (snapshot.status === 'loading') {
     return (
-      <main className="page-content assignment-page teacher-page teacher-create-page">
+      <main className="page-content assignment-page teacher-page teacher-create-page tk-assignment-create">
         <div className="page-container">
           <section className="state-panel" aria-live="polite" aria-busy="true">
-            <p className="state-kicker">Tạo bài kiểm tra</p>
             <h1>Đang tải lớp học...</h1>
           </section>
         </div>
@@ -396,7 +367,7 @@ function CreateAssignmentPage() {
   const initialClassroom = snapshot.classrooms.find((classroom) => classroom.id === initialClassId)
 
   return (
-    <main className="page-content assignment-page teacher-page teacher-create-page">
+    <main className="page-content assignment-page teacher-page teacher-create-page tk-assignment-create">
       <div className="page-container">
         <CreateAssignmentWorkspace
           key={initialClassId ?? 'no-class'}
@@ -410,3 +381,4 @@ function CreateAssignmentPage() {
 }
 
 export default CreateAssignmentPage
+export { CreateAssignmentForm, CreateAssignmentWorkspace, AssignmentSuccess, CreateAssignmentError }

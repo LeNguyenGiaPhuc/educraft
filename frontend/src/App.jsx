@@ -2,10 +2,14 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import AdminShell from './components/AdminShell.jsx'
+import AdminPendingState from './components/admin/AdminPendingState.jsx'
 import AppShell from './components/AppShell.jsx'
+import CommonPendingState from './components/CommonPendingState.jsx'
 import RequireStudentAssignment from './components/RequireStudentAssignment.jsx'
 import RequireTeacherClass from './components/RequireTeacherClass.jsx'
 import RoleRoute from './components/RoleRoute.jsx'
+import TeacherPendingState from './components/teacher/TeacherPendingState.jsx'
+import StudentPendingState from './components/student/StudentPendingState.jsx'
 import { AuthProvider } from './contexts/AuthProvider.jsx'
 import { useAuth } from './contexts/useAuth.js'
 import { getPageTitle } from './data/pageTitle.js'
@@ -19,6 +23,8 @@ import './styles/teacher.css'
 import './styles/student.css'
 import './styles/blueprint.css'
 import './styles/teacher-kinetic.css'
+import './styles/teacher-final-states.css'
+import './styles/common-kinetic.css'
 
 const AdminAccountsPage = lazy(() => import('./pages/AdminAccountsPage.jsx'))
 const AdminClassDetailPage = lazy(() => import('./pages/AdminClassDetailPage.jsx'))
@@ -29,19 +35,16 @@ const ClassDetailPage = lazy(() => import('./pages/ClassDetailPage.jsx'))
 const CreateAssignmentPage = lazy(() => import('./pages/CreateAssignmentPage.jsx'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx'))
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage.jsx'))
 const StudentDashboardPage = lazy(() => import('./pages/StudentDashboardPage.jsx'))
 const StudentSubmissionPage = lazy(() => import('./pages/StudentSubmissionPage.jsx'))
 
 function RouteLoadingState() {
-  return (
-    <main className="page-content">
-      <div className="page-container">
-        <section className="state-panel" aria-live="polite">
-          <h1>Đang mở không gian làm việc...</h1>
-        </section>
-      </div>
-    </main>
-  )
+  const { user } = useAuth()
+  if (user?.role === ROLES.TEACHER) return <AppShell><TeacherPendingState /></AppShell>
+  if (user?.role === ROLES.STUDENT) return <AppShell><StudentPendingState message="Đang mở hồ sơ học tập…" /></AppShell>
+  if (user?.role === ROLES.ADMIN) return <AdminShell><AdminPendingState /></AdminShell>
+  return <CommonPendingState />
 }
 
 function HomeRedirect() {
@@ -59,15 +62,17 @@ function AppRoutes() {
   }, [pathname])
 
   if (isLoading) {
-    return (
-      <main className="page-content">
-        <div className="page-container">
-          <section className="state-panel" aria-live="polite">
-            <h1>Đang kiểm tra phiên đăng nhập...</h1>
-          </section>
-        </div>
-      </main>
-    )
+    // Route-themed placeholders only; authentication still blocks every private record.
+    if (pathname === '/teacher' || pathname === '/assignments/new' || pathname.startsWith('/classes/')) {
+      return <TeacherPendingState standalone message="Đang kiểm tra phiên đăng nhập…" />
+    }
+    if (pathname === '/student' || pathname.startsWith('/student/')) {
+      return <StudentPendingState standalone message="Đang kiểm tra phiên đăng nhập…" />
+    }
+    if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+      return <AdminPendingState standalone message="Đang kiểm tra phiên đăng nhập…" />
+    }
+    return <CommonPendingState message="Đang kiểm tra phiên đăng nhập…" />
   }
 
   // Chuyển cấu trúc user của Auth sang cấu trúc Student portal đang sử dụng.
@@ -138,6 +143,7 @@ function AppRoutes() {
           </Route>
         </Route>
       </Route>
+      <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   )

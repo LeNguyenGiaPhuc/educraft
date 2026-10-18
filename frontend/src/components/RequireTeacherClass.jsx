@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Outlet, useParams } from 'react-router-dom'
 
 import PageErrorState from './PageErrorState.jsx'
+import TeacherClassSkeleton from './teacher/TeacherClassSkeleton.jsx'
 import { teacherClassService } from '../services/teacherClassService.js'
 
 function RequireTeacherClass() {
@@ -35,17 +36,7 @@ function RequireTeacherClass() {
   }, [classId])
 
   if (state.classId !== classId || state.status === 'loading') {
-    return (
-      <main className="page-content">
-        <div className="page-container">
-          <section className="state-panel" aria-live="polite" aria-busy="true">
-            <p className="state-kicker">Lớp học</p>
-            <h1>Đang tải lớp học...</h1>
-            <p>Đang kiểm tra quyền truy cập và danh sách học sinh.</p>
-          </section>
-        </div>
-      </main>
-    )
+    return <TeacherClassSkeleton />
   }
 
   if (state.status === 'error') {

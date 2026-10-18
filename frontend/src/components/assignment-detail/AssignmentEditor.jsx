@@ -4,7 +4,12 @@ import {
   toAssignmentUpdateDeadline,
   toTeacherDeadlineInput,
 } from '../../data/assignmentDeadline.js'
+import {
+  MAX_ASSIGNMENT_TITLE_LENGTH,
+  validateAssignmentTitle,
+} from '../../data/assignmentTitle.js'
 import { assignmentService } from '../../services/assignmentService.js'
+import AssignmentPaperEdge from '../teacher/AssignmentPaperEdge.jsx'
 
 export default function AssignmentEditor({ assignment, onSaved, onCancel }) {
   const [form, setForm] = useState({
@@ -22,9 +27,13 @@ export default function AssignmentEditor({ assignment, onSaved, onCancel }) {
 
   async function handleSubmit(event) {
     event.preventDefault()
+    const titleError = validateAssignmentTitle(form.title)
     const dueAt = toAssignmentUpdateDeadline(form.dueAt, assignment.dueAt)
-    if (!form.title.trim() || !dueAt) {
-      setState({ status: 'error', message: 'Nhập tên và hạn nộp hợp lệ.' })
+    if (titleError || !dueAt) {
+      setState({
+        status: 'error',
+        message: titleError ?? 'Nhập hạn nộp hợp lệ.',
+      })
       return
     }
 
@@ -43,11 +52,13 @@ export default function AssignmentEditor({ assignment, onSaved, onCancel }) {
   }
 
   return (
-    <form className="assignment-edit-form teacher-edit-form" noValidate onSubmit={handleSubmit}>
+    <form className="assignment-edit-form teacher-edit-form tk-assignment-paper tk-assignment-editor" noValidate onSubmit={handleSubmit} aria-labelledby="assignment-edit-heading">
+      <AssignmentPaperEdge />
+      <div className="tk-form-editor-heading"><h2 id="assignment-edit-heading">Chỉnh sửa bài kiểm tra</h2><p>Thời hạn được hiển thị theo giờ Việt Nam (UTC+7).</p></div>
       <div className="form-fields teacher-fields-grid">
         <div className="form-field form-field-wide teacher-field teacher-field-wide">
           <label htmlFor="edit-assignment-title">Tên bài kiểm tra</label>
-          <input id="edit-assignment-title" name="title" onChange={handleChange} value={form.title} />
+          <input id="edit-assignment-title" maxLength={MAX_ASSIGNMENT_TITLE_LENGTH} name="title" onChange={handleChange} value={form.title} />
         </div>
         <div className="form-field teacher-field">
           <label htmlFor="edit-assignment-due">Hạn nộp</label>
@@ -69,7 +80,7 @@ export default function AssignmentEditor({ assignment, onSaved, onCancel }) {
       {state.status === 'error' && <div className="form-submit-message form-submit-error" role="alert">{state.message}</div>}
       <div className="assignment-form-actions teacher-form-actions">
         <button className="button button-outline" onClick={onCancel} type="button">Hủy</button>
-        <button className="button button-primary" disabled={state.status === 'loading'} type="submit">
+        <button className="button button-primary" aria-busy={state.status === 'loading'} disabled={state.status === 'loading'} type="submit">
           {state.status === 'loading' ? 'Đang lưu...' : 'Lưu thay đổi'}
         </button>
       </div>

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 
+import { useAdminScope } from './admin/registryHooks.js'
 import { adminClassService } from '../services/adminClassService.js'
 import { ApiError } from '../services/apiClient.js'
 import { readStudentExcel } from '../data/studentImport.js'
@@ -39,6 +40,7 @@ function entryLabel(entry) {
 }
 
 function StudentImportPanel({ classId, onCancel, onImported }) {
+  const scope=useAdminScope()
   const inputRef = useRef(null)
   const [fileName, setFileName] = useState('')
   const [preview, setPreview] = useState(null)
@@ -48,26 +50,22 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
   const [downloadingTemplate, setDownloadingTemplate] = useState(false)
 
   async function downloadTemplate() {
-    setDownloadingTemplate(true)
-
-    try {
-      const XLSX = await import('xlsx')
-      const worksheet = XLSX.utils.aoa_to_sheet([
-        ['STT', 'Họ và tên', 'Email'],
-        ['', '', ''],
-      ])
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách học sinh')
-      XLSX.writeFile(workbook, 'mau-danh-sach-hoc-sinh.xlsx')
-    } catch {
-      setStatus('error')
-      setMessage('Không thể tạo file Excel mẫu.')
-    } finally {
-      setDownloadingTemplate(false)
-    }
+    return scope.mutate('template',async()=>{
+      setDownloadingTemplate(true)
+      const XLSX=await import('xlsx')
+      const workbook=XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook,XLSX.utils.aoa_to_sheet([['STT','Họ và tên','Email'],['','','']]),'Danh sách học sinh')
+      return {XLSX,workbook}
+    },{
+      success:({XLSX,workbook})=>XLSX.writeFile(workbook,'mau-danh-sach-hoc-sinh.xlsx'),
+      error:()=>{setStatus('error');setMessage('Không thể tạo file Excel mẫu.')},
+      settled:()=>setDownloadingTemplate(false),
+    })
   }
 
   async function handleFileChange(event) {
+    if(status==='submitting')return
+    scope.invalidate('file')
     const file = event.target.files?.[0]
 
     setFileName(file?.name ?? '')
@@ -94,8 +92,7 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
 
     setStatus('loading')
 
-    try {
-      const result = await readStudentExcel(file)
+    return scope.read('file',()=>readStudentExcel(file), { success: result => {
       const validationErrors = [...result.errors]
 
       if (result.rows.some((row) => !row.studentNumber)) {
@@ -127,10 +124,10 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
             : 'File đã đọc được nhưng còn lỗi cần xử lý trước khi import.'
           : '',
       )
-    } catch (error) {
+    }, error: error => {
       setStatus('error')
       setMessage(error instanceof Error ? error.message : 'Không thể đọc file Excel.')
-    }
+    } })
   }
 
   async function handleImport() {
@@ -138,8 +135,9 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
       return
     }
 
-    try {
-      const result = await adminClassService.importStudents(classId, {
+    return scope.mutate('import', async()=>{
+      setStatus('submitting')
+      return adminClassService.importStudents(classId, {
         students: preview.rows.map((row) => ({
           studentNumber: row.studentNumber,
           name: row.name,
@@ -147,12 +145,13 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
         })),
       })
 
+    }, { success: result => {
       setStatus('success')
       setMessage(
         `Đã tạo ${result.created ?? 0} tài khoản mới, thêm ${result.assigned ?? 0} tài khoản có sẵn và bỏ qua ${result.skipped ?? 0} học sinh đã có trong lớp.`,
       )
       onImported?.(result)
-    } catch (caughtError) {
+    }, error: caughtError => {
       const errorsFromApi = caughtError instanceof ApiError && caughtError.fields?.rows
         ? caughtError.fields.rows.map((row) => ({
             rowNumber: row.rowNumber ?? 1,
@@ -165,10 +164,11 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
         { rowNumber: 1, message: caughtError instanceof ApiError ? caughtError.message : caughtError?.message ?? 'Không thể lưu danh sách học sinh.' },
       ])
       setMessage('Không thể lưu danh sách học sinh.')
-    }
+    } })
   }
 
   function reset() {
+    scope.invalidate('file')
     setFileName('')
     setPreview(null)
     setErrors([])
@@ -198,6 +198,7 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
 
       <div className="student-import-picker">
         <input
+          disabled={status === 'submitting'}
           ref={inputRef}
           accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           className="visually-hidden"
@@ -215,13 +216,13 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
         <small>Tối đa 5 MB · Định dạng .xlsx</small>
       </div>
 
-      {status === 'loading' && (
+      {(status === 'loading' || status === 'submitting') && (
         <p className="student-import-status" role="status" aria-live="polite">
-          Đang đọc file Excel...
+          {status === 'submitting' ? 'Đang import danh sách…' : 'Đang đọc file Excel...'}
         </p>
       )}
 
-      {message && status !== 'loading' && (
+      {message && status !== 'loading' && status !== 'submitting' && (
         <p
           className={`student-import-status student-import-status-${status}`}
           role={status === 'error' ? 'alert' : 'status'}
@@ -246,7 +247,7 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
         </div>
       )}
 
-      {preview && preview.rows.length > 0 && status === 'preview' && (
+      {preview && preview.rows.length > 0 && (status === 'preview' || status === 'submitting' || status === 'error') && (
         <div className="student-import-preview">
           <strong>Xem trước danh sách</strong>
           <div className="student-import-summary">
@@ -285,11 +286,11 @@ function StudentImportPanel({ classId, onCancel, onImported }) {
       <div className="student-import-actions">
         <button
           className="button button-primary"
-          disabled={status !== 'preview' || !preview || preview.errors.length > 0}
+          disabled={!['preview','error'].includes(status) || !preview || preview.errors.length > 0}
           type="button"
           onClick={handleImport}
         >
-          Xác nhận import vào lớp
+          {status === 'submitting' ? 'Đang import…' : 'Xác nhận import vào lớp'}
         </button>
         {(status === 'success' || status === 'error') && (
           <button className="button button-outline" type="button" onClick={reset}>

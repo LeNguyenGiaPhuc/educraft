@@ -21,6 +21,7 @@ test('supports admin account list/detail/create/update/lock/unlock/delete backen
   const { api, calls } = fakeApi()
   const accounts = createAdminAccountService({ api })
 
+  await accounts.getDashboardStats()
   await accounts.listAccounts({ search: 'nguyen', role: 'STUDENT', status: 'ACTIVE' })
   await accounts.getAccount('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
   await accounts.createAccount({ username: 'student_01', email: 'student@example.com' })
@@ -30,6 +31,11 @@ test('supports admin account list/detail/create/update/lock/unlock/delete backen
   await accounts.deleteAccount('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
 
   assert.deepEqual(calls, [
+    {
+      method: 'get',
+      path: '/api/admin/stats',
+      body: undefined,
+    },
     {
       method: 'get',
       path: '/api/admin/accounts?search=nguyen&role=STUDENT&status=ACTIVE',

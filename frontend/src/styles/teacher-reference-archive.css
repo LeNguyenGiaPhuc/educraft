@@ -1,0 +1,57 @@
+/* Reference archive extends the approved Teacher paper world. Only chrome moves. */
+.teacher-kinetic-shell .tk-reference-archive { position: relative; isolation: isolate; min-width: 0; padding: 24px; border: 1px solid var(--tk-navy); border-radius: 0; background: var(--tk-paper); color: var(--tk-navy); box-shadow: 5px 7px 0 rgb(31 51 64 / 16%); overflow: visible; }
+.teacher-kinetic-shell .tk-reference-archive::before { content: ''; position: absolute; z-index: -1; inset: 0; background: var(--tk-paper); pointer-events: none; }
+.teacher-kinetic-shell .tk-reference-paper-edge { position: absolute; z-index: -2; inset: 7px -4px -7px 4px; border: 1px solid var(--tk-navy); background: var(--tk-ochre); transform: rotate(-1deg); pointer-events: none; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-detail-card-heading { align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.teacher-kinetic-shell .tk-reference-archive h2 { margin: 0; color: var(--tk-navy); font: 800 24px/1.25 var(--tk-font-display); letter-spacing: -.025em; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-count-label { flex: 0 0 auto; padding: 6px 9px; background: var(--tk-stock); color: var(--tk-navy); border: 1px solid var(--tk-navy); border-radius: 0; font-size: 12px; }
+.teacher-kinetic-shell .tk-reference-archive .assignment-detail-card-description { margin: 0 0 20px; color: var(--tk-muted); font-size: 13px; line-height: 1.7; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-list { display: block; max-height: 480px; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--tk-navy) var(--tk-paper); border: 1px solid var(--tk-line); }
+.teacher-kinetic-shell .tk-reference-records { list-style: none; margin: 0; padding: 0; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-entry { margin: 0; padding: 16px; border: 0; border-radius: 0; background: transparent; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-entry + .teacher-reference-entry { border-top: 1px solid var(--tk-line); }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-entry:focus-within { background: rgb(127 169 184 / 22%); }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-file { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 14px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-file-details { min-width: 0; display: grid; gap: 6px; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-file-details strong { display: block; color: var(--tk-navy); font-size: 14px; font-weight: 600; line-height: 1.65; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-file-details span { color: var(--tk-muted); font-size: 12px; line-height: 1.6; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-file-details a { display: inline-flex; justify-self: start; align-items: center; min-height: 44px; color: var(--tk-navy); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-actions { display: flex; gap: 6px; }
+.teacher-kinetic-shell .tk-reference-archive .reference-action-button { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 10px; border: 1px solid var(--tk-navy); border-radius: 2px 8px 2px 2px; background: var(--tk-paper); color: var(--tk-navy); transition: transform 180ms var(--tk-ease), background 180ms var(--tk-ease); }
+.teacher-kinetic-shell .tk-reference-archive .reference-action-delete { color: var(--tk-russet); }
+.teacher-kinetic-shell .tk-reference-archive .reference-action-button:hover { background: var(--tk-stock); transform: translateY(-2px); }
+.teacher-kinetic-shell .tk-reference-archive .reference-action-button:active { transform: translateY(1px); }
+.teacher-kinetic-shell .tk-reference-archive .reference-action-button:disabled { opacity: .6; cursor: wait; transform: none; }
+.teacher-kinetic-shell .tk-reference-archive .reference-action-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.teacher-kinetic-shell .tk-reference-archive .tk-reference-editor { padding: 20px 0 0; margin: 16px 0 0; border: 0; border-top: 1px solid var(--tk-line); border-radius: 0; background: transparent; min-width: 0; }
+.teacher-kinetic-shell .tk-reference-editor .teacher-field { margin: 0; min-width: 0; }
+.teacher-kinetic-shell .tk-reference-editor label { display: block; margin-bottom: 10px; color: var(--tk-navy); font-weight: 600; font-size: 14px; }
+.teacher-kinetic-shell .tk-reference-editor input[type='file'] { width: 100%; min-width: 0; padding: 12px; min-height: 48px; border: 1px solid var(--tk-navy); border-radius: 2px; background: var(--tk-paper); color: var(--tk-navy); font: 400 14px/1.5 var(--tk-font-body); }
+.teacher-kinetic-shell .tk-reference-editor input::file-selector-button { max-width: 100%; padding: 8px 10px; margin-inline-end: 10px; border: 1px solid var(--tk-navy); border-radius: 2px; background: var(--tk-stock); color: var(--tk-navy); font: inherit; cursor: pointer; }
+.teacher-kinetic-shell .tk-reference-editor .form-field-help { margin: 8px 0 0; color: var(--tk-muted); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-reference-editor .form-field-error { color: var(--tk-russet); overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-form-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin: 18px 0 0; padding: 0; border: 0; }
+.teacher-kinetic-shell .tk-reference-archive .button { min-height: 44px; padding: 12px 16px; border: 1px solid var(--tk-navy); border-radius: 2px 8px 2px 2px; background: var(--tk-paper); color: var(--tk-navy); font: 600 14px/1.4 var(--tk-font-body); box-shadow: 2px 3px 0 rgb(31 51 64 / 16%); }
+.teacher-kinetic-shell .tk-reference-archive .button-primary { background: var(--tk-deep); color: var(--tk-paper); }
+.teacher-kinetic-shell .tk-reference-archive .button::after { display: none; }
+.teacher-kinetic-shell .tk-reference-archive .button:active { transform: translate(1px, 2px); box-shadow: none; }
+.teacher-kinetic-shell .tk-reference-archive .button:disabled { cursor: wait; opacity: .65; }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-add-button { width: 100%; margin-top: 18px; background: var(--tk-stock); }
+.teacher-kinetic-shell .tk-reference-archive .teacher-reference-empty { padding: 20px; border: 1px dashed var(--tk-line); background: transparent; color: var(--tk-muted); line-height: 1.7; }
+.teacher-kinetic-shell .tk-reference-archive .form-submit-message { margin: 14px 0; padding: 12px 14px; border: 1px solid var(--tk-navy); border-radius: 0; background: var(--tk-stock); color: var(--tk-navy); line-height: 1.7; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-reference-archive .form-submit-error { background: #f3dfdb; border-color: var(--tk-russet); }
+.teacher-kinetic-shell .tk-reference-archive :is(button,a,input,[tabindex]):focus-visible { outline: 3px solid var(--tk-russet); outline-offset: 3px; }
+@media (max-width: 560px) {
+  .teacher-kinetic-shell .tk-reference-archive { padding: 20px 16px; }
+  .teacher-kinetic-shell .tk-reference-archive .teacher-reference-entry { padding: 14px 12px; }
+  .teacher-kinetic-shell .tk-reference-archive .teacher-reference-file { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .teacher-kinetic-shell .tk-reference-archive .teacher-reference-actions { justify-content: flex-end; }
+  .teacher-kinetic-shell .tk-reference-archive .teacher-form-actions > button { flex: 1 1 auto; }
+  .teacher-kinetic-shell .tk-reference-paper-edge { inset-inline-end: -2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .teacher-kinetic-shell .tk-reference-paper-edge { transform: none; }
+  .teacher-kinetic-shell .tk-reference-archive .reference-action-button { transition: none; }
+  .teacher-kinetic-shell .tk-reference-archive :is(.reference-action-button,.button):active,
+  .teacher-kinetic-shell .tk-reference-archive .reference-action-button:hover { transform: none; }
+}

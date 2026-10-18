@@ -127,3 +127,17 @@ test('returns no value for a successful empty response', async () => {
 
   assert.equal(await api.delete('/api/assignments/assignment-1'), undefined)
 })
+
+test('builds an absolute backend URL without issuing a request', () => {
+  let requested = false
+  const api = createApiClient({
+    baseUrl: 'http://localhost:3000/',
+    fetchImpl: async () => {
+      requested = true
+      return response()
+    },
+  })
+
+  assert.equal(api.url('/api/auth/google'), 'http://localhost:3000/api/auth/google')
+  assert.equal(requested, false)
+})

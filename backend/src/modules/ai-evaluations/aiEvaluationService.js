@@ -1,5 +1,9 @@
 import { AppError } from '../../common/errors.js'
-import { parseProviderResult } from './aiEvaluationSchema.js'
+import {
+  CHECKER_PROMPT_VERSION,
+  parseCheckerResult,
+  parseProviderResult,
+} from './aiEvaluationSchema.js'
 import {
   applyCoveragePolicy,
   deriveSuggestedStatus,
@@ -22,6 +26,10 @@ const AI_EVALUATION_COLUMNS = [
   'uncertain_content',
   'model_name',
   'model_version',
+  'checker_status',
+  'checker_summary',
+  'checker_findings',
+  'checker_prompt_version',
   'created_at',
 ].join(',')
 
@@ -44,6 +52,58 @@ function safeDatabaseError(code, message) {
   return new AppError(500, code, message)
 }
 
+export function createAssignmentEvaluationInvalidator({ adminClient } = {}) {
+  return async function invalidateAssignmentEvaluations(assignmentId) {
+    if (!adminClient?.from) {
+      throw safeDatabaseError(
+        'AI_INVALIDATION_NOT_CONFIGURED',
+        'Không thể đồng bộ lại đề xuất AI sau khi thay đổi bài mẫu.',
+      )
+    }
+
+    let submissionResult
+    try {
+      submissionResult = await adminClient
+        .from('submissions')
+        .select('id')
+        .eq('assignment_id', assignmentId)
+    } catch {
+      throw safeDatabaseError('AI_INVALIDATION_FAILED', 'Không thể vô hiệu hóa đề xuất AI cũ.')
+    }
+    if (submissionResult.error) {
+      throw safeDatabaseError('AI_INVALIDATION_FAILED', 'Không thể vô hiệu hóa đề xuất AI cũ.')
+    }
+
+    const submissionIds = (submissionResult.data ?? []).map((row) => row.id)
+    if (submissionIds.length === 0) return { invalidated: 0 }
+
+    let evaluationResult
+    let statusResult
+    try {
+      evaluationResult = await adminClient
+        .from('ai_evaluations')
+        .delete()
+        .in('submission_id', submissionIds)
+      if (evaluationResult.error) {
+        throw evaluationResult.error
+      }
+
+      statusResult = await adminClient
+        .from('submissions')
+        .update({ status: 'SUBMITTED' })
+        .in('id', submissionIds)
+        .eq('status', 'REQUIRES_REVIEW')
+    } catch {
+      throw safeDatabaseError('AI_INVALIDATION_FAILED', 'Không thể vô hiệu hóa đề xuất AI cũ.')
+    }
+    if (statusResult.error) {
+      throw safeDatabaseError('AI_INVALIDATION_FAILED', 'Không thể vô hiệu hóa đề xuất AI cũ.')
+    }
+
+    return { invalidated: submissionIds.length }
+  }
+}
+
 function projectEvaluation(evaluation, coverageThreshold) {
   return {
     id: evaluation.id,
@@ -64,6 +124,10 @@ function projectEvaluation(evaluation, coverageThreshold) {
     uncertain_content: evaluation.uncertain_content ?? [],
     model_name: evaluation.model_name,
     model_version: evaluation.model_version,
+    checker_status: evaluation.checker_status ?? null,
+    checker_summary: evaluation.checker_summary ?? null,
+    checker_findings: evaluation.checker_findings ?? [],
+    checker_prompt_version: evaluation.checker_prompt_version ?? null,
     created_at: evaluation.created_at,
   }
 }
@@ -74,6 +138,7 @@ export function createAiEvaluationService({
   submissionService,
   inputService,
   provider,
+  usageRecorder = { async record() {} },
   logger = console,
 }) {
   async function authorizeTeacher(auth, submissionId) {
@@ -146,7 +211,12 @@ export function createAiEvaluationService({
     return result.data
   }
 
-  async function persistEvaluation(submissionId, providerResult, coverageThreshold) {
+  async function persistEvaluation(
+    submissionId,
+    providerResult,
+    checkerResult,
+    coverageThreshold,
+  ) {
     const normalized = applyCoveragePolicy(
       parseProviderResult(providerResult),
       coverageThreshold,
@@ -154,6 +224,10 @@ export function createAiEvaluationService({
     const value = {
       submission_id: submissionId,
       ...normalized,
+      checker_status: checkerResult?.status ?? null,
+      checker_summary: checkerResult?.summary ?? null,
+      checker_findings: checkerResult?.findings ?? [],
+      checker_prompt_version: checkerResult ? CHECKER_PROMPT_VERSION : null,
     }
 
     let result
@@ -180,6 +254,33 @@ export function createAiEvaluationService({
     return projectEvaluation(result.data, coverageThreshold)
   }
 
+  async function recordUsage(submissionId, evaluationId, interactions) {
+    try {
+      await usageRecorder.record({ submissionId, evaluationId, interactions })
+    } catch (error) {
+      logger.error({
+        event: 'ai_usage_log_failed',
+        submissionId,
+        errorCode: error?.code ?? 'AI_USAGE_LOG_FAILED',
+      })
+    }
+  }
+
+  async function emitProgress(onProgress, submissionId, stage) {
+    if (typeof onProgress !== 'function') return
+
+    try {
+      await onProgress({ stage, submissionId })
+    } catch (error) {
+      logger.error({
+        event: 'ai_progress_callback_failed',
+        submissionId,
+        stage,
+        errorCode: error?.code ?? 'AI_PROGRESS_CALLBACK_FAILED',
+      })
+    }
+  }
+
   async function recoverSubmittedStatus(submissionId) {
     try {
       await updateSubmissionStatus(submissionId, 'PROCESSING', 'SUBMITTED')
@@ -198,9 +299,12 @@ export function createAiEvaluationService({
   }
 
   return {
-    async runEvaluation(auth, submissionId) {
+    async runEvaluation(auth, submissionId, { onProgress, onAuthorized } = {}) {
       const { supabase } = requireTeacherContext(auth)
       const submission = await authorizeTeacher(auth, submissionId)
+      // Let transports acquire their run lock only after ownership is verified.
+      await onAuthorized?.()
+      const reportProgress = (stage) => emitProgress(onProgress, submissionId, stage)
 
       if (submission.status === 'FINALIZED') {
         throw new AppError(
@@ -245,6 +349,7 @@ export function createAiEvaluationService({
       }
 
       const input = await inputService.loadEvaluationInput(auth, submission)
+      await reportProgress('input_ready')
       let transitionedToProcessing = false
 
       if (submission.status === 'SUBMITTED') {
@@ -253,21 +358,60 @@ export function createAiEvaluationService({
       }
 
       let evaluation
+      let evaluationId = null
+      const interactions = []
+      const onInteraction = (interaction) => interactions.push(interaction)
+      let providerResult
       try {
-        const providerResult = await provider.evaluate(input)
-        evaluation = await persistEvaluation(
-          submissionId,
-          providerResult,
-          coverageThreshold,
+        providerResult = parseProviderResult(
+          await provider.evaluate(input, { onInteraction, onProgress: reportProgress }),
         )
       } catch (error) {
+        await recordUsage(submissionId, evaluationId, interactions)
         if (transitionedToProcessing) {
           await recoverSubmittedStatus(submissionId)
         }
         throw error
       }
 
-      await updateSubmissionStatus(submissionId, 'PROCESSING', 'REQUIRES_REVIEW')
+      let checkerResult = null
+      if (typeof provider.check === 'function') {
+        try {
+          checkerResult = parseCheckerResult(
+            await provider.check(providerResult, { onInteraction }),
+          )
+          await reportProgress('checked')
+        } catch (error) {
+          logger.error({
+            event: 'ai_checker_failed',
+            submissionId,
+            errorCode: error?.code ?? 'AI_CHECKER_FAILED',
+          })
+        }
+      }
+
+      try {
+        evaluation = await persistEvaluation(
+          submissionId,
+          providerResult,
+          checkerResult,
+          coverageThreshold,
+        )
+        evaluationId = evaluation.id
+      } catch (error) {
+        await recordUsage(submissionId, evaluationId, interactions)
+        if (transitionedToProcessing) {
+          await recoverSubmittedStatus(submissionId)
+        }
+        throw error
+      }
+
+      try {
+        await updateSubmissionStatus(submissionId, 'PROCESSING', 'REQUIRES_REVIEW')
+        await reportProgress('persisted')
+      } finally {
+        await recordUsage(submissionId, evaluationId, interactions)
+      }
 
       return {
         submission_id: submissionId,

@@ -297,6 +297,35 @@ test('deletion removes one metadata row before removing its object', async () =>
   ])
 })
 
+test('successful add, replace, and delete invalidate assignment AI evaluations', async () => {
+  const firstReference = reference(referenceAId, 'new-file.png')
+  const replacedReference = { ...references[1], storage_path: `${assignmentId}/replacement.png` }
+  const supabase = createQueuedSupabase([
+    { data: firstReference, error: null },
+    { data: references[1], error: null },
+    { data: replacedReference, error: null },
+    { data: references[2], error: null },
+    { data: references[2], error: null },
+  ])
+  const invalidatedAssignments = []
+  const service = createReferenceService({
+    assignmentService: createAssignmentService(),
+    storageService: createStorageService({
+      uploads: [uploaded('new-file.png'), uploaded('replacement.png')],
+    }),
+    invalidateEvaluations: async (requestedAssignmentId) => {
+      invalidatedAssignments.push(requestedAssignmentId)
+    },
+  })
+  const auth = teacherAuth(supabase)
+
+  await service.uploadReference(auth, assignmentId, { name: 'new' })
+  await service.replaceReference(auth, assignmentId, referenceBId, { name: 'replacement' })
+  await service.deleteReference(auth, assignmentId, referenceCId)
+
+  assert.deepEqual(invalidatedAssignments, [assignmentId, assignmentId, assignmentId])
+})
+
 test('unassigned teacher is rejected before listing or uploading references', async () => {
   const forbidden = new AppError(403, 'CLASS_FORBIDDEN', 'Forbidden')
   const assignmentService = createAssignmentService([], forbidden)

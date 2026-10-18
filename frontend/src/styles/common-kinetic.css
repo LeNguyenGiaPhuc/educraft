@@ -1,0 +1,181 @@
+/* Common authentication and standalone states only. Accepted role adapters own their UI. */
+:is(.kf-login, .kf-common-page) {
+  --kc-navy: #1f3340;
+  --kc-deep: #234254;
+  --kc-hover: #1d3644;
+  --kc-stock: #dce8ec;
+  --kc-selected: #d9e7ec;
+  --kc-paper: #f7f5ef;
+  --kc-ochre: #c9a66b;
+  --kc-russet: #965044;
+  --kc-muted: #536873;
+  --kc-line: #b6c7cd;
+  --kc-ease: cubic-bezier(.2, .8, .2, 1);
+  color: var(--kc-navy);
+  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+}
+
+.login-panel.kf-login {
+  width: min(600px, calc(100% - 40px));
+  max-width: 600px;
+  min-height: 0;
+  height: fit-content;
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+  padding: clamp(24px, 4vw, 40px);
+  overflow: auto;
+  border: 1px solid var(--kc-navy);
+  border-top: 7px solid var(--kc-navy);
+  border-radius: 0 20px 0 0;
+  background: var(--kc-paper);
+  box-shadow: 7px 9px 0 var(--kc-ochre), 12px 18px 32px rgb(31 51 64 / 22%);
+  animation: kc-paper-settle 360ms var(--kc-ease);
+}
+.login-panel.kf-login::backdrop {
+  background: rgb(31 51 64 / 68%);
+  backdrop-filter: none;
+  animation: none;
+}
+.kf-login .login-dialog-header { margin-bottom: 28px; }
+.kf-login .login-brand { color: var(--kc-navy); font-family: 'Archivo', Arial, sans-serif; }
+.kf-login .brand-mark {
+  background: var(--kc-stock);
+  color: var(--kc-navy);
+  border: 1px solid var(--kc-navy);
+  border-radius: 2px 8px 0 0;
+  box-shadow: 3px 3px 0 var(--kc-ochre);
+}
+.kf-login .login-panel-heading {
+  display: block;
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--kc-navy);
+}
+.kf-login .login-panel-heading h1 {
+  margin: 0;
+  color: var(--kc-navy);
+  font: 800 clamp(26px, 3vw, 36px)/1.2 'Archivo', Arial, sans-serif;
+  letter-spacing: -.03em;
+}
+.kf-login .login-panel-heading p { color: var(--kc-muted); font-size: 14px; margin: 10px 0 0; }
+.kf-login .demo-login-grid { gap: 8px; margin: 0 0 24px; }
+.kf-login .demo-login-button {
+  min-height: 76px;
+  border: 1px solid var(--kc-line);
+  border-radius: 10px 12px 0 0;
+  padding: 12px;
+  background: var(--kc-paper);
+  color: var(--kc-navy);
+  box-shadow: none;
+  transform: none;
+}
+.kf-login .demo-login-button strong { font-size: 14px; }
+.kf-login .demo-login-button span { color: var(--kc-muted); font-size: 12px; overflow-wrap: anywhere; }
+.kf-login .demo-login-button::after { display: none; }
+.kf-login .demo-login-button:hover { background: #eaf1f3; transform: none; border-color: var(--kc-navy); }
+.kf-login .demo-login-button[aria-pressed="true"] { background: var(--kc-selected); border-color: var(--kc-navy); }
+.kf-login :is(.demo-login-button, .login-close-button):disabled { opacity: .65; cursor: wait; transform: none; }
+.kf-login .login-form { gap: 20px; }
+.kf-login .login-form label { color: var(--kc-navy); font-size: 14px; }
+.kf-login .login-form input {
+  background: var(--kc-paper);
+  color: var(--kc-navy);
+  border: 1px solid var(--kc-navy);
+  border-radius: 2px;
+  font-size: 16px;
+  min-height: 48px;
+  box-shadow: none;
+}
+.kf-login .login-form input[aria-invalid="true"] { border-color: var(--kc-russet); }
+.kf-login .login-form input:focus { box-shadow: none; outline: 3px solid var(--kc-russet); outline-offset: 3px; }
+.kf-login :is(.login-close-button, .password-toggle-button) {
+  color: var(--kc-navy);
+  background: var(--kc-paper);
+  border: 1px solid var(--kc-navy);
+  border-radius: 2px;
+  min-width: 44px;
+  min-height: 44px;
+  box-shadow: none;
+}
+.kf-login :is(.login-close-button, .password-toggle-button):hover { background: var(--kc-selected); color: var(--kc-navy); border-color: var(--kc-navy); }
+.kf-login .login-form .button {
+  border: 1px solid var(--kc-navy);
+  background: var(--kc-deep);
+  color: var(--kc-paper);
+  font: 600 15px/1.5 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+  box-shadow: 3px 4px 0 rgb(31 51 64 / 22%);
+  transition: transform 160ms var(--kc-ease);
+}
+.kf-login .login-form .button::after { display: none; }
+.kf-login .login-form .button:hover { background: var(--kc-hover); box-shadow: 3px 4px 0 rgb(31 51 64 / 22%); transform: translateY(-1px); }
+.kf-login .login-form .button:active { transform: translate(1px, 2px); }
+.kf-login .login-form .button:disabled { transform: none; opacity: .65; cursor: wait; }
+.kf-login .login-form .google-login-button {
+  background: var(--kc-paper);
+  color: var(--kc-navy);
+  box-shadow: none;
+}
+.kf-login .login-form .google-login-button:hover,
+.kf-login .login-form .google-login-button:focus-visible {
+  background: var(--kc-selected);
+  color: var(--kc-navy);
+  box-shadow: none;
+}
+.kf-login .login-method-divider {
+  color: var(--kc-muted);
+  font-size: 12px;
+  text-align: center;
+}
+.kf-login .form-submit-message {
+  border: 1px solid var(--kc-line);
+  background: var(--kc-stock);
+  color: var(--kc-navy);
+  padding: 14px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.kf-login .form-submit-error { border-color: var(--kc-russet); background: #f3dfdb; color: var(--kc-russet); }
+:is(.kf-login, .kf-common-page) :is(a, button, input):focus-visible { outline: 3px solid var(--kc-russet); outline-offset: 3px; }
+
+.kf-common-page {
+  min-height: 100dvh;
+  padding: 32px max(20px, 5vw) 56px;
+  background: var(--kc-stock);
+  background-image: none;
+}
+.kf-common-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 40px; font: 800 24px 'Archivo', Arial, sans-serif; }
+.kf-common-brand span { padding: 4px 10px; border: 1px solid var(--kc-navy); background: var(--kc-paper); border-radius: 2px 8px 0 0; box-shadow: 3px 3px 0 var(--kc-ochre); }
+.kf-common-page :is(.kf-common-paper, .state-panel) {
+  width: min(640px, 100%);
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 40px);
+  background: var(--kc-paper);
+  border: 1px solid var(--kc-navy);
+  border-radius: 0 18px 0 0;
+  box-shadow: 5px 7px 0 var(--kc-ochre);
+  text-align: left;
+}
+.kf-common-page h1 { margin: 0 0 14px; font: 800 clamp(24px, 3vw, 32px)/1.25 'Archivo', Arial, sans-serif; color: var(--kc-navy); }
+.kf-common-page p { color: var(--kc-muted); font-size: 16px; line-height: 1.7; }
+.kf-common-page :is(h1, p, a) { overflow-wrap: anywhere; }
+.kf-common-skeleton { display: grid; gap: 16px; margin-top: 28px; }
+.kf-common-skeleton span { height: 12px; width: 88%; background: rgb(31 51 64 / 14%); }
+.kf-common-skeleton span:nth-child(2) { width: 68%; }
+.kf-common-skeleton span:last-child { width: 48%; }
+.kf-common-error .page-container { width: 100%; max-width: none; padding: 48px 0 0; }
+.kf-common-error .state-kicker { display: none; }
+.kf-common-error .state-panel .button { border: 1px solid var(--kc-navy); border-radius: 2px; background: var(--kc-deep); color: var(--kc-paper); box-shadow: none; min-height: 44px; }
+.kf-common-error .button::after { display: none; }
+@keyframes kc-paper-settle {
+  from { transform: translateY(-8px); }
+  to { transform: translateY(0); }
+}
+@media (max-width: 560px) {
+  .login-panel.kf-login { width: calc(100% - 32px); max-height: calc(100dvh - 32px); padding: 24px 20px; }
+  .kf-login .demo-login-grid { grid-template-columns: 1fr; }
+  .kf-login .demo-login-button { min-height: 44px; padding: 10px 12px; }
+  .kf-login .demo-login-button span { margin: 2px 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-panel.kf-login, .kf-login *, .kf-login *::before, .kf-login *::after { animation: none; transition: none; }
+}

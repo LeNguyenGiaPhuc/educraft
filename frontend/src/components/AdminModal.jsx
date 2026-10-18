@@ -43,7 +43,7 @@ function AdminModal({ children, className = '', labelledBy, onClose }) {
   const modalContent = (
     <dialog
       aria-labelledby={labelledBy}
-      className={`admin-modal${className ? ` ${className}` : ''}`}
+      className={`admin-modal admin-kinetic ar-dialog${className ? ` ${className}` : ''}`}
       onCancel={(event) => handleDialogCancel(event, () => closeHandlerRef.current?.())}
       ref={modalRef}
     >

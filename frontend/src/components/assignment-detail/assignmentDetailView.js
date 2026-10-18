@@ -23,8 +23,8 @@ export function mapEvaluation(result = {}) {
 
   return {
     suggestedStatus: evaluation.suggested_status ?? 'REQUIRES_TEACHER_REVIEW',
-    confidence: Number(evaluation.confidence ?? 0),
-    coverageScore: Number(evaluation.coverage_score ?? 0),
+    confidence: evaluation.confidence == null ? null : Number(evaluation.confidence),
+    coverageScore: evaluation.coverage_score == null ? null : Number(evaluation.coverage_score),
     strengths: Number.isFinite(Number(evaluation.coverage_score))
       ? [`Độ bao phủ nội dung: ${evaluation.coverage_score}%`]
       : ['Chưa có dữ liệu điểm bao phủ.'],
@@ -38,14 +38,17 @@ export function mapEvaluation(result = {}) {
     referenceTranscription: evaluation.reference_transcription ?? '',
     studentTranscription: evaluation.student_transcription ?? '',
     uncertainContent,
+    checkerStatus: evaluation.checker_status ?? null,
+    checkerSummary: evaluation.checker_summary ?? '',
+    checkerFindings: Array.isArray(evaluation.checker_findings) ? evaluation.checker_findings : [],
   }
 }
 
 export function finalStatusLabel(status) {
   const labels = {
-    COMPLETED: 'Completed',
-    NEEDS_COMPLETION: 'Needs Completion',
-    REQUIRES_TEACHER_REVIEW: 'Requires Teacher Review',
+    COMPLETED: 'Hoàn thành',
+    NEEDS_COMPLETION: 'Cần bổ sung',
+    REQUIRES_TEACHER_REVIEW: 'Cần giáo viên xem lại',
   }
   return labels[status] ?? 'Chưa chốt'
 }

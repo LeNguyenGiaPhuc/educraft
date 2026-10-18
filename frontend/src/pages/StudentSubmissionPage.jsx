@@ -1,14 +1,21 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useState, useSyncExternalStore } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 
 import PageErrorState from '../components/PageErrorState.jsx'
 import { formatAssignmentDeadline, getAssignmentAvailability } from '../data/assignmentDeadline.js'
 import {
-  getFinalReviewStatusLabel,
   validateSubmissionForm,
 } from '../data/submissionValidation.js'
 import { submissionService } from '../services/submissionService.js'
-import { mapStudentSubmission, mapStudentSubmissions } from '../services/studentSubmissionAdapter.js'
+import { createStudentSubmissionSession } from '../data/studentSubmissionSession.js'
+import { studentPage } from '../data/studentArchive.js'
+import StudentPagination from '../components/student/StudentPagination.jsx'
+import PaperEdge from '../components/kinetic/PaperEdge.jsx'
+import '../styles/student-folio.css'
+
+function getFinalReviewStatusLabel(status) {
+  return { completed: 'Hoàn thành', needs_completion: 'Cần bổ sung', requires_teacher_review: 'Cần giáo viên xem lại' }[status] ?? 'Cần giáo viên xem lại'
+}
 
 const submissionDateFormatter = new Intl.DateTimeFormat('vi-VN', {
   dateStyle: 'short',
@@ -31,7 +38,6 @@ function FieldError({ id, message }) {
 function SubmissionError({ message }) {
   return (
     <PageErrorState
-      kicker="Nộp bài ghi"
       message={message}
       title="Không thể mở bài kiểm tra"
       returnTo="/student"
@@ -42,8 +48,8 @@ function SubmissionError({ message }) {
 function SubmissionSuccess({ assignment, canResubmit, onSubmitAnother, request }) {
   return (
     <section className="assignment-success student-success-panel" role="status" aria-live="polite">
-      <p className="state-kicker">Đã nhận bài nộp</p>
-      <h1>Nộp bài thành công</h1>
+      <PaperEdge trigger={request.data.id} />
+      <div className="sf-receipt-heading"><span className="sf-receipt-fold" aria-hidden="true" /><h2>Nộp bài thành công</h2></div>
       <p>
         File <strong>{request.data.fileName}</strong> đã được ghi nhận cho bài
         “{assignment.title}”.
@@ -107,7 +113,7 @@ function getSubmissionProgressStep(history, availability, latestSubmission) {
 
   return {
     state: 'complete',
-    status: `${history.submissions.length} lần nộp`,
+    status: `${history.submissions.length} lượt đã tải`,
     detail: `Đang theo dõi lần nộp ${latestSubmission.attemptNumber}.`,
   }
 }
@@ -161,35 +167,31 @@ function StudentProgress({ assignment, availability, history }) {
   ]
 
   return (
-    <section className="student-progress" aria-labelledby="student-progress-title" aria-live="polite">
-      <div className="student-progress-heading">
-        <div>
-          <p className="state-kicker">Theo dõi bài làm</p>
-          <h2 id="student-progress-title">Tiến trình bài kiểm tra</h2>
-        </div>
-        <span className="student-progress-class">{assignment.classroom.name}</span>
-      </div>
-      <ol className="student-progress-list">
-        {steps.map((step, index) => (
+    <section className="sf-assignment-context" aria-labelledby="sf-assignment-title">
+      <div className="sf-context-identity"><h1 id="sf-assignment-title">{assignment.title}</h1><p>{assignment.classroom.name}</p></div>
+      <dl className="sf-context-facts"><div><dt>Hạn nộp</dt><dd>{formatAssignmentDeadline(assignment)}</dd></div><div><dt>Trạng thái bài</dt><dd>{availability.isOpen ? 'Đang mở' : 'Đã đóng'}</dd></div></dl>
+      <ul className="sf-status-ledger" aria-label="Trạng thái bài làm" aria-live="polite">
+        {steps.map(step => (
           <li
-            aria-current={step.current ? 'step' : undefined}
-            className={`student-progress-step student-progress-${step.state}`}
+            aria-current={step.current ? 'true' : undefined}
+            className={`sf-ledger-entry sf-ledger-${step.state}`}
             key={step.title}
           >
-            <span className="student-progress-number" aria-hidden="true">{index + 1}</span>
-            <div className="student-progress-copy">
+            <div>
               <h3>{step.title}</h3>
               <p>{step.detail}</p>
             </div>
-            <span className="student-progress-status">{step.status}</span>
+            <strong>{step.status}</strong>
           </li>
         ))}
-      </ol>
+      </ul>
     </section>
   )
 }
 
-function SubmissionHistory({ submissions, status, message }) {
+export function SubmissionHistory({ submissions, status, message }) {
+  const [page, setPage] = useState(1)
+  const view = studentPage(submissions, page, 20)
   return (
     <section className="student-submission-history" aria-labelledby="submission-history-title">
       <div className="detail-section-heading student-history-heading">
@@ -199,16 +201,13 @@ function SubmissionHistory({ submissions, status, message }) {
             Mỗi lần nộp được lưu riêng. Kết quả chỉ xuất hiện sau khi giáo viên chốt.
           </p>
         </div>
+        <span className="sf-history-count">{submissions.length} lượt đã tải</span>
       </div>
 
-      {status === 'loading' ? (
-        <div className="table-empty" role="status">Đang tải lịch sử nộp bài...</div>
-      ) : status === 'error' ? (
-        <div className="form-submit-message form-submit-error" role="alert">
-          {message}
-        </div>
-      ) : submissions.length === 0 ? (
-        <div className="table-empty">Bạn chưa nộp bài cho hoạt động này.</div>
+      {status === 'loading' && <p className="sf-history-notice" role="status">Đang tải lịch sử nộp bài…</p>}
+      {status === 'error' && <p className="sf-history-notice" role="alert">{message} Những lượt vừa được xác nhận vẫn hiển thị bên dưới.</p>}
+      {submissions.length === 0 ? (
+        status === 'success' ? <div className="table-empty">Bạn chưa nộp bài cho hoạt động này.</div> : null
       ) : (
         <div className="data-table-wrap student-history-wrap">
           <table className="data-table student-submission-table student-history-table">
@@ -221,10 +220,10 @@ function SubmissionHistory({ submissions, status, message }) {
               </tr>
             </thead>
             <tbody>
-              {submissions.map((item) => (
+              {view.items.map((item) => (
                 <Fragment key={item.id}>
-                  <tr>
-                    <td className="table-primary-cell" data-label="Lần nộp">Lần {item.attemptNumber}</td>
+                  <tr data-submission-id={item.id}>
+                    <td className="table-primary-cell" data-label="Lần nộp"><span className="sf-attempt-number">{String(item.attemptNumber).padStart(2, '0')}</span><span>Lần {item.attemptNumber}</span></td>
                     <td data-label="Tên file">{item.fileName}</td>
                     <td className="table-muted-cell" data-label="Thời gian nộp">{formatSubmissionDate(item.submittedAt)}</td>
                     <td data-label="Trạng thái">
@@ -237,15 +236,15 @@ function SubmissionHistory({ submissions, status, message }) {
                   {item.result && (
                     <tr className="student-submission-result-row">
                       <td className="student-history-result-cell" colSpan="4">
-                        <div className="student-submission-result">
-                          <div className="student-final-result-heading">
+                        <details className="student-submission-result">
+                          <summary className="student-final-result-heading">
                             <span>Kết quả do giáo viên chốt</span>
                             <strong>{getFinalReviewStatusLabel(item.result.finalStatus)}</strong>
-                          </div>
-                          <p>
+                          </summary>
+                          <p className="sf-teacher-annotation">
                             <strong>Nhận xét:</strong> {item.result.feedback}
                           </p>
-                        </div>
+                        </details>
                       </td>
                     </tr>
                   )}
@@ -255,20 +254,21 @@ function SubmissionHistory({ submissions, status, message }) {
           </table>
         </div>
       )}
+      {submissions.length > 0 && <StudentPagination view={view} onPage={setPage} label="Phân trang lịch sử nộp bài" />}
     </section>
   )
 }
 
-function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubmissions, errors, request, onFileChange, onSubmit }) {
+export function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubmissions, errors, request, onFileChange, onSubmit }) {
   const isSubmitting = request.status === 'loading'
   const hasValidationErrors = Object.keys(errors).length > 0
 
   return (
     <section className="assignment-form-card student-submit-card" aria-labelledby="submission-form-title">
+      <PaperEdge trigger={form.fileName} />
       <div className="assignment-form-heading student-submit-heading">
-        <p className="state-kicker">Góc nhìn học sinh · {assignment.classroom.name}</p>
-        <h1 id="submission-form-title">{assignment.title}</h1>
-        <p>Hạn nộp: {formatAssignmentDeadline(assignment)}</p>
+        <h2 id="submission-form-title">Nộp bài ghi</h2>
+        <p>{assignment.classroom.name} · Hạn nộp: {formatAssignmentDeadline(assignment)}</p>
         <span className={`table-status table-status-${availability.isOpen ? 'active' : 'closed'} student-submit-status`}>
           <span aria-hidden="true" />
           {availability.isOpen ? 'Đang mở' : 'Đã đóng'}
@@ -304,7 +304,7 @@ function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubm
             <label htmlFor="note-file">
               {hasPreviousSubmissions ? 'Ảnh bài ghi mới' : 'Ảnh bài ghi'} <span aria-hidden="true">*</span>
             </label>
-            <input
+            <div className="sf-upload-control"><svg aria-hidden="true" width="40" height="48" viewBox="0 0 40 48" fill="none"><path d="M5 1h21l9 9v37H5zM26 1v10h9M12 20h16M12 27h16M12 34h9" stroke="currentColor" strokeWidth="1.5" /></svg><span aria-hidden="true">Chọn ảnh bài ghi</span><input
               accept="image/png,image/jpeg"
               aria-describedby={errors.file ? 'note-file-help note-file-error' : 'note-file-help'}
               aria-invalid={Boolean(errors.file)}
@@ -313,9 +313,9 @@ function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubm
               name="file"
               onChange={onFileChange}
               type="file"
-            />
+            /></div>
             <p className="form-field-help student-field-help" id="note-file-help">
-              Chọn file JPG, JPEG hoặc PNG, tối đa 5 MB. File sẽ được gửi lên hệ thống.
+              Chọn file JPG, JPEG hoặc PNG, tối đa 5 MiB. File sẽ được gửi lên hệ thống.
             </p>
             {form.fileName && (
               <p className="form-field-help student-field-help student-selected-file">Đã chọn: {form.fileName}</p>
@@ -343,170 +343,58 @@ function StudentSubmissionForm({ assignment, availability, form, hasPreviousSubm
   )
 }
 
-function StudentSubmissionWorkspace({ assignment }) {
-  const [form, setForm] = useState({
-    assignmentId: assignment.id,
-    file: null,
-    fileName: '',
-    fileSizeBytes: 0,
-  })
+export function StudentSubmissionWorkspace({ assignment, service = submissionService }) {
+  const [form, setForm] = useState({ assignmentId: assignment.id, file: null, fileName: '', fileSizeBytes: 0 })
   const [errors, setErrors] = useState({})
-  const [submitRequest, setSubmitRequest] = useState({ status: 'idle' })
-  const [historyRequest, setHistoryRequest] = useState({ status: 'loading', data: [] })
+  const [session] = useState(() => createStudentSubmissionSession(assignment.id, service))
+  const { history: historyRequest, submit: submitRequest } = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot)
   const [now, setNow] = useState(Date.now)
-  const pending = useRef(false)
   const availability = getAssignmentAvailability(assignment, now)
-  const submissionHistory = historyRequest.status === 'success' ? historyRequest.data : []
+  const submissionHistory = historyRequest.data
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(timer)
   }, [])
-
   useEffect(() => {
-    let isMounted = true
-
-    submissionService
-      .listMySubmissions(assignment.id)
-      .then((items) => {
-        if (isMounted) {
-          setHistoryRequest({ status: 'success', data: mapStudentSubmissions(items) })
-        }
-      })
-      .catch((error) => {
-        if (isMounted) {
-          setHistoryRequest({
-            status: 'error',
-            data: [],
-            message: error.message ?? 'Không thể tải lịch sử nộp bài.',
-          })
-        }
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [assignment.id])
+    session.loadHistory()
+    return () => session.deactivate()
+  }, [session])
 
   function handleFileChange(event) {
+    if (submitRequest.status === 'loading') return
     const file = event.target.files?.[0]
-
-    setForm((current) => ({
-      ...current,
-      file,
-      fileName: file?.name ?? '',
-      fileSizeBytes: file?.size ?? 0,
-    }))
+    setForm(current => ({ ...current, file, fileName: file?.name ?? '', fileSizeBytes: file?.size ?? 0 }))
     setErrors({})
-    setSubmitRequest({ status: 'idle' })
+    session.resetSubmit()
   }
-
   async function handleSubmit(event) {
     event.preventDefault()
-    if (pending.current) return
-
+    if (submitRequest.status === 'loading') return
     const currentAvailability = getAssignmentAvailability(assignment)
     setNow(Date.now())
-    if (!currentAvailability.isOpen) {
-      setSubmitRequest({ status: 'error', message: currentAvailability.message })
-      return
-    }
-
+    if (!currentAvailability.isOpen) { setErrors({ file: currentAvailability.message }); return }
     const nextErrors = validateSubmissionForm(form)
     setErrors(nextErrors)
-
-    if (Object.keys(nextErrors).length > 0) {
-      setSubmitRequest({ status: 'idle' })
-      return
-    }
-
-    pending.current = true
-    setSubmitRequest({ status: 'loading' })
-
-    try {
-      const result = await submissionService.createSubmission(
-        assignment.id,
-        form.file,
-        form.fileName,
-      )
-      const savedSubmission = mapStudentSubmission(result)
-      setSubmitRequest({
-        status: 'success',
-        data: { ...savedSubmission, fileName: form.fileName },
-      })
-      setHistoryRequest((current) => ({
-        status: 'success',
-        data: [...(current.status === 'success' ? current.data : []), savedSubmission],
-      }))
-    } catch (error) {
-      setSubmitRequest({
-        status: 'error',
-        message: error.message ?? 'Không thể nộp bài lúc này. Vui lòng thử lại.',
-      })
-    } finally {
-      pending.current = false
-      setNow(Date.now())
-    }
+    if (Object.keys(nextErrors).length) return
+    await session.submit({ file: form.file, fileName: form.fileName })
   }
-
   function handleSubmitAnother() {
-    setForm((current) => ({
-      ...current,
-      fileName: '',
-      file: null,
-      fileSizeBytes: 0,
-    }))
+    setForm(current => ({ ...current, fileName: '', file: null, fileSizeBytes: 0 }))
     setErrors({})
-    setSubmitRequest({ status: 'idle' })
+    session.resetSubmit()
   }
-
-  return (
-    <>
-      <nav className="breadcrumb" aria-label="Đường dẫn trang">
-        <Link to="/student">Tổng quan học sinh</Link>
-        <span aria-hidden="true">/</span>
-        <span>Nộp bài ghi</span>
-      </nav>
-      <StudentProgress
-        assignment={assignment}
-        availability={getAssignmentAvailability(assignment)}
-        history={{
-          status: historyRequest.status,
-          submissions: submissionHistory,
-        }}
-      />
-      <div className="student-submission-layout">
-        <div className="student-submit-column">
-          {submitRequest.status === 'success' ? (
-            <SubmissionSuccess
-              assignment={assignment}
-              canResubmit={availability.isOpen}
-              onSubmitAnother={handleSubmitAnother}
-              request={submitRequest}
-            />
-          ) : (
-            <StudentSubmissionForm
-              assignment={assignment}
-              availability={availability}
-              errors={errors}
-              form={form}
-              hasPreviousSubmissions={submissionHistory.length > 0}
-              onFileChange={handleFileChange}
-              onSubmit={handleSubmit}
-              request={submitRequest}
-            />
-          )}
-        </div>
-        <div className="student-history-column">
-          <SubmissionHistory
-            message={historyRequest.message}
-            status={historyRequest.status}
-            submissions={submissionHistory}
-          />
-        </div>
+  return <>
+    <nav className="breadcrumb" aria-label="Đường dẫn trang"><Link to="/student">Tổng quan học sinh</Link><span aria-hidden="true">/</span><span>Nộp bài ghi</span></nav>
+    <StudentProgress assignment={assignment} availability={availability} history={{ status: historyRequest.status, submissions: submissionHistory }} />
+    <div className="student-submission-layout sf-submission-folio">
+      <div className="student-submit-column">
+        {submitRequest.status === 'success' ? <SubmissionSuccess assignment={assignment} canResubmit={availability.isOpen} onSubmitAnother={handleSubmitAnother} request={submitRequest} /> :
+          <StudentSubmissionForm assignment={assignment} availability={availability} errors={errors} form={form} hasPreviousSubmissions={submissionHistory.length > 0} onFileChange={handleFileChange} onSubmit={handleSubmit} request={submitRequest} />}
       </div>
-    </>
-  )
+      <div className="student-history-column"><SubmissionHistory message={historyRequest.message} status={historyRequest.status} submissions={submissionHistory} /></div>
+    </div>
+  </>
 }
 
 function StudentSubmissionPage({ currentUser }) {

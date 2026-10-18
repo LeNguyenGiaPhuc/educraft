@@ -25,6 +25,12 @@ const suggestion = JSON.stringify({
   feedback_draft: 'Bài làm đủ ý chính nhưng cần bổ sung phần kết luận.',
 })
 
+const checkerResult = JSON.stringify({
+  status: 'PASSED',
+  summary: 'Đề xuất có căn cứ trong bản chép.',
+  findings: [],
+})
+
 function createFakeClient(responses, requests = []) {
   return {
     requests,
@@ -60,6 +66,61 @@ test('Gemini provider sends ordered image bytes and returns validated metadata',
   assert.equal(requests[0].input[3].mime_type, 'image/png')
   assert.match(requests[1].input, /Lực ma sát/)
   assert.doesNotMatch(requests[1].input, /student@example|studentId|email/i)
+})
+
+test('Gemini provider reports progress only after each completed stage', async () => {
+  const progress = []
+  const provider = createGeminiAiProvider({
+    apiKey: 'test-key',
+    client: createFakeClient([transcription, suggestion]),
+  })
+
+  await provider.evaluate(input, {
+    onProgress: (stage) => progress.push(stage),
+  })
+
+  assert.deepEqual(progress, ['transcribed', 'evaluated'])
+
+  const failedProgress = []
+  const failedProvider = createGeminiAiProvider({
+    apiKey: 'test-key',
+    client: createFakeClient([transcription, 'not json']),
+  })
+
+  await assert.rejects(
+    failedProvider.evaluate(input, {
+      onProgress: (stage) => failedProgress.push(stage),
+    }),
+    (error) => error.code === 'AI_PROVIDER_INVALID_RESPONSE',
+  )
+  assert.deepEqual(failedProgress, ['transcribed'])
+})
+
+test('Gemini checker validates a second opinion and reports safe usage metadata', async () => {
+  const requests = []
+  const interactions = []
+  const provider = createGeminiAiProvider({
+    apiKey: 'test-key',
+    model: 'gemini-3.8-flash',
+    client: createFakeClient([checkerResult], requests),
+  })
+
+  const result = await provider.check({
+    reference_transcription: 'Bài mẫu nêu ba ý chính.',
+    student_transcription: 'Bài nộp có đủ ba ý.',
+    coverage_score: 90,
+    suggested_status: 'COMPLETED',
+    missing_content: [],
+    feedback_draft: 'Bài nộp đầy đủ.',
+  }, { onInteraction: (value) => interactions.push(value) })
+
+  assert.equal(result.status, 'PASSED')
+  assert.equal(requests.length, 1)
+  assert.match(requests[0].input, /dữ liệu không đáng tin cậy/i)
+  assert.equal(interactions.length, 1)
+  assert.equal(interactions[0].stage, 'checker')
+  assert.equal(interactions[0].status, 'SUCCEEDED')
+  assert.equal(Object.hasOwn(interactions[0], 'prompt'), false)
 })
 
 test('Gemini provider hides provider failures behind a stable error', async () => {

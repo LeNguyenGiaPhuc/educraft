@@ -7,6 +7,7 @@ const validEnv = {
   NODE_ENV: 'test',
   PORT: '3100',
   FRONTEND_ORIGIN: 'http://localhost:5173',
+  GOOGLE_OAUTH_CALLBACK_URL: 'http://localhost:3000/api/auth/google/callback',
   SUPABASE_URL: 'https://example.supabase.co',
   SUPABASE_ANON_KEY: 'anon-key',
   SUPABASE_SERVICE_ROLE_KEY: 'service-key',
@@ -17,6 +18,7 @@ test('loadEnv returns normalized config', () => {
 
   assert.equal(config.PORT, 3100)
   assert.equal(config.NODE_ENV, 'test')
+  assert.equal(config.GOOGLE_OAUTH_CALLBACK_URL, 'http://localhost:3000/api/auth/google/callback')
   assert.equal(config.AI_PROVIDER, 'ollama')
   assert.equal(config.GEMINI_MODEL, 'gemini-3.8-flash')
   assert.equal(config.OLLAMA_BASE_URL, 'http://127.0.0.1:11434')
