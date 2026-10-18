@@ -6,19 +6,14 @@ import { aiEvaluationParamsSchema } from './aiEvaluationValidators.js'
 
 const stages = new Set(['input_ready', 'transcribed', 'evaluated', 'checked', 'persisted'])
 
-export function createAiEvaluationStreamRouter({ aiEvaluationService, authenticate, authorizeSubmission }) {
+export function createAiEvaluationStreamRouter({ aiEvaluationService, authenticate }) {
   const router = Router()
   const running = new Set()
   router.post('/submissions/:submissionId/ai-evaluation/stream',
     authenticate, requireRole('TEACHER'), validate(aiEvaluationParamsSchema),
     async (request, response, next) => {
       const { submissionId } = request.validated.params
-      // Authorize before disclosing whether this ID has an active run.
-      if (authorizeSubmission) await authorizeSubmission(request.auth, submissionId)
-      if (running.has(submissionId)) {
-        throw new AppError(409, 'AI_EVALUATION_RUNNING', 'AI đang xử lý. Hãy tải lại đề xuất để đồng bộ.')
-      }
-      running.add(submissionId)
+      let acquired = false
       let connected = true
       const sentStages = new Set()
       const disconnect = () => { connected = false }
@@ -34,6 +29,14 @@ export function createAiEvaluationStreamRouter({ aiEvaluationService, authentica
       }
       try {
         const result = await aiEvaluationService.runEvaluation(request.auth, submissionId, {
+          onAuthorized() {
+            // The service has checked ownership once; do not disclose other teachers' runs.
+            if (running.has(submissionId)) {
+              throw new AppError(409, 'AI_EVALUATION_RUNNING', 'AI đang xử lý. Hãy tải lại đề xuất để đồng bộ.')
+            }
+            running.add(submissionId)
+            acquired = true
+          },
           onProgress(progress) {
             if (progress?.submissionId !== submissionId || !stages.has(progress.stage)
               || sentStages.has(progress.stage)) return
@@ -53,7 +56,7 @@ export function createAiEvaluationStreamRouter({ aiEvaluationService, authentica
           message: error instanceof AppError ? error.message : 'Không thể hoàn tất đánh giá AI.' })
       } finally {
         // Browser cancellation only disconnects transport; the service can finish saving.
-        running.delete(submissionId)
+        if (acquired) running.delete(submissionId)
         response.off('close', disconnect)
         if (connected && response.headersSent && !response.writableEnded) response.end()
       }

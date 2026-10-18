@@ -162,7 +162,6 @@ export function createDependencies(config) {
   const aiEvaluationStreamRouter = createAiEvaluationStreamRouter({
     aiEvaluationService,
     authenticate,
-    authorizeSubmission: (auth, id) => submissionService.getSubmission(auth, id),
   })
   const aiUsageController = createAiUsageController({ aiUsageService })
   const aiUsageRouter = createAiUsageRouter({

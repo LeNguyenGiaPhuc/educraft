@@ -18,10 +18,14 @@ function build({ role = 'TEACHER', run = async () => result, authorizeSubmission
     req.auth = { profile: { id: 'teacher', role, status: 'ACTIVE' } }
     next()
   }
-  const service = { runEvaluation: run, getEvaluation: async () => result.evaluation }
+  const service = { async runEvaluation(auth, submissionId, options = {}) {
+    await authorizeSubmission?.(auth, submissionId)
+    await options.onAuthorized?.()
+    return run(auth, submissionId, options)
+  }, getEvaluation: async () => result.evaluation }
   return createApp({ logger: { error() {} }, registerRoutes(app) {
     app.use('/api', createAiEvaluationRouter({ authenticate, controller: createAiEvaluationController({ aiEvaluationService: service }) }))
-    app.use('/api', createAiEvaluationStreamRouter({ authenticate, authorizeSubmission, aiEvaluationService: service }))
+    app.use('/api', createAiEvaluationStreamRouter({ authenticate, aiEvaluationService: service }))
   } })
 }
 const post = (app, url = path) => request(app).post(url).set('Origin', origin)
@@ -81,6 +85,19 @@ test('errors retain HTTP semantics before streaming and safe error events afterw
   assert.doesNotMatch(failed.text, /event: complete|private provider details/)
 })
 
+test('failed run releases the backend lock so an explicit retry can complete', async () => {
+  let calls = 0
+  const app = build({ run(_auth, submissionId, { onProgress }) {
+    calls++
+    onProgress({ stage: 'input_ready', submissionId })
+    if (calls === 1) throw new Error('provider failed before saving')
+    return result
+  } })
+  assert.match((await post(app)).text, /event: error/)
+  assert.match((await post(app)).text, /event: complete/)
+  assert.equal(calls, 2)
+})
+
 test('disconnect retains duplicate lock until service finishes; unauthorized requests cannot inspect it', async () => {
   let finish, calls = 0, allowed = true
   const app = build({ authorizeSubmission() { if (!allowed) throw new AppError(403, 'FORBIDDEN', 'Không có quyền.') },
@@ -106,6 +123,9 @@ test('disconnect retains duplicate lock until service finishes; unauthorized req
     const duplicate = await fetch(url, { method: 'POST', headers: { Origin: origin } })
     assert.equal(duplicate.status, 409)
     assert.equal((await duplicate.json()).error.code, 'AI_EVALUATION_RUNNING')
+    // A rejected retry must not release the first request's lock.
+    assert.equal((await fetch(url, { method: 'POST', headers: { Origin: origin } })).status, 409)
+    assert.equal(calls, 1)
     finish()
     await new Promise((resolve) => setImmediate(resolve))
     const released = await fetch(url, { method: 'POST', headers: { Origin: origin } })
@@ -145,7 +165,7 @@ function pipeline({ failSave = false, failStatus = false, failChecker = false } 
   } }
   const service = createAiEvaluationService({ adminClient,
     assignmentService: { async getAssignment() { return { coverage_threshold: 80 } } },
-    submissionService: { async getSubmission() { return { id, status, assignment_id: 'assignment' } } },
+    submissionService: { async getSubmission() { events.push('authorized'); return { id, status, assignment_id: 'assignment' } } },
     inputService: { async loadEvaluationInput() { return {} } },
     provider: {
       async evaluate(_input, { onProgress }) {
@@ -176,7 +196,7 @@ test('real member 2 pipeline completes after saved evaluation, review status and
     .map((block) => JSON.parse(block.split('data: ')[1]).stage),
   ['input_ready', 'transcribed', 'evaluated', 'checked', 'persisted'])
   assert.ok(blocks.at(-1).startsWith('event: complete'))
-  assert.deepEqual(events, ['PROCESSING', 'saved', 'REQUIRES_REVIEW', 'usage-recorded'])
+  assert.deepEqual(events, ['authorized', 'PROCESSING', 'saved', 'REQUIRES_REVIEW', 'usage-recorded'])
   assert.equal(JSON.parse(blocks.at(-1).split('data: ')[1]).evaluation.checker_status, 'PASSED')
 })
 

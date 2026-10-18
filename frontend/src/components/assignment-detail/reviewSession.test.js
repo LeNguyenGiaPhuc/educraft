@@ -46,7 +46,7 @@ test('switching submission aborts stream, ignores late result and keeps independ
   assert.equal(session.get(item.id).form.feedback, 'Nháp cũ')
 })
 
-test('network interruption reconciles GET and missing result stays uncertain across remounts', async () => {
+test('interruption never auto-reposts; a subsequent GET 404 unlocks an explicit retry across remounts', async () => {
   const item = { ...submission, id: 'stream-interrupted' }
   const session = createReviewSession('reconnect'); session.ensure(item)
   let gets = 0
@@ -55,13 +55,45 @@ test('network interruption reconciles GET and missing result stays uncertain acr
   assert.equal(gets, 1)
   assert.equal(session.get(item.id).evaluation.status, 'interrupted')
   const reopened = createReviewSession('reconnect'); reopened.ensure(item)
-  await reopened.loadEvaluation(item.id, async () => { throw { status: 404 } })
+  await reopened.loadEvaluation(item.id, async () => { throw { status: 503 } })
   assert.equal(reopened.get(item.id).evaluation.status, 'interrupted')
   let posts = 0
   await reopened.runEvaluation(item.id, () => { posts++ })
   assert.equal(posts, 0)
-  await reopened.loadEvaluation(item.id, async () => evaluation)
+  await reopened.loadEvaluation(item.id, async () => { throw { status: 404 } })
+  assert.equal(reopened.get(item.id).evaluation.status, 'not-started')
+  assert.equal(posts, 0)
+  reopened.change(item.id, 'feedback', 'Giữ nguyên nhận xét thủ công')
+  await reopened.runEvaluation(item.id, async () => { posts++; return evaluation })
+  assert.equal(posts, 1)
   assert.equal(reopened.get(item.id).evaluation.status, 'success')
+  assert.equal(reopened.get(item.id).form.feedback, 'Giữ nguyên nhận xét thủ công')
+})
+
+test('retry while backend still runs stays recoverable, then succeeds after the failed run ends', async () => {
+  const item = { ...submission, id: 'stream-retry-running' }
+  const session = createReviewSession('retry-running'); session.ensure(item)
+  let posts = 0
+  const missing = async () => { throw { status: 404, code: 'AI_EVALUATION_NOT_FOUND' } }
+  const request = async () => {
+    posts++
+    if (posts === 1) throw { code: 'AI_STREAM_INTERRUPTED' }
+    if (posts === 2) throw { code: 'AI_EVALUATION_RUNNING' }
+    return evaluation
+  }
+  await session.runEvaluation(item.id, request, { getEvaluation: missing })
+  assert.equal(posts, 1)
+  assert.equal(session.get(item.id).evaluation.status, 'interrupted')
+  await session.loadEvaluation(item.id, missing)
+  assert.equal(session.get(item.id).evaluation.status, 'not-started')
+  await session.runEvaluation(item.id, request, { getEvaluation: missing })
+  assert.equal(posts, 2)
+  assert.equal(session.get(item.id).evaluation.status, 'interrupted')
+  await session.loadEvaluation(item.id, async () => null)
+  assert.equal(session.get(item.id).evaluation.status, 'empty')
+  await session.runEvaluation(item.id, request, { getEvaluation: missing })
+  assert.equal(posts, 3)
+  assert.equal(session.get(item.id).evaluation.status, 'success')
 })
 
 test('AI error keeps manual finalization available', async () => {

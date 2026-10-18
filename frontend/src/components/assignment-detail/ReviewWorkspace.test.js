@@ -33,6 +33,10 @@ test('interrupted analysis offers GET synchronization and keeps manual review av
   assert.match(html, /Tải lại đề xuất/)
   assert.doesNotMatch(html, />Phân tích bằng AI<|>Thử phân tích lại</)
   assert.doesNotMatch(html, /<textarea[^>]*disabled/)
+  await session.loadEvaluation(item.id, async () => { throw { status: 404 } })
+  const retryHtml = renderToStaticMarkup(React.createElement(Panel, { submission: item, reviewSession: session }))
+  assert.match(retryHtml, />Phân tích bằng AI</)
+  assert.doesNotMatch(retryHtml, /<textarea[^>]*disabled/)
 })
 
 test('selected-only review keeps manual form usable during GET and has native original evidence link', () => {

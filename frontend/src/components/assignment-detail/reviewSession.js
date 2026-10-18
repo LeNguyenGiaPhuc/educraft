@@ -83,8 +83,7 @@ export function createReviewSession(assignmentId) {
         },
       })
       if (operations.get(id) === operation) {
-        if (!result && pendingSubmissions.has(id)) interrupted(id, { status: 404 })
-        else acceptResult(id, result)
+        acceptResult(id, result)
       }
     } catch (error) {
       if (operations.get(id) !== operation) return
@@ -104,9 +103,11 @@ export function createReviewSession(assignmentId) {
         } else interrupted(id, error)
         return
       }
-      if (!explicit && pendingSubmissions.has(id)) { interrupted(id, error); return }
-      pendingSubmissions.delete(id)
       const absent = !explicit && (error?.status === 404 || error?.code === 'AI_EVALUATION_NOT_FOUND')
+      // A confirmed missing result permits a user-initiated retry; the backend still
+      // rejects concurrent runs. Failed GETs leave the uncertain run locked locally.
+      if (!explicit && pendingSubmissions.has(id) && !absent) { interrupted(id, error); return }
+      pendingSubmissions.delete(id)
       update(id, { evaluation: { status: absent ? 'not-started' : 'error', data: null, message: error?.message ?? 'Không thể đọc hoặc phân tích bài nộp lúc này.' } })
     } finally {
       if (operations.get(id) === operation) { operations.delete(id); controllers.delete(id) }

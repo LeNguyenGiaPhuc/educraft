@@ -299,9 +299,11 @@ export function createAiEvaluationService({
   }
 
   return {
-    async runEvaluation(auth, submissionId, { onProgress } = {}) {
+    async runEvaluation(auth, submissionId, { onProgress, onAuthorized } = {}) {
       const { supabase } = requireTeacherContext(auth)
       const submission = await authorizeTeacher(auth, submissionId)
+      // Let transports acquire their run lock only after ownership is verified.
+      await onAuthorized?.()
       const reportProgress = (stage) => emitProgress(onProgress, submissionId, stage)
 
       if (submission.status === 'FINALIZED') {
