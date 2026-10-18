@@ -968,3 +968,20 @@
     transition: none;
   }
 }
+.admin-ai-usage {
+  min-width: 0;
+}
+
+.admin-ai-usage .admin-ai-stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+}
+
+.admin-ai-stat-grid .admin-stat-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-ai-usage .admin-ai-stat-grid .admin-stat-value {
+  font-size: clamp(1rem, 2vw, 1.75rem);
+  white-space: normal;
+}
