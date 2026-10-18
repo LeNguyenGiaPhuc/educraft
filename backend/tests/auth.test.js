@@ -14,7 +14,7 @@ const profile = {
   status: 'ACTIVE',
 }
 
-function buildAuthApp() {
+function buildAuthApp(serviceOverrides = {}) {
   const authService = {
     async login() {
       return {
@@ -37,12 +37,33 @@ function buildAuthApp() {
       }
     },
     async logout() {},
+    async startGoogleLogin() {
+      return {
+        url: 'https://accounts.google.test/authorize',
+        state: '{"sb-test-auth-token-code-verifier":"verifier"}',
+      }
+    },
+    async completeGoogleLogin() {
+      return {
+        profile,
+        session: {
+          access_token: 'google-access-token',
+          refresh_token: 'google-refresh-token',
+          expires_in: 3600,
+        },
+      }
+    },
+    ...serviceOverrides,
   }
   const authenticate = (requestValue, response, next) => {
     requestValue.auth = { profile }
     next()
   }
-  const controller = createAuthController({ authService, nodeEnv: 'test' })
+  const controller = createAuthController({
+    authService,
+    frontendOrigin: 'http://localhost:5173',
+    nodeEnv: 'test',
+  })
   const router = createAuthRouter({ controller, authenticate })
 
   return createApp({
@@ -100,4 +121,87 @@ test('logout clears authentication cookies', async () => {
 
   assert.equal(response.status, 204)
   assert.match(response.headers['set-cookie'].join(';'), /Expires=Thu, 01 Jan 1970/)
+})
+
+test('Google start redirects to the provider and stores only HttpOnly transaction state', async () => {
+  const response = await request(buildAuthApp()).get('/api/auth/google')
+
+  assert.equal(response.status, 302)
+  assert.equal(response.headers.location, 'https://accounts.google.test/authorize')
+  const cookies = response.headers['set-cookie']
+  assert.equal(cookies.length, 1)
+  assert.match(cookies[0], /^educraft_google_oauth=/)
+  assert.match(cookies[0], /HttpOnly/)
+  assert.match(cookies[0], /Path=\/api\/auth\/google\/callback/)
+  assert.doesNotMatch(response.text, /access_token|refresh_token/)
+})
+
+test('Google callback exchanges the code, writes auth cookies, and uses a fixed frontend redirect', async () => {
+  const calls = []
+  const app = buildAuthApp({
+    async completeGoogleLogin(code, state) {
+      calls.push({ code, state })
+      return {
+        profile,
+        session: {
+          access_token: 'google-access-token',
+          refresh_token: 'google-refresh-token',
+          expires_in: 3600,
+        },
+      }
+    },
+  })
+
+  const response = await request(app)
+    .get('/api/auth/google/callback?code=oauth-code&returnTo=https://evil.test')
+    .set('Cookie', 'educraft_google_oauth=transaction-state')
+
+  assert.equal(response.status, 303)
+  assert.equal(response.headers.location, 'http://localhost:5173/login?oauth=success')
+  assert.deepEqual(calls, [{ code: 'oauth-code', state: 'transaction-state' }])
+  const cookies = response.headers['set-cookie'].join(';')
+  assert.match(cookies, /educraft_access_token=google-access-token/)
+  assert.match(cookies, /educraft_refresh_token=google-refresh-token/)
+  assert.match(cookies, /educraft_google_oauth=;/)
+  assert.match(cookies, /HttpOnly/)
+  assert.doesNotMatch(response.text, /google-access-token|google-refresh-token/)
+})
+
+for (const [label, query, cookie] of [
+  ['missing code', '', 'educraft_google_oauth=transaction-state'],
+  ['missing state', '?code=oauth-code', undefined],
+  ['provider rejection', '?error=access_denied', 'educraft_google_oauth=transaction-state'],
+]) {
+  test(`Google callback without a valid transaction does not create a session (${label})`, async () => {
+    let completed = false
+    let pendingRequest = request(buildAuthApp({
+      async completeGoogleLogin() {
+        completed = true
+        throw new Error('must not run')
+      },
+    })).get(`/api/auth/google/callback${query}`)
+    if (cookie) pendingRequest = pendingRequest.set('Cookie', cookie)
+    const response = await pendingRequest
+
+    assert.equal(response.status, 303)
+    assert.equal(response.headers.location, 'http://localhost:5173/login?oauth=failed')
+    assert.equal(completed, false)
+    assert.doesNotMatch(response.headers['set-cookie']?.join(';') ?? '', /educraft_access_token=[^;]/)
+  })
+}
+
+test('Google callback service failure clears authentication cookies and redirects safely', async () => {
+  const response = await request(buildAuthApp({
+    async completeGoogleLogin() {
+      throw new Error('provider exchange failed')
+    },
+  }))
+    .get('/api/auth/google/callback?code=oauth-code')
+    .set('Cookie', 'educraft_google_oauth=transaction-state')
+
+  assert.equal(response.status, 303)
+  assert.equal(response.headers.location, 'http://localhost:5173/login?oauth=failed')
+  const cookies = response.headers['set-cookie'].join(';')
+  assert.match(cookies, /educraft_access_token=;/)
+  assert.match(cookies, /educraft_refresh_token=;/)
 })

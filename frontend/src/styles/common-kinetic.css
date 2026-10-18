@@ -110,6 +110,22 @@
 .kf-login .login-form .button:hover { background: var(--kc-hover); box-shadow: 3px 4px 0 rgb(31 51 64 / 22%); transform: translateY(-1px); }
 .kf-login .login-form .button:active { transform: translate(1px, 2px); }
 .kf-login .login-form .button:disabled { transform: none; opacity: .65; cursor: wait; }
+.kf-login .login-form .google-login-button {
+  background: var(--kc-paper);
+  color: var(--kc-navy);
+  box-shadow: none;
+}
+.kf-login .login-form .google-login-button:hover,
+.kf-login .login-form .google-login-button:focus-visible {
+  background: var(--kc-selected);
+  color: var(--kc-navy);
+  box-shadow: none;
+}
+.kf-login .login-method-divider {
+  color: var(--kc-muted);
+  font-size: 12px;
+  text-align: center;
+}
 .kf-login .form-submit-message {
   border: 1px solid var(--kc-line);
   background: var(--kc-stock);

@@ -115,3 +115,18 @@ test('keeps role navigation and access checks independent from legacy client sto
   assert.equal(canAccessRole(user, [ROLES.STUDENT]), true)
   assert.equal(canAccessRole(user, [ROLES.TEACHER]), false)
 })
+
+test('exposes the backend Google OAuth start URL without requesting or storing tokens', () => {
+  const calls = []
+  const auth = createAuthService({
+    api: {
+      url(path) {
+        calls.push(path)
+        return `http://localhost:3000${path}`
+      },
+    },
+  })
+
+  assert.equal(auth.getGoogleLoginUrl(), 'http://localhost:3000/api/auth/google')
+  assert.deepEqual(calls, ['/api/auth/google'])
+})

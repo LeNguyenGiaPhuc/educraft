@@ -45,3 +45,11 @@ test('production login source contains no plaintext demo credentials', () => {
   assert.match(source, /demoAccounts\.length > 0/)
 })
 
+test('Google login starts through the EduCraft backend without frontend token handling', () => {
+  const source = readFileSync(join(currentDirectory, 'LoginPage.jsx'), 'utf8')
+
+  assert.match(source, /Đăng nhập với Google/)
+  assert.match(source, /authService\.getGoogleLoginUrl\(\)/)
+  assert.doesNotMatch(source, /access_token|refresh_token|localStorage/)
+})
+

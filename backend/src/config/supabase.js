@@ -33,5 +33,17 @@ export function createSupabaseGateway(config, createClientImpl = createClient) {
     })
   }
 
-  return { authClient, adminClient, createUserClient }
+  function createOAuthClient(storage) {
+    return createClientImpl(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: true,
+        detectSessionInUrl: false,
+        flowType: 'pkce',
+        storage,
+      },
+    })
+  }
+
+  return { authClient, adminClient, createOAuthClient, createUserClient }
 }

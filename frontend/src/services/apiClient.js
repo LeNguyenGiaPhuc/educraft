@@ -102,6 +102,7 @@ export function createApiClient({ baseUrl = DEFAULT_API_BASE_URL, fetchImpl = fe
   }
 
   return {
+    url: (path) => joinUrl(baseUrl, path),
     request,
     get: (path, options = {}) => request(path, { ...options, method: 'GET' }),
     post: (path, body, options = {}) => request(path, { ...options, method: 'POST', body }),

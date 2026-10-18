@@ -1,6 +1,13 @@
 import { AppError } from '../../common/errors.js'
+import { createGoogleOAuthStorage } from './googleOAuthState.js'
 
-export function createAuthService({ authClient, adminClient, createUserClient }) {
+export function createAuthService({
+  authClient,
+  adminClient,
+  createOAuthClient,
+  createUserClient,
+  googleOAuthCallbackUrl,
+}) {
   async function readActiveProfile(accessToken, userId) {
     const supabase = createUserClient(accessToken)
     const result = await supabase
@@ -46,6 +53,10 @@ export function createAuthService({ authClient, adminClient, createUserClient })
     }
   }
 
+  function googleOAuthFailure() {
+    return new AppError(401, 'GOOGLE_OAUTH_FAILED', 'Đăng nhập Google không thành công.')
+  }
+
   return {
     async login(credentials) {
       const result = await authClient.auth.signInWithPassword(credentials)
@@ -72,6 +83,59 @@ export function createAuthService({ authClient, adminClient, createUserClient })
 
     async logout(accessToken) {
       await revoke(accessToken)
+    },
+
+    async startGoogleLogin() {
+      try {
+        const storage = createGoogleOAuthStorage()
+        const client = createOAuthClient(storage)
+        const result = await client.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: googleOAuthCallbackUrl,
+            skipBrowserRedirect: true,
+          },
+        })
+
+        if (result.error || !result.data?.url) {
+          throw new Error('Google OAuth authorization URL was not returned')
+        }
+
+        return { url: result.data.url, state: storage.serialize() }
+      } catch {
+        throw new AppError(
+          503,
+          'GOOGLE_OAUTH_UNAVAILABLE',
+          'Không thể bắt đầu đăng nhập Google.',
+        )
+      }
+    },
+
+    async completeGoogleLogin(code, serializedState) {
+      if (typeof code !== 'string' || code.trim() === '') {
+        throw googleOAuthFailure()
+      }
+
+      let client
+      try {
+        const storage = createGoogleOAuthStorage(serializedState)
+        client = createOAuthClient(storage)
+      } catch {
+        throw googleOAuthFailure()
+      }
+
+      let result
+      try {
+        result = await client.auth.exchangeCodeForSession(code)
+      } catch {
+        throw googleOAuthFailure()
+      }
+
+      return acceptSession(
+        result,
+        'GOOGLE_OAUTH_FAILED',
+        'Đăng nhập Google không thành công.',
+      )
     },
   }
 }

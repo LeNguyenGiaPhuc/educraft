@@ -74,5 +74,7 @@ test('login keeps native labelled controls, reveal and empty credentials in shar
   assert.match(html, /autoComplete="username"[^>]*id="login-email"/)
   assert.match(html, /type="password"/)
   assert.match(html, /aria-label="Hiện mật khẩu"/)
+  assert.match(html, /href="http:\/\/localhost:3000\/api\/auth\/google"/)
+  assert.match(html, />Đăng nhập với Google</)
   assert.doesNotMatch(html, /login-panel-index|login-panel-note/)
 })

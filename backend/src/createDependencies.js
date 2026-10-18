@@ -61,7 +61,10 @@ export function createAiProvider(config) {
 
 export function createDependencies(config) {
   const gateway = createSupabaseGateway(config)
-  const authService = createAuthService(gateway)
+  const authService = createAuthService({
+    ...gateway,
+    googleOAuthCallbackUrl: config.GOOGLE_OAUTH_CALLBACK_URL,
+  })
   const authenticate = createAuthenticate(gateway)
 
   const accountService = createAccountService({ adminClient: gateway.adminClient })
@@ -151,6 +154,7 @@ export function createDependencies(config) {
   })
   const authController = createAuthController({
     authService,
+    frontendOrigin: config.FRONTEND_ORIGIN,
     nodeEnv: config.NODE_ENV,
   })
   const authRouter = createAuthRouter({

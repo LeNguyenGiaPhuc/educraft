@@ -3,7 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 
 import LandingShowcase from '../components/landing/LandingShowcase.jsx'
 import { useAuth } from '../contexts/useAuth.js'
-import { getRoleHome, ROLES } from '../services/authService.js'
+import { authService, getRoleHome, ROLES } from '../services/authService.js'
 
 const demoAccounts = import.meta.env?.DEV
   ? [
@@ -32,13 +32,19 @@ function LoginPage() {
   const { user, login } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const oauthFailed = new URLSearchParams(location.search).get('oauth') === 'failed'
   const [form, setForm] = useState({
     email: '',
     password: '',
   })
-  const [status, setStatus] = useState({ tone: 'idle', message: '' })
+  const [status, setStatus] = useState(() => oauthFailed
+    ? {
+        tone: 'error',
+        message: 'Đăng nhập Google không thành công hoặc tài khoản chưa được kích hoạt.',
+      }
+    : { tone: 'idle', message: '' })
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [isLoginOpen, setIsLoginOpen] = useState(oauthFailed)
   const dialogRef = useRef(null)
   const loginOpenButtonRef = useRef(null)
   const closeButtonRef = useRef(null)
@@ -180,6 +186,11 @@ function LoginPage() {
         )}
 
         <form className="login-form" aria-busy={status.tone === 'loading'} noValidate onSubmit={handleSubmit}>
+          <a className="button button-outline google-login-button" href={authService.getGoogleLoginUrl()}>
+            <span>Đăng nhập với Google</span>
+            <span aria-hidden="true">G</span>
+          </a>
+          <div className="login-method-divider" aria-hidden="true">hoặc dùng email</div>
           <div className="form-field">
             <label htmlFor="login-email">Email</label>
             <input

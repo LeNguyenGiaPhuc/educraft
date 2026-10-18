@@ -10,5 +10,7 @@ export function createAuthRouter({ controller, authenticate }) {
   router.post('/refresh', controller.refresh)
   router.post('/logout', controller.logout)
   router.get('/me', authenticate, controller.me)
+  router.get('/google', controller.googleStart)
+  router.get('/google/callback', controller.googleCallback)
   return router
 }

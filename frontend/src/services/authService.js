@@ -77,6 +77,10 @@ export function createAuthService({ api = apiClient } = {}) {
   }
 
   return {
+    getGoogleLoginUrl() {
+      return api.url('/api/auth/google')
+    },
+
     login(email, password) {
       return readProfile(api.post('/api/auth/login', { email, password }))
     },

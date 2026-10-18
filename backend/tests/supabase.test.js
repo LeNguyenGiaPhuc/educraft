@@ -30,3 +30,25 @@ test('gateway rejects an empty user token', () => {
 
   assert.throws(() => gateway.createUserClient(''), /access token/i)
 })
+
+test('gateway creates a request-scoped PKCE client with injected server storage', () => {
+  const calls = []
+  const storage = {
+    getItem() { return null },
+    setItem() {},
+    removeItem() {},
+  }
+  const gateway = createSupabaseGateway(config, (url, key, options) => {
+    calls.push({ url, key, options })
+    return { url, key, options }
+  })
+
+  gateway.createOAuthClient(storage)
+
+  const oauthCall = calls.at(-1)
+  assert.equal(oauthCall.key, 'anon-key')
+  assert.equal(oauthCall.options.auth.flowType, 'pkce')
+  assert.equal(oauthCall.options.auth.persistSession, true)
+  assert.equal(oauthCall.options.auth.detectSessionInUrl, false)
+  assert.equal(oauthCall.options.auth.storage, storage)
+})
