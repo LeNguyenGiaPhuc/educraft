@@ -12,6 +12,7 @@ const app = createApp({
     expressApp.use('/api/auth', dependencies.authRouter)
     expressApp.use('/api/admin', dependencies.accountRouter)
     expressApp.use('/api/admin', dependencies.classRouter)
+    expressApp.use('/api/admin', dependencies.aiUsageRouter)
     expressApp.use('/api/teacher', dependencies.teacherClassRouter)
     expressApp.use('/api/student', dependencies.studentRouter)
     expressApp.use('/api', dependencies.assignmentRouter)

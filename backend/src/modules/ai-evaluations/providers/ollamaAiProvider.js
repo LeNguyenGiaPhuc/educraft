@@ -2,8 +2,12 @@ import { AppError } from '../../../common/errors.js'
 import sharp from 'sharp'
 import {
   AI_PROMPT_VERSION,
+  CHECKER_PROMPT_VERSION,
+  buildCheckerPrompt,
   buildEvaluationPrompt,
+  checkerResultJsonSchema,
   evaluationSuggestionJsonSchema,
+  parseCheckerResult,
   parseEvaluationSuggestion,
   parseProviderResult,
   parseSingleImageTranscription,
@@ -231,7 +235,14 @@ export function createOllamaAiProvider({
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
   if (!normalizedBaseUrl || typeof fetchImpl !== 'function') throw providerUnavailable()
 
-  async function createChat({ content, images = [], schema }) {
+  async function createChat({
+    content,
+    images = [],
+    schema,
+    stage,
+    promptVersion,
+    onInteraction,
+  }) {
     let message
     try {
       message = await imageMessage(content, images)
@@ -241,6 +252,7 @@ export function createOllamaAiProvider({
     }
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      const startedAt = Date.now()
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), timeoutMs)
 
@@ -270,8 +282,36 @@ export function createOllamaAiProvider({
           }
           throw new Error(`Ollama request failed with status ${response?.status ?? 'unknown'}`)
         }
-        return await response.json()
+        const body = await response.json()
+        onInteraction?.({
+          stage,
+          status: 'SUCCEEDED',
+          provider: 'ollama',
+          model_name: model,
+          prompt_version: promptVersion,
+          input_tokens: Number.isFinite(Number(body?.prompt_eval_count))
+            ? Number(body.prompt_eval_count)
+            : null,
+          output_tokens: Number.isFinite(Number(body?.eval_count))
+            ? Number(body.eval_count)
+            : null,
+          latency_ms: Math.max(0, Date.now() - startedAt),
+          cost_usd: 0,
+        })
+        return body
       } catch (error) {
+        onInteraction?.({
+          stage,
+          status: 'FAILED',
+          provider: 'ollama',
+          model_name: model,
+          prompt_version: promptVersion,
+          input_tokens: null,
+          output_tokens: null,
+          latency_ms: Math.max(0, Date.now() - startedAt),
+          cost_usd: 0,
+          error_code: error?.code ?? 'AI_PROVIDER_FAILED',
+        })
         if (error instanceof AppError) throw error
         if (isAbortError(error) && attempt === 0) {
           console.warn('[Ollama AI Provider Retry] Request timed out; retrying once.')
@@ -287,7 +327,7 @@ export function createOllamaAiProvider({
     throw providerFailed()
   }
 
-  async function transcribePage(image, source) {
+  async function transcribePage(image, source, onInteraction) {
     const response = await createChat({
       content: [
         'Bạn là bộ phận đọc một trang ảnh cho hệ thống EduCraft.',
@@ -298,19 +338,22 @@ export function createOllamaAiProvider({
       ].join('\n'),
       images: [image],
       schema: singleImageTranscriptionJsonSchema,
+      stage: 'transcription',
+      promptVersion: AI_PROMPT_VERSION,
+      onInteraction,
     })
     return parseJsonResponse(response, parseSingleImageTranscription)
   }
 
-  async function transcribeInput(input) {
+  async function transcribeInput(input, onInteraction) {
     const referenceResults = []
     for (const image of input.referenceImages) {
-      referenceResults.push(await transcribePage(image, 'reference'))
+      referenceResults.push(await transcribePage(image, 'reference', onInteraction))
     }
 
     const submissionResults = []
     for (const image of input.submissionImages) {
-      submissionResults.push(await transcribePage(image, 'submission'))
+      submissionResults.push(await transcribePage(image, 'submission', onInteraction))
     }
 
     return {
@@ -324,9 +367,10 @@ export function createOllamaAiProvider({
   }
 
   return {
-    async evaluate(input) {
+    async evaluate(input, { onInteraction, onProgress } = {}) {
       const startedAt = now()
-      const transcription = await transcribeInput(input)
+      const transcription = await transcribeInput(input, onInteraction)
+      await onProgress?.('transcribed')
 
       const evaluationResponse = await createChat({
         content: buildEvaluationPrompt({
@@ -336,8 +380,12 @@ export function createOllamaAiProvider({
           studentTranscription: transcription.student_transcription,
         }),
         schema: evaluationSuggestionJsonSchema,
+        stage: 'evaluation',
+        promptVersion: AI_PROMPT_VERSION,
+        onInteraction,
       })
       const suggestion = parseJsonResponse(evaluationResponse, parseEvaluationSuggestion)
+      await onProgress?.('evaluated')
 
       return parseProviderResult({
         ...suggestion,
@@ -348,6 +396,27 @@ export function createOllamaAiProvider({
         prompt_version: AI_PROMPT_VERSION,
         latency_ms: Math.max(0, now() - startedAt),
       })
+    },
+
+    async check(providerResult, { onInteraction } = {}) {
+      const response = await createChat({
+        content: buildCheckerPrompt({
+          referenceTranscription: providerResult.reference_transcription,
+          studentTranscription: providerResult.student_transcription,
+          suggestion: {
+            coverage_score: providerResult.coverage_score,
+            suggested_status: providerResult.suggested_status,
+            missing_content: providerResult.missing_content,
+            feedback_draft: providerResult.feedback_draft,
+          },
+        }),
+        schema: checkerResultJsonSchema,
+        stage: 'checker',
+        promptVersion: CHECKER_PROMPT_VERSION,
+        onInteraction,
+      })
+
+      return parseJsonResponse(response, parseCheckerResult)
     },
   }
 }

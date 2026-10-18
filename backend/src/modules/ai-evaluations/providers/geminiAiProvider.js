@@ -3,9 +3,13 @@ import { GoogleGenAI } from '@google/genai'
 import { AppError } from '../../../common/errors.js'
 import {
   AI_PROMPT_VERSION,
+  CHECKER_PROMPT_VERSION,
+  buildCheckerPrompt,
   buildEvaluationPrompt,
   buildTranscriptionPrompt,
+  checkerResultJsonSchema,
   evaluationSuggestionJsonSchema,
+  parseCheckerResult,
   parseEvaluationSuggestion,
   parseProviderResult,
   parseTranscriptionResult,
@@ -94,6 +98,12 @@ function parseJsonResponse(response, parser) {
   return parser(value)
 }
 
+function tokenCount(response, camelCaseName, snakeCaseName) {
+  const usage = response?.usageMetadata ?? response?.usage_metadata
+  const value = usage?.[camelCaseName] ?? usage?.[snakeCaseName]
+  return Number.isFinite(Number(value)) ? Number(value) : null
+}
+
 export function createGeminiAiProvider({
   apiKey,
   model = 'gemini-3.5-flash-lite',
@@ -106,9 +116,10 @@ export function createGeminiAiProvider({
 
   const ai = client ?? new GoogleGenAI({ apiKey })
 
-  async function createInteraction(request) {
+  async function createInteraction(request, usage = {}) {
+    const startedAt = Date.now()
     try {
-      return await withTimeout(
+      const response = await withTimeout(
         () => ai.interactions.create({
           ...request,
           store: false,
@@ -118,7 +129,31 @@ export function createGeminiAiProvider({
         }, { timeout: timeoutMs }),
         timeoutMs,
       )
+      usage.onInteraction?.({
+        stage: usage.stage,
+        status: 'SUCCEEDED',
+        provider: 'gemini',
+        model_name: model,
+        prompt_version: usage.promptVersion,
+        input_tokens: tokenCount(response, 'promptTokenCount', 'prompt_token_count'),
+        output_tokens: tokenCount(response, 'candidatesTokenCount', 'candidates_token_count'),
+        latency_ms: Math.max(0, Date.now() - startedAt),
+        cost_usd: null,
+      })
+      return response
     } catch (error) {
+      usage.onInteraction?.({
+        stage: usage.stage,
+        status: 'FAILED',
+        provider: 'gemini',
+        model_name: model,
+        prompt_version: usage.promptVersion,
+        input_tokens: null,
+        output_tokens: null,
+        latency_ms: Math.max(0, Date.now() - startedAt),
+        cost_usd: null,
+        error_code: error?.code ?? 'AI_PROVIDER_FAILED',
+      })
       if (error instanceof AppError) throw error
       console.error('[Gemini AI Provider Error]', error?.status ?? '', error?.message ?? error)
       throw providerFailed()
@@ -126,7 +161,7 @@ export function createGeminiAiProvider({
   }
 
   return {
-    async evaluate(input) {
+    async evaluate(input, { onInteraction, onProgress } = {}) {
       const startedAt = now()
       const transcriptionInput = [
         {
@@ -145,8 +180,13 @@ export function createGeminiAiProvider({
         model,
         input: transcriptionInput,
         response_format: responseFormat(transcriptionJsonSchema),
+      }, {
+        stage: 'transcription',
+        promptVersion: AI_PROMPT_VERSION,
+        onInteraction,
       })
       const transcription = parseJsonResponse(transcriptionResponse, parseTranscriptionResult)
+      await onProgress?.('transcribed')
 
       const evaluationResponse = await createInteraction({
         model,
@@ -157,8 +197,13 @@ export function createGeminiAiProvider({
           studentTranscription: transcription.student_transcription,
         }),
         response_format: responseFormat(evaluationSuggestionJsonSchema),
+      }, {
+        stage: 'evaluation',
+        promptVersion: AI_PROMPT_VERSION,
+        onInteraction,
       })
       const suggestion = parseJsonResponse(evaluationResponse, parseEvaluationSuggestion)
+      await onProgress?.('evaluated')
 
       return parseProviderResult({
         ...suggestion,
@@ -169,6 +214,29 @@ export function createGeminiAiProvider({
         prompt_version: AI_PROMPT_VERSION,
         latency_ms: Math.max(0, now() - startedAt),
       })
-    }
+    },
+
+    async check(providerResult, { onInteraction } = {}) {
+      const response = await createInteraction({
+        model,
+        input: buildCheckerPrompt({
+          referenceTranscription: providerResult.reference_transcription,
+          studentTranscription: providerResult.student_transcription,
+          suggestion: {
+            coverage_score: providerResult.coverage_score,
+            suggested_status: providerResult.suggested_status,
+            missing_content: providerResult.missing_content,
+            feedback_draft: providerResult.feedback_draft,
+          },
+        }),
+        response_format: responseFormat(checkerResultJsonSchema),
+      }, {
+        stage: 'checker',
+        promptVersion: CHECKER_PROMPT_VERSION,
+        onInteraction,
+      })
+
+      return parseJsonResponse(response, parseCheckerResult)
+    },
   }
 }

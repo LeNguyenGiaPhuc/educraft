@@ -29,6 +29,12 @@ const PROVIDER_RESULT = Object.freeze({
   latency_ms: 0,
 })
 
+const CHECKER_RESULT = Object.freeze({
+  status: 'PASSED',
+  summary: 'Đề xuất có căn cứ trong bản chép.',
+  findings: Object.freeze([]),
+})
+
 function evaluation(submissionId = submissionIds[0]) {
   return {
     id: '99999999-9999-4999-8999-999999999999',
@@ -36,6 +42,10 @@ function evaluation(submissionId = submissionIds[0]) {
     ...PROVIDER_RESULT,
     missing_content: [...PROVIDER_RESULT.missing_content],
     uncertain_content: [...PROVIDER_RESULT.uncertain_content],
+    checker_status: 'PASSED',
+    checker_summary: CHECKER_RESULT.summary,
+    checker_findings: [],
+    checker_prompt_version: 'handwriting-checker-v2',
     created_at: '2026-09-14T03:00:00Z',
     private_database_field: 'hidden',
   }
@@ -204,6 +214,7 @@ function buildService({
   inputService,
   assignmentService,
   logger = { error() {} },
+  usageRecorder = { async record() {} },
 } = {}) {
   const events = []
   const supabase = createUserClient(userResults, events)
@@ -238,14 +249,41 @@ function buildService({
     },
   }
   const defaultProvider = {
-    async evaluate(input) {
+    async evaluate(input, options = {}) {
       events.push('provider:evaluate')
       assert.equal(input.assignmentTitle, 'Lực ma sát')
+      options.onInteraction?.({
+        stage: 'evaluation',
+        status: 'SUCCEEDED',
+        provider: 'ollama',
+        model_name: 'qwen3-vl:2b',
+        prompt_version: 'handwriting-v1',
+        input_tokens: 20,
+        output_tokens: 10,
+        latency_ms: 5,
+        cost_usd: 0,
+      })
       return {
         ...PROVIDER_RESULT,
         missing_content: [...PROVIDER_RESULT.missing_content],
         uncertain_content: [],
       }
+    },
+    async check(input, options = {}) {
+      events.push('provider:check')
+      assert.equal(input.student_transcription, 'Bản chép từ bài nộp.')
+      options.onInteraction?.({
+        stage: 'checker',
+        status: 'SUCCEEDED',
+        provider: 'ollama',
+        model_name: 'qwen3-vl:2b',
+        prompt_version: 'handwriting-checker-v2',
+        input_tokens: 15,
+        output_tokens: 5,
+        latency_ms: 3,
+        cost_usd: 0,
+      })
+      return { ...CHECKER_RESULT, findings: [] }
     },
   }
   return {
@@ -260,6 +298,7 @@ function buildService({
       inputService: inputService ?? defaultInputService,
       provider: provider ?? defaultProvider,
       logger,
+      usageRecorder,
     }),
   }
 }
@@ -297,6 +336,10 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     uncertain_content: [],
     model_name: 'qwen3-vl:2b',
     model_version: '1.0',
+    checker_status: 'PASSED',
+    checker_summary: CHECKER_RESULT.summary,
+    checker_findings: [],
+    checker_prompt_version: 'handwriting-checker-v2',
     created_at: savedEvaluation.created_at,
   })
   assert.deepEqual(context.events, [
@@ -305,6 +348,7 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     'load-evaluation-input',
     'admin:submissions:update',
     'provider:evaluate',
+    'provider:check',
     'admin:ai_evaluations:upsert',
     'admin:submissions:update',
   ])
@@ -330,20 +374,234 @@ test('assigned teacher runs deterministic PROCESSING to REQUIRES_REVIEW workflow
     reference_transcription: 'Bản chép từ bài mẫu.',
     student_transcription: 'Bản chép từ bài nộp.',
     uncertain_content: [],
+    checker_status: 'PASSED',
+    checker_summary: CHECKER_RESULT.summary,
+    checker_findings: [],
+    checker_prompt_version: 'handwriting-checker-v2',
   })
   assert.equal(context.adminClient.calls.some((call) => call.table === 'teacher_reviews'), false)
   assert.equal(JSON.stringify(context.adminClient.calls).includes('FINALIZED'), true)
   assert.equal(context.adminClient.calls.some((call) => call.value?.status === 'FINALIZED'), false)
 })
 
+test('runEvaluation emits verified progress stages in order', async () => {
+  const progress = []
+  const context = buildService({
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: evaluation(), error: null },
+      { data: { id: submissionIds[0], status: 'REQUIRES_REVIEW' }, error: null },
+    ],
+    provider: {
+      async evaluate(_input, { onProgress }) {
+        await onProgress('transcribed')
+        await onProgress('evaluated')
+        return {
+          ...PROVIDER_RESULT,
+          missing_content: [...PROVIDER_RESULT.missing_content],
+          uncertain_content: [],
+        }
+      },
+      async check() {
+        return { ...CHECKER_RESULT, findings: [] }
+      },
+    },
+  })
+
+  await context.service.runEvaluation(
+    teacherAuth(context.supabase),
+    submissionIds[0],
+    { onProgress: (event) => progress.push(event) },
+  )
+
+  assert.deepEqual(progress, [
+    { stage: 'input_ready', submissionId: submissionIds[0] },
+    { stage: 'transcribed', submissionId: submissionIds[0] },
+    { stage: 'evaluated', submissionId: submissionIds[0] },
+    { stage: 'checked', submissionId: submissionIds[0] },
+    { stage: 'persisted', submissionId: submissionIds[0] },
+  ])
+  assert.equal(progress.every((event) => Object.keys(event).length === 2), true)
+})
+
+test('progress callback failure does not fail evaluation', async () => {
+  let callbackCalls = 0
+  const context = buildService({
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: evaluation(), error: null },
+      { data: { id: submissionIds[0], status: 'REQUIRES_REVIEW' }, error: null },
+    ],
+  })
+
+  const result = await context.service.runEvaluation(
+    teacherAuth(context.supabase),
+    submissionIds[0],
+    {
+      onProgress() {
+        callbackCalls += 1
+        throw new Error('client disconnected')
+      },
+    },
+  )
+
+  assert.equal(result.submission_status, 'REQUIRES_REVIEW')
+  assert.equal(result.evaluation.id, evaluation().id)
+  assert.equal(callbackCalls > 0, true)
+})
+
+test('AI usage recorder receives one entry for each model interaction', async () => {
+  const recorded = []
+  const context = buildService({
+    usageRecorder: {
+      async record(value) { recorded.push(value) },
+    },
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: evaluation(), error: null },
+      { data: { id: submissionIds[0], status: 'REQUIRES_REVIEW' }, error: null },
+    ],
+  })
+
+  await context.service.runEvaluation(teacherAuth(context.supabase), submissionIds[0])
+
+  assert.equal(recorded.length, 1)
+  assert.equal(recorded[0].submissionId, submissionIds[0])
+  assert.equal(recorded[0].evaluationId, evaluation().id)
+  assert.deepEqual(recorded[0].interactions.map((item) => item.stage), [
+    'evaluation',
+    'checker',
+  ])
+})
+
+test('usage logging failure does not fail a completed evaluation', async () => {
+  const logger = { entries: [], error(entry) { this.entries.push(entry) } }
+  const context = buildService({
+    logger,
+    usageRecorder: {
+      async record() { throw new Error('logging unavailable') },
+    },
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: evaluation(), error: null },
+      { data: { id: submissionIds[0], status: 'REQUIRES_REVIEW' }, error: null },
+    ],
+  })
+
+  const result = await context.service.runEvaluation(
+    teacherAuth(context.supabase),
+    submissionIds[0],
+  )
+
+  assert.equal(result.submission_status, 'REQUIRES_REVIEW')
+  assert.deepEqual(logger.entries, [{
+    event: 'ai_usage_log_failed',
+    submissionId: submissionIds[0],
+    errorCode: 'AI_USAGE_LOG_FAILED',
+  }])
+})
+
+test('checker failure keeps evaluator suggestion and leaves checker unverified', async () => {
+  const recorded = []
+  const uncheckedEvaluation = {
+    ...evaluation(),
+    checker_status: null,
+    checker_summary: null,
+    checker_findings: [],
+    checker_prompt_version: null,
+  }
+  const context = buildService({
+    usageRecorder: {
+      async record(value) { recorded.push(value) },
+    },
+    userResults: [{ data: null, error: null }],
+    adminResults: [
+      { data: { id: submissionIds[0], status: 'PROCESSING' }, error: null },
+      { data: uncheckedEvaluation, error: null },
+      { data: { id: submissionIds[0], status: 'REQUIRES_REVIEW' }, error: null },
+    ],
+    provider: {
+      async evaluate(_input, { onInteraction }) {
+        onInteraction({
+          stage: 'evaluation',
+          status: 'SUCCEEDED',
+          provider: 'ollama',
+          model_name: 'qwen3-vl:2b',
+          prompt_version: 'handwriting-v1',
+        })
+        return {
+          ...PROVIDER_RESULT,
+          missing_content: [...PROVIDER_RESULT.missing_content],
+          uncertain_content: [],
+        }
+      },
+      async check(_result, { onInteraction }) {
+        onInteraction({
+          stage: 'checker',
+          status: 'FAILED',
+          provider: 'ollama',
+          model_name: 'qwen3-vl:2b',
+          prompt_version: 'handwriting-checker-v2',
+          error_code: 'AI_PROVIDER_FAILED',
+        })
+        throw new AppError(502, 'AI_PROVIDER_FAILED', 'Checker unavailable')
+      },
+    },
+  })
+
+  const result = await context.service.runEvaluation(
+    teacherAuth(context.supabase),
+    submissionIds[0],
+  )
+
+  assert.equal(result.submission_status, 'REQUIRES_REVIEW')
+  assert.equal(result.evaluation.checker_status, null)
+  assert.equal(result.evaluation.checker_summary, null)
+  assert.deepEqual(result.evaluation.checker_findings, [])
+  assert.equal(result.evaluation.checker_prompt_version, null)
+  assert.deepEqual(
+    context.adminClient.calls
+      .filter((call) => call.table === 'submissions')
+      .map((call) => call.value.status),
+    ['PROCESSING', 'REQUIRES_REVIEW'],
+  )
+  assert.equal(context.adminClient.calls[1].value.checker_status, null)
+  assert.equal(context.adminClient.calls[1].value.checker_summary, null)
+  assert.deepEqual(context.adminClient.calls[1].value.checker_findings, [])
+  assert.equal(context.adminClient.calls[1].value.checker_prompt_version, null)
+  assert.deepEqual(recorded[0].interactions.map((item) => [item.stage, item.status]), [
+    ['evaluation', 'SUCCEEDED'],
+    ['checker', 'FAILED'],
+  ])
+})
+
 test('existing evaluation is returned idempotently without creating a duplicate', async () => {
-  const existing = evaluation()
+  const existing = {
+    ...evaluation(),
+    checker_status: null,
+    checker_summary: null,
+    checker_findings: [],
+    checker_prompt_version: null,
+  }
+  let providerCalls = 0
+  let usageCalls = 0
   const context = buildService({
     submissionStatuses: ['REQUIRES_REVIEW', 'REQUIRES_REVIEW'],
     userResults: [
       { data: existing, error: null },
       { data: existing, error: null },
     ],
+    provider: {
+      async evaluate() { providerCalls += 1 },
+      async check() { providerCalls += 1 },
+    },
+    usageRecorder: {
+      async record() { usageCalls += 1 },
+    },
   })
 
   const first = await context.service.runEvaluation(
@@ -358,6 +616,9 @@ test('existing evaluation is returned idempotently without creating a duplicate'
   assert.deepEqual(first, second)
   assert.equal(context.adminClient.calls.length, 0)
   assert.equal(context.supabase.calls.length, 2)
+  assert.equal(first.evaluation.checker_status, null)
+  assert.equal(providerCalls, 0)
+  assert.equal(usageCalls, 0)
 })
 
 test('assignment threshold overrides the model status before evaluation is saved', async () => {

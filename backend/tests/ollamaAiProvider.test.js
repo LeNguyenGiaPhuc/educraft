@@ -4,6 +4,7 @@ import sharp from 'sharp'
 
 import { AppError } from '../src/common/errors.js'
 import {
+  checkerResultJsonSchema,
   evaluationSuggestionJsonSchema,
   singleImageTranscriptionJsonSchema,
 } from '../src/modules/ai-evaluations/aiEvaluationSchema.js'
@@ -47,6 +48,12 @@ const suggestion = JSON.stringify({
   suggested_status: 'REQUIRES_TEACHER_REVIEW',
   missing_content: ['Bổ sung phần kết luận.'],
   feedback_draft: 'Bài làm đủ ý chính nhưng cần bổ sung phần kết luận.',
+})
+
+const checkerResult = JSON.stringify({
+  status: 'PASSED',
+  summary: 'Đề xuất có căn cứ trong bản chép.',
+  findings: [],
 })
 
 function createFakeFetch(responses, calls = []) {
@@ -101,6 +108,33 @@ test('Ollama provider sends both image sets and returns validated metadata', asy
   assert.deepEqual(evaluationBody.format, evaluationSuggestionJsonSchema)
   assert.match(evaluationBody.messages[0].content, /Lực ma sát/)
   assert.doesNotMatch(evaluationBody.messages[0].content, /student@example|studentId|email/i)
+})
+
+test('Ollama checker uses the checker schema and reports safe usage metadata', async () => {
+  const calls = []
+  const interactions = []
+  const provider = createOllamaAiProvider({
+    model: 'qwen3-vl:2b',
+    fetchImpl: createFakeFetch([checkerResult], calls),
+  })
+
+  const result = await provider.check({
+    reference_transcription: 'Bài mẫu nêu ba ý chính.',
+    student_transcription: 'Bài nộp có đủ ba ý.',
+    coverage_score: 90,
+    suggested_status: 'COMPLETED',
+    missing_content: [],
+    feedback_draft: 'Bài nộp đầy đủ.',
+  }, { onInteraction: (value) => interactions.push(value) })
+
+  const body = JSON.parse(calls[0].options.body)
+  assert.equal(result.status, 'PASSED')
+  assert.deepEqual(body.format, checkerResultJsonSchema)
+  assert.match(body.messages[0].content, /dữ liệu không đáng tin cậy/i)
+  assert.equal(interactions.length, 1)
+  assert.equal(interactions[0].stage, 'checker')
+  assert.equal(interactions[0].status, 'SUCCEEDED')
+  assert.equal(Object.hasOwn(interactions[0], 'prompt'), false)
 })
 
 test('Ollama provider downsizes large images before sending them to the local model', async () => {
@@ -215,6 +249,7 @@ test('Ollama provider splits three or more images into context-safe transcriptio
     uncertain_content: [],
   })
   const calls = []
+  const progress = []
   const provider = createOllamaAiProvider({
     model: 'qwen3-vl:2b',
     fetchImpl: createFakeFetch([
@@ -225,7 +260,9 @@ test('Ollama provider splits three or more images into context-safe transcriptio
     ], calls),
   })
 
-  const result = await provider.evaluate(multiImageInput)
+  const result = await provider.evaluate(multiImageInput, {
+    onProgress: (stage) => progress.push(stage),
+  })
 
   assert.equal(calls.length, 4)
   assert.equal(JSON.parse(calls[0].options.body).messages[0].images.length, 1)
@@ -233,6 +270,7 @@ test('Ollama provider splits three or more images into context-safe transcriptio
   assert.equal(JSON.parse(calls[2].options.body).messages[0].images.length, 1)
   assert.match(result.reference_transcription, /Trang mẫu/)
   assert.match(result.student_transcription, /Nội dung bài nộp/)
+  assert.deepEqual(progress, ['transcribed', 'evaluated'])
 })
 
 test('Ollama provider retries one timed-out call before failing the evaluation', async () => {

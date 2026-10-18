@@ -6,6 +6,12 @@ import { createAccountService } from './modules/accounts/accountService.js'
 import { createAiEvaluationController } from './modules/ai-evaluations/aiEvaluationController.js'
 import { createAiEvaluationRouter } from './modules/ai-evaluations/aiEvaluationRoutes.js'
 import { createAiEvaluationInputService } from './modules/ai-evaluations/aiEvaluationInputService.js'
+import { createAiUsageController } from './modules/ai-evaluations/aiUsageController.js'
+import { createAiUsageRouter } from './modules/ai-evaluations/aiUsageRoutes.js'
+import {
+  createAiUsageRecorder,
+  createAiUsageService,
+} from './modules/ai-evaluations/aiUsageService.js'
 import {
   createAiEvaluationService,
   createAssignmentEvaluationInvalidator,
@@ -137,16 +143,24 @@ export function createDependencies(config) {
     maxTotalBytes: config.AI_MAX_TOTAL_BYTES,
   })
   const provider = createAiProvider(config)
+  const aiUsageRecorder = createAiUsageRecorder({ adminClient: gateway.adminClient })
   const aiEvaluationService = createAiEvaluationService({
     adminClient: gateway.adminClient,
     assignmentService,
     submissionService,
     inputService,
     provider,
+    usageRecorder: aiUsageRecorder,
   })
   const aiEvaluationController = createAiEvaluationController({ aiEvaluationService })
   const aiEvaluationRouter = createAiEvaluationRouter({
     controller: aiEvaluationController,
+    authenticate,
+  })
+  const aiUsageService = createAiUsageService({ adminClient: gateway.adminClient })
+  const aiUsageController = createAiUsageController({ aiUsageService })
+  const aiUsageRouter = createAiUsageRouter({
+    controller: aiUsageController,
     authenticate,
   })
   const authController = createAuthController({
@@ -162,6 +176,7 @@ export function createDependencies(config) {
     accountRouter,
     assignmentRouter,
     aiEvaluationRouter,
+    aiUsageRouter,
     authRouter,
     authenticate,
     classRouter,
