@@ -30,10 +30,23 @@ test('125 classes and 500 assignments render only 20 class selectors and 25 nati
     const html = render(Archive, { classes })
     assert.ok((html.match(/data-class-id=/g) || []).length <= 20)
     assert.equal((html.match(/data-assignment-id=/g) || []).length, count ? 25 : 0)
-    assert.equal((html.match(/href="\/student\/assignments\//g) || []).length, count ? 50 : 0)
+    assert.equal((html.match(/href="\/student\/assignments\//g) || []).length, count ? 25 : 0)
     assert.equal((html.match(/id="student-class-sheet"/g) || []).length, count ? 1 : 0)
     assert.doesNotMatch(html, /\/classes\/|ai-evaluation|Phân tích bằng AI/)
   }
+})
+
+test('class cards expose one strong selected state without inventing dashboard progress', () => {
+  const html = render(Archive, { classes: [
+    { id: 'class-a', code: '11A2', subject: 'Lịch sử', assignments: [assignment] },
+    { id: 'class-b', code: '10B1', subject: 'Ngữ văn', assignments: [] },
+  ] })
+
+  assert.match(html, /class="sf-class-row sf-class-card"[^>]*data-class-id="class-a"[^>]*aria-pressed="true"/)
+  assert.match(html, /class="sf-class-row sf-class-card"[^>]*data-class-id="class-b"[^>]*aria-pressed="false"/)
+  assert.equal((html.match(/href="\/student\/assignments\/a"/g) || []).length, 1)
+  assert.match(html, /class="sf-open-assignment"[^>]*>[\s\S]*?Mở bài\s*</)
+  assert.doesNotMatch(html, /Đã nộp|Có phản hồi|% hoàn thành|điểm kinh nghiệm/i)
 })
 
 test('history is bounded to 20 attempts, preserves distinct IDs and finalized feedback as read-only', () => {
@@ -46,6 +59,23 @@ test('history is bounded to 20 attempts, preserves distinct IDs and finalized fe
   }
 })
 
+test('history gives existing submission states distinct text-backed presentation hooks', () => {
+  const submissions = [
+    { id: 'submitted', attemptNumber: 1, fileName: 'mot.png', status: 'submitted' },
+    { id: 'processing', attemptNumber: 2, fileName: 'hai.png', status: 'processing' },
+    { id: 'review', attemptNumber: 3, fileName: 'ba.png', status: 'awaiting_review' },
+    { id: 'result', attemptNumber: 4, fileName: 'bon.png', status: 'approved', result: { finalStatus: 'completed', feedback: 'Đã chốt' } },
+  ]
+  const html = render(History, { submissions, status: 'success' })
+
+  for (const status of ['submitted', 'processing', 'awaiting-review', 'approved']) {
+    assert.match(html, new RegExp(`student-history-status--${status}`))
+  }
+  for (const label of ['Đã nộp', 'Đang xử lý', 'Chờ giáo viên chốt', 'Kết quả']) {
+    assert.match(html, new RegExp(`>${label}<`))
+  }
+})
+
 test('upload pending disables file and submit, retains selected filename and genuine validation error', () => {
   const html = render(Form, { assignment, availability: { isOpen: true }, form: { fileName: 'ảnh bài ghi.png' }, errors: { file: 'Sai định dạng' }, request: { status: 'loading' }, onFileChange() {}, onSubmit() {} })
   assert.match(html, /accept="image\/png,image\/jpeg"/)
@@ -54,6 +84,23 @@ test('upload pending disables file and submit, retains selected filename and gen
   assert.match(html, /ảnh bài ghi.png/)
   assert.match(html, /aria-busy="true"/)
   assert.doesNotMatch(html, /image\/webp|application\/pdf/)
+})
+
+test('closed assignment presents a truthful read-only heading instead of a next submission step', () => {
+  const html = render(Form, {
+    assignment,
+    availability: { isOpen: false, message: 'Bài đã đóng.' },
+    form: { fileName: '' },
+    errors: {},
+    request: { status: 'idle' },
+    onFileChange() {},
+    onSubmit() {},
+  })
+
+  assert.match(html, />Trạng thái bài</)
+  assert.match(html, /<h2[^>]*>Bài đã đóng<\/h2>/)
+  assert.doesNotMatch(html, /Bước tiếp theo|<h2[^>]*>Nộp bài ghi<\/h2>|id="note-file"/)
+  assert.match(html, /href="\/student"/)
 })
 
 test('protected pending has neutral placeholders and no identity, file or result', () => {
@@ -80,6 +127,9 @@ test('submission folio begins with verified assignment context, not a numbered p
   assert.doesNotMatch(html, /sf-folio-tab/)
   assert.doesNotMatch(html, /student-progress-number|state-kicker|Teacher Seal|Chốt kết quả/)
   assert.match(html, /id="note-file"/)
+  assert.match(html, /class="sf-upload-control student-upload-zone"/)
+  assert.ok(html.indexOf('sf-assignment-context') < html.indexOf('student-submit-card'))
+  assert.ok(html.indexOf('student-submit-card') < html.indexOf('student-submission-history'))
 })
 
 test('one or three classes keep the same searchable index and selected dossier as larger archives', () => {
@@ -105,7 +155,7 @@ test('class search stays outside the framed class index while its header and rec
 test('expired OPEN assignments display closed in both archive and assignment context', () => {
   const expired = { ...assignment, dueAt: '2000-10-02T18:55:00+07:00', status: 'OPEN', statusLabel: 'Đang mở', statusTone: 'active' }
   const archive = render(Archive, { classes: [{ id: 'c', code: '11A2', subject: 'Lịch sử', assignments: [expired] }] })
-  assert.match(archive, /class="sf-status">Đã đóng<\/span>/)
+  assert.match(archive, /class="sf-status sf-status-closed">[\s\S]*?Đã đóng<\/span>/)
   assert.doesNotMatch(archive, /Đang mở/)
   const workspace = render(Workspace, { assignment: expired, service: { listMySubmissions: async () => [] } })
   assert.match(workspace, /<dt>Trạng thái bài<\/dt><dd>Đã đóng<\/dd>/)
@@ -120,6 +170,6 @@ test('Student archive distinguishes future open, manually closed and invalid dea
     { ...assignment, id: 'invalid', dueAt: 'invalid', statusLabel: 'Đang mở', statusTone: 'active' },
   ]
   const html = render(Archive, { classes: [{ id: 'c', code: '11A2', assignments: rows }] })
-  const labels = [...html.matchAll(/class="sf-status">([^<]+)<\/span>/g)].map(match => match[1])
+  const labels = [...html.matchAll(/class="sf-status sf-status-(?:open|closed)">[\s\S]*?([^<>]+)<\/span>/g)].map(match => match[1].trim())
   assert.deepEqual(labels, ['Đang mở', 'Đã đóng', 'Đã đóng'])
 })

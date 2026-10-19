@@ -49,7 +49,13 @@ function SubmissionSuccess({ assignment, canResubmit, onSubmitAnother, request }
   return (
     <section className="assignment-success student-success-panel" role="status" aria-live="polite">
       <PaperEdge trigger={request.data.id} />
-      <div className="sf-receipt-heading"><span className="sf-receipt-fold" aria-hidden="true" /><h2>Nộp bài thành công</h2></div>
+      <div className="sf-receipt-heading">
+        <span className="sf-receipt-fold" aria-hidden="true">✓</span>
+        <div>
+          <span className="sf-section-kicker">Đã ghi nhận</span>
+          <h2>Nộp bài thành công</h2>
+        </div>
+      </div>
       <p>
         File <strong>{request.data.fileName}</strong> đã được ghi nhận cho bài
         “{assignment.title}”.
@@ -80,6 +86,10 @@ function submissionStatusLabel(status) {
   if (status === 'awaiting_review') return 'Chờ giáo viên chốt'
   if (status === 'processing') return 'Đang xử lý'
   return status === 'submitted' ? 'Đã nộp' : 'Chưa xác định'
+}
+
+function submissionStatusClass(status) {
+  return String(status ?? 'unknown').replaceAll('_', '-')
 }
 
 function getLatestSubmission(submissions) {
@@ -168,7 +178,11 @@ function StudentProgress({ assignment, availability, history }) {
 
   return (
     <section className="sf-assignment-context" aria-labelledby="sf-assignment-title">
-      <div className="sf-context-identity"><h1 id="sf-assignment-title">{assignment.title}</h1><p>{assignment.classroom.name}</p></div>
+      <div className="sf-context-identity">
+        <span className="sf-section-kicker">Bài cần hoàn thành</span>
+        <h1 id="sf-assignment-title">{assignment.title}</h1>
+        <p>{assignment.classroom.name}</p>
+      </div>
       <dl className="sf-context-facts"><div><dt>Hạn nộp</dt><dd>{formatAssignmentDeadline(assignment)}</dd></div><div><dt>Trạng thái bài</dt><dd>{availability.isOpen ? 'Đang mở' : 'Đã đóng'}</dd></div></dl>
       <ul className="sf-status-ledger" aria-label="Trạng thái bài làm" aria-live="polite">
         {steps.map(step => (
@@ -227,7 +241,7 @@ export function SubmissionHistory({ submissions, status, message }) {
                     <td data-label="Tên file">{item.fileName}</td>
                     <td className="table-muted-cell" data-label="Thời gian nộp">{formatSubmissionDate(item.submittedAt)}</td>
                     <td data-label="Trạng thái">
-                      <span className="table-status table-status-active student-history-status">
+                      <span className={`table-status table-status-active student-history-status student-history-status--${submissionStatusClass(item.status)}`}>
                         <span aria-hidden="true" />
                         {submissionStatusLabel(item.status)}
                       </span>
@@ -267,7 +281,8 @@ export function StudentSubmissionForm({ assignment, availability, form, hasPrevi
     <section className="assignment-form-card student-submit-card" aria-labelledby="submission-form-title">
       <PaperEdge trigger={form.fileName} />
       <div className="assignment-form-heading student-submit-heading">
-        <h2 id="submission-form-title">Nộp bài ghi</h2>
+        <span className="sf-section-kicker">{availability.isOpen ? 'Bước tiếp theo' : 'Trạng thái bài'}</span>
+        <h2 id="submission-form-title">{availability.isOpen ? 'Nộp bài ghi' : 'Bài đã đóng'}</h2>
         <p>{assignment.classroom.name} · Hạn nộp: {formatAssignmentDeadline(assignment)}</p>
         <span className={`table-status table-status-${availability.isOpen ? 'active' : 'closed'} student-submit-status`}>
           <span aria-hidden="true" />
@@ -304,7 +319,7 @@ export function StudentSubmissionForm({ assignment, availability, form, hasPrevi
             <label htmlFor="note-file">
               {hasPreviousSubmissions ? 'Ảnh bài ghi mới' : 'Ảnh bài ghi'} <span aria-hidden="true">*</span>
             </label>
-            <div className="sf-upload-control"><svg aria-hidden="true" width="40" height="48" viewBox="0 0 40 48" fill="none"><path d="M5 1h21l9 9v37H5zM26 1v10h9M12 20h16M12 27h16M12 34h9" stroke="currentColor" strokeWidth="1.5" /></svg><span aria-hidden="true">Chọn ảnh bài ghi</span><input
+            <div className="sf-upload-control student-upload-zone"><svg aria-hidden="true" width="40" height="48" viewBox="0 0 40 48" fill="none"><path d="M5 1h21l9 9v37H5zM26 1v10h9M12 20h16M12 27h16M12 34h9" stroke="currentColor" strokeWidth="1.5" /></svg><span aria-hidden="true">Chọn ảnh bài ghi</span><input
               accept="image/png,image/jpeg"
               aria-describedby={errors.file ? 'note-file-help note-file-error' : 'note-file-help'}
               aria-invalid={Boolean(errors.file)}
