@@ -9,13 +9,13 @@
 .teacher-kinetic-shell .tk-assignment-create .breadcrumb a { display: inline-flex; align-items: center; min-height: 44px; color: var(--tk-deep); font-weight: 700; }
 .teacher-kinetic-shell .tk-assignment-create .breadcrumb span { align-self: center; }
 .teacher-kinetic-shell .tk-assignment-create .tk-assignment-paper,
-.teacher-kinetic-shell .tk-assignment-editor { position: relative; min-width: 0; margin: 0; padding: 32px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-xl); background: white; color: var(--tk-navy); box-shadow: var(--ec-shadow-card); overflow: hidden; }
+.teacher-kinetic-shell .tk-assignment-editor { position: relative; min-width: 0; margin: 0; padding: 32px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-lg); background: var(--ec-color-paper); color: var(--tk-navy); box-shadow: none; overflow: hidden; }
 .teacher-kinetic-shell .tk-assignment-create .tk-assignment-paper { width: 100%; max-width: none; }
 .teacher-kinetic-shell .tk-assignment-paper::before { display: none; }
 .teacher-kinetic-shell .tk-form-paper-edge { position: absolute; inset: 0 auto 0 0; width: 5px; background: linear-gradient(var(--tk-deep),var(--ec-color-sky)); pointer-events: none; }
 .teacher-kinetic-shell .tk-assignment-paper > :not(.tk-form-paper-edge) { position: relative; }
 .teacher-kinetic-shell .tk-assignment-create .teacher-form-heading,
-.teacher-kinetic-shell .tk-form-editor-heading { margin: -32px -32px 28px; padding: 28px 32px 24px; border-bottom: 1px solid var(--tk-line); background: linear-gradient(135deg,var(--ec-color-blue-50),white); }
+.teacher-kinetic-shell .tk-form-editor-heading { margin: -32px -32px 28px; padding: 28px 32px 24px; border-bottom: 1px solid var(--tk-line); background: var(--ec-color-primary-soft); }
 .teacher-kinetic-shell .tk-assignment-create .teacher-form-heading::before,
 .teacher-kinetic-shell .tk-form-editor-heading::before { content: 'THIẾT LẬP BÀI KIỂM TRA'; display: block; margin-bottom: 9px; color: var(--tk-deep); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
 .teacher-kinetic-shell .tk-form-editor-heading::before { content: 'CẬP NHẬT BÀI KIỂM TRA'; }
@@ -58,7 +58,7 @@
 .teacher-kinetic-shell .tk-assignment-create .button:active,
 .teacher-kinetic-shell .tk-assignment-editor .button:active { transform: translateY(1px); box-shadow: none; }
 .teacher-kinetic-shell .tk-assignment-create .button:disabled,
-.teacher-kinetic-shell .tk-assignment-editor .button:disabled { cursor: wait; opacity: .65; }
+.teacher-kinetic-shell .tk-assignment-editor .button:disabled { border-color: var(--tk-line); background: var(--ec-color-surface-subtle); color: var(--tk-muted); cursor: wait; opacity: 1; box-shadow: none; }
 .teacher-kinetic-shell .tk-assignment-create .form-field-error { color: var(--tk-russet); }
 .teacher-kinetic-shell .tk-assignment-create :is(.form-error-summary,.form-submit-error),
 .teacher-kinetic-shell .tk-assignment-editor .form-submit-error { margin: 0 0 24px; padding: 15px 16px; border: 1px solid rgb(186 26 26 / 32%); border-radius: var(--ec-radius-md); background: rgb(255 125 125 / 10%); color: var(--tk-navy); overflow-wrap: anywhere; }

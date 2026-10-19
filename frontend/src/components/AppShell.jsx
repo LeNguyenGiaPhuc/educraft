@@ -1,17 +1,33 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { useAuth } from '../contexts/useAuth.js'
+import { getCampusStudioSurface } from '../data/campusStudioRoute.js'
 import { getRoleHome, ROLES } from '../services/authService.js'
 import '../styles/student-kinetic.css'
+import '../styles/campus-studio.css'
 
 function navigationClassName({ isActive }) {
   return `nav-link${isActive ? ' nav-link-active' : ''}`
 }
 
+const campusContext = {
+  'student-dashboard': 'Học sinh · Campus Board',
+  'student-workspace': 'Học sinh · Bài kiểm tra',
+  'teacher-dashboard': 'Giáo viên · Tổng quan lớp',
+  'teacher-workspace': 'Giáo viên · Không gian lớp',
+  'teacher-review': 'Giáo viên · Duyệt bài',
+}
+
 function AppShell({ children }) {
   const { logout, user } = useAuth()
+  const { pathname } = useLocation()
   const homePath = getRoleHome(user?.role)
   const isTeacher = user?.role === ROLES.TEACHER
+  const studioSurface = getCampusStudioSurface(pathname)
+  const isCampusStudio = Boolean(studioSurface)
+  const roleShellClass = isTeacher && isCampusStudio ? 'teacher-kinetic-shell'
+    : isTeacher ? 'teacher-shell teacher-kinetic-shell'
+      : user?.role === ROLES.STUDENT ? 'student-shell student-kinetic-shell' : 'student-shell'
   const hasPrimaryNavigation = user?.role === ROLES.ADMIN
   const initials = (user?.name ?? 'EduCraft')
     .split(' ')
@@ -22,8 +38,8 @@ function AppShell({ children }) {
     .toUpperCase()
 
   return (
-    <div className={`app-shell ${isTeacher ? 'teacher-shell teacher-kinetic-shell' : user?.role === ROLES.STUDENT ? 'student-shell student-kinetic-shell' : 'student-shell'}`}>
-      <header className={`site-header${isTeacher ? ' teacher-sidebar teacher-kinetic-header' : ''}`}>
+    <div className={`app-shell ${roleShellClass}${isCampusStudio ? ` campus-studio-shell campus-studio-${studioSurface}` : ''}`}>
+      <header className={`site-header${isTeacher && !isCampusStudio ? ' teacher-sidebar teacher-kinetic-header' : ''}${isCampusStudio ? ' campus-studio-command-bar' : ''}`}>
         <div className="site-header-inner">
           <Link className="brand" to={homePath} aria-label="EduCraft">
             <span className="brand-mark" aria-hidden="true">
@@ -31,7 +47,11 @@ function AppShell({ children }) {
             </span>
             <span>
               EduCraft
-              {isTeacher && <small className="shell-role-label">Không gian giáo viên</small>}
+              {isCampusStudio ? (
+                <small className="shell-role-label cs-command-context">
+                  {campusContext[studioSurface]}
+                </small>
+              ) : isTeacher && <small className="shell-role-label">Không gian giáo viên</small>}
             </span>
           </Link>
 

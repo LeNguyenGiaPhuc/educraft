@@ -3,7 +3,7 @@
   --tk-navy: var(--ec-color-ink-navy);
   --tk-deep: var(--ec-color-primary);
   --tk-hover: var(--ec-color-primary-hover);
-  --tk-stock: var(--ec-color-background);
+  --tk-stock: var(--ec-color-cloud);
   --tk-stock-closed: var(--ec-color-surface-subtle);
   --tk-selected: var(--ec-color-primary-soft);
   --tk-paper: var(--ec-color-surface);
@@ -150,7 +150,7 @@
 .teacher-kinetic-shell .tk-pagination-buttons { display: flex; align-items: center; gap: 8px; }
 .teacher-kinetic-shell .tk-page-button { min-width: 44px; min-height: 44px; padding: 8px 11px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-sm); background: white; color: var(--tk-navy); font: 700 12px var(--tk-font-body); }
 .teacher-kinetic-shell .tk-page-button:hover:not(:disabled) { border-color: var(--tk-deep); color: var(--tk-deep); }
-.teacher-kinetic-shell .tk-page-button:disabled { opacity: .5; cursor: default; }
+.teacher-kinetic-shell .tk-page-button:disabled { background: var(--ec-color-surface-subtle); color: var(--tk-muted); opacity: 1; cursor: default; }
 .teacher-kinetic-shell .tk-index-empty { display: grid; gap: 14px; padding: 24px; border: 1px dashed var(--tk-line); border-radius: var(--ec-radius-md); color: var(--tk-muted); }
 .teacher-kinetic-shell .tk-state { margin-top: 24px; padding: 32px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-xl); background: white; box-shadow: var(--ec-shadow-card); }
 .teacher-kinetic-shell .tk-state h2 { margin: 0; font: 800 25px/1.25 var(--tk-font-display); }

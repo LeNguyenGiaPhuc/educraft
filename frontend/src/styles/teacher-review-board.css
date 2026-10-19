@@ -1,0 +1,286 @@
+/* Campus Studio: Teacher review route only. Existing review behavior stays intact. */
+.campus-studio-teacher-review .campus-studio-review-page {
+  min-width: 0;
+  background: var(--ec-color-cloud);
+}
+
+.campus-studio-teacher-review .campus-studio-review-page > .page-container {
+  width: min(1600px, calc(100% - 48px));
+  max-width: 1600px;
+  padding-block: 22px 56px;
+}
+
+.campus-studio-teacher-review .tk-assignment-detail .teacher-breadcrumb {
+  margin-bottom: 10px;
+}
+
+.campus-studio-teacher-review .tk-assignment-detail .teacher-assignment-hero {
+  margin: 0 0 16px;
+  padding: 20px 24px;
+  border-color: rgb(41 103 246 / 16%);
+  border-radius: var(--ec-radius-lg);
+  background: var(--ec-color-paper);
+  box-shadow: 0 8px 22px rgb(23 33 58 / 5%);
+}
+
+.campus-studio-teacher-review .tk-assignment-detail .teacher-assignment-hero-content {
+  align-items: center;
+}
+
+.campus-studio-teacher-review .tk-assignment-detail h1 {
+  margin-bottom: 12px;
+  font-size: clamp(25px, 2.4vw, 36px);
+}
+
+.campus-studio-teacher-review .tk-detail-folders {
+  margin-bottom: 12px;
+  box-shadow: 0 8px 24px rgb(23 33 58 / 5%);
+}
+
+.campus-studio-teacher-review .tk-assignment-detail [role="tabpanel"] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.campus-studio-teacher-review .campus-studio-review-board {
+  display: grid;
+  grid-template-columns: minmax(240px, 250px) minmax(0, 1fr);
+  gap: 20px;
+  min-width: 0;
+  align-items: start;
+}
+
+.campus-studio-teacher-review .campus-studio-review-board > * {
+  min-width: 0;
+}
+
+.campus-studio-teacher-review .cs-review-queue {
+  position: sticky;
+  top: 94px;
+  min-width: 0;
+  max-height: calc(100vh - 118px);
+  padding: 18px;
+  overflow: auto;
+  border: 1px solid rgb(41 103 246 / 15%);
+  border-radius: var(--ec-radius-lg);
+  background: rgb(255 253 247 / 94%);
+  box-shadow: 0 15px 38px rgb(23 33 58 / 8%);
+  animation: cs-review-region-in 220ms var(--ec-motion-ease-enter) both;
+}
+
+.campus-studio-teacher-review .cs-review-queue::before {
+  display: block;
+  width: 42px;
+  height: 5px;
+  margin-bottom: 14px;
+  border-radius: var(--ec-radius-pill);
+  background: var(--ec-color-learning-blue);
+  content: "";
+}
+
+.campus-studio-teacher-review .tk-selected-review {
+  gap: 16px;
+  min-width: 0;
+}
+
+.campus-studio-teacher-review .tk-selected-review-context {
+  min-width: 0;
+  padding: 14px 18px;
+  border-radius: var(--ec-radius-md);
+  background: var(--ec-color-ink-navy);
+  box-shadow: 0 10px 26px rgb(23 33 58 / 14%);
+  animation: cs-review-region-in 220ms 40ms var(--ec-motion-ease-enter) both;
+}
+
+.campus-studio-teacher-review .tk-selected-review-context strong,
+.campus-studio-teacher-review .tk-selected-review-context > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.campus-studio-teacher-review .cs-review-workgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 340px);
+  gap: 20px;
+  min-width: 0;
+  align-items: start;
+}
+
+.campus-studio-teacher-review .cs-review-evidence,
+.campus-studio-teacher-review .cs-review-side-rail {
+  min-width: 0;
+  animation: cs-review-region-in 220ms var(--ec-motion-ease-enter) both;
+}
+
+.campus-studio-teacher-review .cs-review-evidence {
+  padding: 22px;
+  border-color: rgb(41 103 246 / 14%);
+  border-radius: var(--ec-radius-lg);
+  background: var(--ec-color-paper);
+  box-shadow: 0 16px 42px rgb(23 33 58 / 8%);
+}
+
+.campus-studio-teacher-review .cs-review-evidence::before {
+  display: block;
+  width: 54px;
+  height: 6px;
+  margin: -22px 0 18px;
+  border-radius: 0 0 8px 8px;
+  background: var(--ec-color-sun-yellow);
+  content: "";
+}
+
+.campus-studio-teacher-review .cs-review-side-rail {
+  display: grid;
+  gap: 16px;
+}
+
+.campus-studio-teacher-review .cs-ai-advisory {
+  min-width: 0;
+  padding: 20px;
+  border-color: rgb(137 116 255 / 28%);
+  border-radius: var(--ec-radius-lg);
+  background: #f5f3ff;
+  box-shadow: 0 12px 30px rgb(82 67 156 / 8%);
+}
+
+.campus-studio-teacher-review .cs-ai-advisory .tk-insights-heading {
+  display: grid;
+  align-items: start;
+  gap: 7px;
+}
+
+.campus-studio-teacher-review .cs-ai-advisory .tk-insights-heading p {
+  max-width: 30ch;
+}
+
+.campus-studio-teacher-review .cs-ai-advisory .tk-ai-measures {
+  grid-template-columns: 1fr;
+}
+
+.campus-studio-teacher-review .cs-ai-advisory .tk-ai-result-columns {
+  grid-template-columns: 1fr;
+}
+
+.campus-studio-teacher-review .cs-teacher-decision {
+  min-width: 0;
+  padding: 20px;
+  border-color: var(--ec-color-ink-navy);
+  border-radius: var(--ec-radius-lg);
+  box-shadow: 0 16px 34px rgb(23 33 58 / 10%);
+}
+
+.campus-studio-teacher-review .cs-teacher-decision .tk-review-authority {
+  margin: -20px -20px 20px;
+}
+
+.campus-studio-teacher-review .cs-teacher-decision .tk-folio-actions {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.campus-studio-teacher-review .cs-teacher-decision .tk-primary-action {
+  width: 100%;
+}
+
+.campus-studio-teacher-review .tk-review-empty {
+  grid-column: 2;
+  min-height: 220px;
+  padding: 38px;
+  border-color: rgb(41 103 246 / 22%);
+  background: rgb(255 253 247 / 90%);
+}
+
+.campus-studio-teacher-review .teacher-submission-item {
+  transition: background 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.campus-studio-teacher-review .teacher-submission-item:hover {
+  transform: translateY(-2px);
+}
+
+.campus-studio-teacher-review .teacher-submission-item:active {
+  transform: translateY(0);
+}
+
+@keyframes cs-review-region-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1180px) {
+  .campus-studio-teacher-review .cs-review-workgrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .campus-studio-teacher-review .cs-review-side-rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (max-width: 900px) {
+  .campus-studio-teacher-review .campus-studio-review-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .campus-studio-teacher-review .cs-review-queue {
+    position: static;
+    max-height: none;
+  }
+
+  .campus-studio-teacher-review .tk-submission-archive .teacher-submission-list {
+    max-height: 310px;
+  }
+
+  .campus-studio-teacher-review .tk-review-empty {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .campus-studio-teacher-review .campus-studio-review-page > .page-container {
+    width: calc(100% - 32px);
+    padding-block: 18px 40px;
+  }
+
+  .campus-studio-teacher-review .cs-review-side-rail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .campus-studio-teacher-review .tk-assignment-detail .teacher-assignment-hero {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .campus-studio-teacher-review .campus-studio-review-page > .page-container {
+    width: calc(100% - 24px);
+  }
+
+  .campus-studio-teacher-review .cs-review-queue,
+  .campus-studio-teacher-review .cs-review-evidence,
+  .campus-studio-teacher-review .cs-ai-advisory,
+  .campus-studio-teacher-review .cs-teacher-decision {
+    padding-inline: 15px;
+  }
+
+  .campus-studio-teacher-review .cs-teacher-decision .tk-review-authority {
+    margin-inline: -15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .campus-studio-teacher-review .cs-review-queue,
+  .campus-studio-teacher-review .tk-selected-review-context,
+  .campus-studio-teacher-review .cs-review-evidence,
+  .campus-studio-teacher-review .cs-review-side-rail {
+    animation: none;
+  }
+
+  .campus-studio-teacher-review .teacher-submission-item {
+    transition: none;
+  }
+}
