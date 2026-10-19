@@ -1,5 +1,6 @@
 /* Campus Studio Student Dashboard — Break the Frame composition. */
 .campus-studio-student-dashboard {
+  --cs-section-bleed: clamp(14px, 2.5vw, 32px);
   background: var(--ec-color-cloud);
 }
 
@@ -21,7 +22,7 @@
   border-radius: 0;
   background: var(--ec-color-ink-navy);
   box-shadow: none;
-  animation: cs-region-in 220ms var(--ec-motion-ease-enter) both;
+  animation: cs-region-in 260ms var(--ec-motion-ease-enter) both;
 }
 
 .campus-studio-student-dashboard .cs-student-welcome-copy {
@@ -222,19 +223,35 @@
 }
 
 .campus-studio-student-dashboard :is(.cs-student-open-zone, .cs-student-class-board, .cs-student-assignment-board) {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
   grid-column: 1 / -1;
   min-width: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  animation: cs-region-in 220ms var(--ec-motion-ease-enter) both;
+  animation: cs-region-in 260ms var(--ec-motion-ease-enter) both;
+}
+
+.campus-studio-student-dashboard :is(.cs-student-open-zone, .cs-student-class-board, .cs-student-assignment-board)::before {
+  position: absolute;
+  inset: 0 calc(var(--cs-section-bleed) * -1);
+  z-index: -1;
+  content: '';
+  pointer-events: none;
 }
 
 .campus-studio-student-dashboard .cs-student-open-zone {
   padding: 42px 0 48px;
   border-bottom: 1px solid var(--ec-color-border);
   animation-delay: 45ms;
+}
+
+.campus-studio-student-dashboard .cs-student-open-zone::before,
+.campus-studio-student-dashboard .cs-student-assignment-board::before {
+  background: var(--ec-color-paper);
 }
 
 .campus-studio-student-dashboard .cs-open-zone-heading,
@@ -329,6 +346,10 @@
   animation-delay: 90ms;
 }
 
+.campus-studio-student-dashboard .cs-student-class-board::before {
+  background: color-mix(in srgb, var(--ec-color-mint) 8%, var(--ec-color-cloud));
+}
+
 .campus-studio-student-dashboard .cs-board-search { max-width: 480px; margin-bottom: 20px; }
 .campus-studio-student-dashboard .cs-board-search > label,
 .campus-studio-student-dashboard .cs-assignment-tools label { display: block; margin-bottom: 8px; color: var(--ec-color-ink-navy); font-size: 12px; font-weight: 750; }
@@ -406,6 +427,14 @@
 @keyframes cs-region-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@supports (animation-timeline: view()) {
+  .campus-studio-student-dashboard :is(.cs-student-open-zone, .cs-student-class-board, .cs-student-assignment-board) {
+    animation-delay: 0ms;
+    animation-timeline: view();
+    animation-range: entry 0% entry 24%;
+  }
 }
 
 @media (max-width: 1080px) {

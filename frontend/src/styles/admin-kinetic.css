@@ -97,7 +97,7 @@
 :is(.admin-shell.admin-kinetic, .admin-modal.admin-kinetic, .ar-neutral.admin-kinetic) input::placeholder { color: var(--ar-muted); opacity: 1; }
 :is(.admin-shell.admin-kinetic, .admin-modal.admin-kinetic, .ar-neutral.admin-kinetic) .search-box { display: flex; flex-direction: column; gap: 8px; min-width: 0; color: var(--ar-navy); font-size: 12px; font-weight: 750; }
 
-.admin-shell.admin-kinetic .admin-filter-card { margin: 0 0 26px; padding: 18px 0 22px; border: 0; border-block: 1px solid var(--ec-color-border-soft); border-radius: 0; background: transparent; box-shadow: none; }
+.admin-shell.admin-kinetic .admin-filter-card { margin: 0 0 26px; padding: 18px 20px 22px; border: 0; border-block: 1px solid var(--ec-color-border-soft); border-radius: 0; background: var(--ec-color-surface-subtle); box-shadow: none; }
 .admin-shell.admin-kinetic .admin-filter-row { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(150px, 1fr)); align-items: end; gap: 16px; }
 .admin-shell.admin-kinetic .admin-filter-row:has(> :nth-child(2):last-child) { grid-template-columns: minmax(0, 1.6fr) minmax(180px, 1fr); }
 
@@ -142,7 +142,7 @@
 .admin-shell.admin-kinetic .ar-record-label { color: var(--ar-muted); font-size: 10px; text-transform: uppercase; }
 .admin-shell.admin-kinetic .ar-open-record { color: var(--ec-color-primary-hover); font-size: 11px; font-weight: 800; text-decoration: underline; text-underline-offset: 4px; }
 
-.admin-shell.admin-kinetic .ar-overview { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, .85fr); gap: 0; border-block: 1px solid var(--ec-color-border); }
+.admin-shell.admin-kinetic .ar-overview { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, .85fr); gap: 0; border-block: 1px solid var(--ec-color-border); background: var(--ec-color-paper); }
 .admin-shell.admin-kinetic .ar-register-volume { min-width: 0; padding: 28px 30px; background: transparent; }
 .admin-shell.admin-kinetic .ar-register-volume + .ar-register-volume { border-left: 1px solid var(--ec-color-border); }
 .admin-shell.admin-kinetic .ar-volume-tab { display: inline-flex; min-height: 28px; padding: 5px 9px; border: 1px solid var(--ec-color-border); border-radius: var(--ec-radius-pill); background: var(--ec-color-primary-soft); color: var(--ec-color-primary-hover); font-size: 10px; font-weight: 800; text-transform: uppercase; }
@@ -204,6 +204,18 @@
 .admin-modal.admin-kinetic .ar-policy-warning { padding: 12px; border: 1px solid rgb(146 64 14 / 24%); background: rgb(255 200 87 / 18%); color: var(--ec-color-warning); font-size: 13px; line-height: 1.7; }
 
 @keyframes ar-dialog-settle { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes ar-section-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.admin-shell.admin-kinetic .admin-page > :is(.admin-page-header, .admin-filter-card, .admin-table-panel, .ar-overview, .ar-class-dossier, .admin-panel) {
+  animation: ar-section-enter 260ms var(--ar-ease) both;
+}
+
+@supports (animation-timeline: view()) {
+  .admin-shell.admin-kinetic .admin-page > :is(.admin-filter-card, .admin-table-panel, .ar-overview, .ar-class-dossier, .admin-panel) {
+    animation-timeline: view();
+    animation-range: entry 0% entry 22%;
+  }
+}
 
 @media (max-width: 1040px) {
   .admin-shell.admin-kinetic .admin-command-inner { grid-template-columns: auto minmax(0, 1fr); gap: 14px 22px; }
