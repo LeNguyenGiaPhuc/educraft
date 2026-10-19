@@ -51,10 +51,6 @@ function TeacherOverview({ snapshot, onRetry }) {
               <p>Chuẩn bị hoạt động kiểm tra bài ghi cho một lớp bạn phụ trách.</p>
               <Link to="/assignments/new">Bắt đầu <span aria-hidden="true">→</span></Link>
             </section>
-            <div className="cs-classroom-visual" aria-hidden="true">
-              <span className="cs-board-frame"><i /><i /><i /></span>
-              <span className="cs-board-desk" />
-            </div>
           </aside>
         </div>
       </div>

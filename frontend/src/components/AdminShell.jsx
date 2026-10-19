@@ -25,23 +25,23 @@ function AdminShell({ children }) {
 
   return (
     <div className="admin-shell admin-kinetic">
-      <aside className="admin-sidebar" aria-label="Điều hướng quản trị">
-        <div>
-            <Link
-              aria-label="EduCraft - Tổng quan quản trị"
-              className="admin-sidebar-brand"
-              to="/admin"
-            >
+      <header className="admin-command-bar">
+        <div className="admin-command-inner">
+          <Link
+            aria-label="EduCraft - Tổng quan quản trị"
+            className="admin-sidebar-brand"
+            to="/admin"
+          >
             <span className="brand-mark" aria-hidden="true">
               E
             </span>
             <div>
               <strong>EduCraft</strong>
-              <span className="admin-role-label">Không gian quản trị</span>
+              <span className="admin-role-label">EduCraft Operations Desk</span>
             </div>
           </Link>
 
-          <nav className="admin-sidebar-nav">
+          <nav className="admin-sidebar-nav" aria-label="Điều hướng quản trị">
             {adminNavigation.map((item) => (
               <NavLink
                 className={adminNavClassName}
@@ -53,21 +53,21 @@ function AdminShell({ children }) {
               </NavLink>
             ))}
           </nav>
-        </div>
 
-        <div className="admin-sidebar-footer">
-          <div className="admin-user-pill">
-            <span>{initials}</span>
-            <div>
-              <strong>{user?.name ?? 'Quản trị viên'}</strong>
-              <small>{user?.username ?? 'admin'}</small>
+          <div className="admin-sidebar-footer">
+            <div className="admin-user-pill">
+              <span>{initials}</span>
+              <div>
+                <strong>{user?.name ?? 'Quản trị viên'}</strong>
+                <small>{user?.username ?? 'admin'}</small>
+              </div>
             </div>
+            <button className="logout-button" onClick={logout} type="button">
+              Đăng xuất
+            </button>
           </div>
-          <button className="logout-button" onClick={logout} type="button">
-            Đăng xuất
-          </button>
         </div>
-      </aside>
+      </header>
 
       <main className="admin-main">
         {children ?? <Outlet />}

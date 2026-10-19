@@ -158,9 +158,12 @@ test('class search stays with the class board while assignment records remain in
 test('selected class styling never changes its grid span', async () => {
   const css = await readFile(new URL('../../../src/styles/student-campus-board.css', import.meta.url), 'utf8')
   const selectedRule = css.match(/\.campus-studio-student-dashboard \.cs-student-class-card\.is-selected\s*\{([^}]+)\}/)?.[1]
+  const labelRule = css.match(/\.campus-studio-student-dashboard \.cs-student-class-card \.sf-selected-label\s*\{([^}]+)\}/)?.[1]
   assert.ok(selectedRule)
   assert.doesNotMatch(selectedRule, /grid-(?:column|row)|\bspan\b/)
   assert.match(selectedRule, /border-color:\s*var\(--ec-color-learning-blue\)/)
+  assert.match(labelRule ?? '', /background:\s*var\(--ec-color-learning-blue\)/)
+  assert.match(labelRule ?? '', /color:\s*(?:white|var\(--ec-color-white\))/)
 })
 
 test('Break the Frame uses one integrated welcome field and unframed page-level learning zones', async () => {

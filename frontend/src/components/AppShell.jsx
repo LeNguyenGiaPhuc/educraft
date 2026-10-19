@@ -10,6 +10,14 @@ function navigationClassName({ isActive }) {
   return `nav-link${isActive ? ' nav-link-active' : ''}`
 }
 
+const campusContext = {
+  'student-dashboard': 'Học sinh · Campus Board',
+  'student-workspace': 'Học sinh · Bài kiểm tra',
+  'teacher-dashboard': 'Giáo viên · Tổng quan lớp',
+  'teacher-workspace': 'Giáo viên · Không gian lớp',
+  'teacher-review': 'Giáo viên · Duyệt bài',
+}
+
 function AppShell({ children }) {
   const { logout, user } = useAuth()
   const { pathname } = useLocation()
@@ -17,9 +25,8 @@ function AppShell({ children }) {
   const isTeacher = user?.role === ROLES.TEACHER
   const studioSurface = getCampusStudioSurface(pathname)
   const isCampusStudio = Boolean(studioSurface)
-  const isTeacherDashboardStudio = studioSurface === 'teacher-dashboard'
-  const roleShellClass = isTeacher && !isTeacherDashboardStudio ? 'teacher-shell teacher-kinetic-shell'
-    : isTeacherDashboardStudio ? 'teacher-kinetic-shell'
+  const roleShellClass = isTeacher && isCampusStudio ? 'teacher-kinetic-shell'
+    : isTeacher ? 'teacher-shell teacher-kinetic-shell'
       : user?.role === ROLES.STUDENT ? 'student-shell student-kinetic-shell' : 'student-shell'
   const hasPrimaryNavigation = user?.role === ROLES.ADMIN
   const initials = (user?.name ?? 'EduCraft')
@@ -42,7 +49,7 @@ function AppShell({ children }) {
               EduCraft
               {isCampusStudio ? (
                 <small className="shell-role-label cs-command-context">
-                  {studioSurface === 'student-dashboard' ? 'Học sinh · Campus Board' : studioSurface === 'teacher-dashboard' ? 'Giáo viên · Tổng quan lớp' : 'Giáo viên · Duyệt bài'}
+                  {campusContext[studioSurface]}
                 </small>
               ) : isTeacher && <small className="shell-role-label">Không gian giáo viên</small>}
             </span>

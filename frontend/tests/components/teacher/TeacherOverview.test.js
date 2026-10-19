@@ -66,3 +66,11 @@ test('Teacher hero pairs its truthful count with a presentation-only lesson plan
   assert.match(html, /3 lớp trong không gian làm việc/)
   assert.match(html, /class="cs-teacher-planner" aria-hidden="true"/)
 })
+
+test('Teacher dashboard uses real class records and no giant decorative classroom filler', () => {
+  const html = render({ status: 'success', data: classes(3) })
+
+  assert.doesNotMatch(html, /cs-classroom-visual|cs-board-frame|cs-board-desk/)
+  assert.match(html, /class="cs-teacher-command-rail"/)
+  assert.match(html, /class="cs-teacher-class-grid"/)
+})

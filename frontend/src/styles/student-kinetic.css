@@ -27,11 +27,7 @@
 .student-kinetic-shell .page-content {
   min-width: 0;
   color: var(--ec-color-text);
-  background:
-    linear-gradient(rgb(91 124 250 / 3%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(91 124 250 / 3%) 1px, transparent 1px),
-    var(--ec-color-background);
-  background-size: 32px 32px;
+  background: var(--ec-color-cloud);
 }
 
 .student-kinetic-shell .page-content .page-container,
@@ -266,9 +262,13 @@
 }
 
 .student-kinetic-shell .button:disabled {
-  opacity: 0.62;
+  border-color: var(--ec-color-border);
+  background: var(--ec-color-surface-subtle);
+  color: var(--ec-color-text-muted);
+  opacity: 1;
   cursor: wait;
   transform: none;
+  box-shadow: none;
 }
 
 .student-kinetic-shell .sf-pagination {
@@ -310,7 +310,9 @@
 }
 
 .student-kinetic-shell .sf-pagination button:disabled {
-  opacity: 0.48;
+  background: var(--ec-color-surface-subtle);
+  color: var(--ec-color-text-muted);
+  opacity: 1;
   cursor: default;
 }
 

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { before,after,test } from 'node:test'
+import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -101,4 +102,16 @@ test('roster uses30 loaded records with original student numbers and membership-
   if(count) assert.match(html,/1000<\/td>/)
   assert.doesNotMatch(html,/Xóa tài khoản|AI|Chốt kết quả/)
  }
+})
+
+test('Admin uses a compact Operations Desk command bar and token-based readable statuses',async()=>{
+ const shell=await readFile(new URL('../../../src/components/AdminShell.jsx',import.meta.url),'utf8')
+ const css=await readFile(new URL('../../../src/styles/admin-kinetic.css',import.meta.url),'utf8')
+ assert.match(shell,/className="admin-command-bar"/)
+ assert.match(shell,/EduCraft Operations Desk/)
+ assert.doesNotMatch(shell,/<aside className="admin-sidebar"/)
+ assert.match(css,/--ar-navy:\s*var\(--ec-color-ink-navy\)/)
+ assert.match(css,/\.admin-command-bar\s*\{[^}]*position:\s*sticky/s)
+ assert.match(css,/\.status-active[^}]*color:\s*var\(--ec-color-success\)/s)
+ assert.match(css,/\.status-locked[^}]*color:\s*var\(--ec-color-danger\)/s)
 })
