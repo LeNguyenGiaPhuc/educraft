@@ -7,7 +7,14 @@ function TeacherOverview({ snapshot, onRetry }) {
     <main className="page-content teacher-page teacher-kinetic-overview">
       <div className="page-container">
         <div className="tk-workspace-heading">
-          <div><h1>Lớp được phân công</h1><p>Mở hồ sơ lớp để quản lý bài kiểm tra và xem bài nộp.</p></div>
+          <div>
+            <span className="tk-workspace-kicker">Không gian lớp học</span>
+            <h1>Lớp được phân công</h1>
+            <p>Chọn một lớp để xem học sinh, quản lý bài kiểm tra và duyệt bài nộp.</p>
+            <span className="tk-workspace-count" aria-live="polite">
+              {snapshot.status === 'success' ? `${snapshot.data.length} lớp trong không gian làm việc` : 'Đang cập nhật danh sách lớp'}
+            </span>
+          </div>
           <Link className="tk-button tk-button-primary" to="/assignments/new">
             <span>Tạo bài kiểm tra</span><span className="tk-button-arrow" aria-hidden="true" />
           </Link>

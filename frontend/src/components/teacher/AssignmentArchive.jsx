@@ -27,7 +27,6 @@ function AssignmentArchive({ classId, rows, countStore, countsEnabled = true }) 
     <div className="tk-assignment-archive">
       <div className="tk-class-section-heading">
         <div><h2>Bài kiểm tra bài ghi</h2><p>{rows.length} bài đã tải · 25 bài mỗi trang</p></div>
-        <Link className="tk-button tk-button-primary" to={`/classes/${classId}/assignments/new`}>Tạo bài kiểm tra<span className="tk-button-arrow" aria-hidden="true" /></Link>
       </div>
       {rows.length > 0 && <div className="tk-assignment-tools">
         <div className="tk-assignment-search"><label htmlFor="class-assignment-search">Tìm trong bài kiểm tra đã tải</label>

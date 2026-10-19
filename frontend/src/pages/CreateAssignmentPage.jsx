@@ -204,6 +204,11 @@ function CreateAssignmentForm({ classroom, classrooms, form, errors, submission,
           </div>
         </div>
 
+        <aside className="tk-form-next-step" aria-label="Bước tiếp theo">
+          <strong>Bài mẫu được thêm sau khi tạo bài kiểm tra.</strong>
+          <span>Sau khi tạo, mở mục “Bài mẫu” trong chi tiết bài kiểm tra để tải tài liệu đối chiếu.</span>
+        </aside>
+
         <div className="assignment-form-actions teacher-form-actions">
           <Link className="button button-outline" to={`/classes/${classroom.id}`}>
             Hủy

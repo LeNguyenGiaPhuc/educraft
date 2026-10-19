@@ -174,8 +174,17 @@ export function AssignmentDetailWorkspace({ detail, onRefresh }) {
             <SubmissionList onSelect={setSelectedSubmissionId} selectedId={selectedSubmission?.id} submissions={displayedSubmissions} />
           </section>
           {selectedSubmission ? <>
-            <SubmissionEvidence submission={selectedSubmission} references={detail.references} />
-            <SubmissionReviewPanel key={selectedSubmission.id} assignmentId={detail.id} coverageThreshold={detail.coverageThreshold} reviewSession={reviewSession} onReviewed={onRefresh} submission={selectedSubmission} />
+            <div className="tk-selected-review">
+              <header className="tk-selected-review-context">
+                <div>
+                  <span>Đang duyệt</span>
+                  <strong>{selectedSubmission.studentName}</strong>
+                </div>
+                <span>{selectedSubmission.studentCode} · Lần {selectedSubmission.attemptNumber}</span>
+              </header>
+              <SubmissionEvidence submission={selectedSubmission} references={detail.references} />
+              <SubmissionReviewPanel key={selectedSubmission.id} assignmentId={detail.id} coverageThreshold={detail.coverageThreshold} reviewSession={reviewSession} onReviewed={onRefresh} submission={selectedSubmission} />
+            </div>
           </> : <section className="tk-review-empty"><h2>Chưa có bài để duyệt</h2><p>Bằng chứng và hồ sơ nhận xét sẽ xuất hiện khi học sinh nộp bài.</p></section>}
         </div>
       </section>

@@ -21,6 +21,8 @@ test('all stress sizes retain one dossier, bounded rows and native direct links'
   for (const count of [0, 1, 3, 12, 50, 100, 125]) {
     const html = render({ status: 'success', data: classes(count) })
     assert.match(html, /Lớp được phân công/)
+    assert.match(html, /Không gian lớp học/)
+    assert.match(html, new RegExp(`${count} lớp trong không gian làm việc`))
     assert.doesNotMatch(html, /Mỗi lớp học|một hồ sơ\.|tk-intro|TEACHER \/ FIELD NOTES/)
     assert.equal((html.match(/id="teacher-class-dossier"/g) || []).length, count ? 1 : 0)
     assert.equal((html.match(/class="tk-index-row/g) || []).length, count > 3 ? Math.min(20, count) : 0)

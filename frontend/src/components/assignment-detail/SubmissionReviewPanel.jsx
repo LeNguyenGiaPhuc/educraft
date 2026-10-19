@@ -59,6 +59,10 @@ export default function SubmissionReviewPanel({ submission, onReviewed, assignme
         <span className="tk-review-state">{isFinalized ? 'Đã chốt' : 'Chưa chốt'}</span>
       </header>
       <section className="tk-insights" aria-label="Gợi ý AI">
+        <header className="tk-insights-heading">
+          <div><span>AI hỗ trợ phân tích</span><h3>Gợi ý tham khảo</h3></div>
+          <p>AI hỗ trợ. Giáo viên quyết định.</p>
+        </header>
         {['idle', 'loading'].includes(evaluationState.status) && <p className="tk-review-inline-state" role="status" aria-live="polite">{evaluationState.operation === 'analyze' ? AI_STAGE_LABELS[evaluationState.stage] ?? 'AI đang phân tích bài nộp… Bạn vẫn có thể nhận xét thủ công.' : 'Đang đọc đề xuất AI đã lưu…'}</p>}
         {evaluationState.status === 'interrupted' && <div className="tk-review-inline-state">
           <p role="status">{evaluationState.message}</p>
@@ -82,6 +86,7 @@ export default function SubmissionReviewPanel({ submission, onReviewed, assignme
       </section>
       <section className="tk-teacher-folio" aria-labelledby={`folio-title-${submission.id}`}>
         <div className="tk-folio-edge" ref={folioEdge} aria-hidden="true" />
+        <div className="tk-review-authority"><span aria-hidden="true">✓</span><strong>Giáo viên quyết định</strong><small>Đây là kết quả chính thức gửi tới học sinh.</small></div>
         <header className="tk-folio-heading">
           <h3 id={`folio-title-${submission.id}`}>Nhận xét của giáo viên</h3>
           {isFinalized && <span className={`tk-teacher-seal${review.status === 'success' ? ' tk-teacher-seal-confirmed' : ''}`} role="status">Giáo viên đã chốt · {finalStatusLabel(form.finalStatus)}</span>}

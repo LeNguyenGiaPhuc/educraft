@@ -27,6 +27,10 @@ test('integrated review at 0/1/30/300/1000 retains bounded queue and only select
     assert.match(html, /Không thể xóa bài kiểm tra đã có bài mẫu hoặc bài nộp/)
     assert.match(html, /href="\/classes\/class-A"/)
     assert.doesNotMatch(html, /Mỗi lớp học|một hồ sơ\./)
+    if (count) {
+      assert.match(html, /class="tk-selected-review"/)
+      assert.match(html, /class="tk-selected-review-context"/)
+    }
   }
 })
 test('neutral auth pending state contains no class, student or account identity', () => {
