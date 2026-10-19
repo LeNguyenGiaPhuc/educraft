@@ -2,7 +2,8 @@ function StudentPendingState({ standalone = false, message = 'Đang tải bài k
   const content = <main className="page-content sf-pending">
     <div className="page-container">
       <section className="sf-paper" role="status" aria-busy="true">
-        <h1>{message}</h1><p>Thông tin sẽ xuất hiện sau khi kiểm tra quyền truy cập.</p>
+        <span className="sf-pending-mark" aria-hidden="true">✦</span>
+        <div><span className="sf-section-kicker">Đang chuẩn bị bàn học</span><h1>{message}</h1><p>Thông tin sẽ xuất hiện sau khi kiểm tra quyền truy cập.</p></div>
         <div className="sf-skeleton" aria-hidden="true"><span /><span /><span /><span /></div>
       </section>
     </div>

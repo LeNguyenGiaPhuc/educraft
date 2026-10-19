@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
+import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -17,25 +18,25 @@ function render(snapshot) { return renderToStaticMarkup(React.createElement(Memo
 function classes(count) {
   return Array.from({ length: count }, (_, index) => ({ id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`, code: '11A2', subject: 'Lịch sử', semester: 'Học kỳ 1', schoolYear: index % 2 ? '2025–2026' : '2026–2027', status: 'ACTIVE', studentCount: 30, assignmentCount: 2 }))
 }
-test('all stress sizes retain one dossier, bounded rows and native direct links', () => {
+test('all stress sizes render a bounded Class Command Board with native direct links', () => {
   for (const count of [0, 1, 3, 12, 50, 100, 125]) {
     const html = render({ status: 'success', data: classes(count) })
     assert.match(html, /Lớp được phân công/)
+    assert.match(html, new RegExp(`${count} lớp trong không gian làm việc`))
     assert.doesNotMatch(html, /Mỗi lớp học|một hồ sơ\.|tk-intro|TEACHER \/ FIELD NOTES/)
-    assert.equal((html.match(/id="teacher-class-dossier"/g) || []).length, count ? 1 : 0)
-    assert.equal((html.match(/class="tk-index-row/g) || []).length, count > 3 ? Math.min(20, count) : 0)
-    assert.equal((html.match(/class="tk-folder-tab"/g) || []).length, count > 0 && count <= 3 ? count : 0)
+    assert.match(html, /class="cs-class-command-board(?:\s|")/)
+    assert.equal((html.match(/data-class-id=/g) || []).length, Math.min(20, count))
+    assert.doesNotMatch(html, /teacher-class-dossier|tk-folder-tab|tk-folder-sheet/)
     for (let index = 1; index <= Math.min(20, count); index++) {
       assert.ok(html.includes(`/classes/00000000-0000-4000-8000-${String(index).padStart(12, '0')}`))
     }
-    if (count) assert.match(html, /aria-pressed="true"/)
-    if (count > 3) assert.ok(html.indexOf('class="tk-folder-sheet"') < html.indexOf('class="tk-index-panel"'))
+    if (count) assert.match(html, /class="cs-teacher-class-card"/)
   }
 })
 test('long duplicate names do not replace ID identity and can use the compact index', () => {
   const data = classes(3).map(item => ({ ...item, code: 'LỚP-CHUYÊN-ĐỀ-LỊCH-SỬ-VĂN-HÓA-VIỆT-NAM-2026', subject: 'Lịch sử '.repeat(20) }))
   const html = render({ status: 'success', data })
-  assert.equal((html.match(/class="tk-index-row/g) || []).length, 3)
+  assert.equal((html.match(/data-class-id=/g) || []).length, 3)
   assert.match(html, /LỚP-CHUYÊN-ĐỀ/)
 })
 test('loading, retry and empty states keep the create action', () => {
@@ -46,4 +47,30 @@ test('loading, retry and empty states keep the create action', () => {
     if (status === 'loading') assert.match(html, /aria-busy="true"/)
     if (status === 'success') assert.match(html, /Chưa có lớp học nào/)
   }
+})
+
+test('Break the Frame class workspace is a direct page region with stable editorial rows', async () => {
+  const css = await readFile(new URL('../../../src/styles/teacher-campus-board.css', import.meta.url), 'utf8')
+  const boardRule = css.match(/\.campus-studio-teacher-dashboard \.cs-class-command-board\s*\{([^}]+)\}/)?.[1]
+  const gridRule = css.match(/\.campus-studio-teacher-dashboard \.cs-teacher-class-grid\s*\{([^}]+)\}/)?.[1]
+
+  assert.match(boardRule ?? '', /box-shadow:\s*none/)
+  assert.match(boardRule ?? '', /border-radius:\s*0/)
+  assert.match(gridRule ?? '', /grid-template-columns:\s*minmax\(0,\s*1fr\)/)
+})
+
+test('Teacher hero pairs its truthful count with a presentation-only lesson planner motif', () => {
+  const html = render({ status: 'success', data: classes(3) })
+
+  assert.match(html, /class="cs-teacher-hero-side"/)
+  assert.match(html, /3 lớp trong không gian làm việc/)
+  assert.match(html, /class="cs-teacher-planner" aria-hidden="true"/)
+})
+
+test('Teacher dashboard uses real class records and no giant decorative classroom filler', () => {
+  const html = render({ status: 'success', data: classes(3) })
+
+  assert.doesNotMatch(html, /cs-classroom-visual|cs-board-frame|cs-board-desk/)
+  assert.match(html, /class="cs-teacher-command-rail"/)
+  assert.match(html, /class="cs-teacher-class-grid"/)
 })

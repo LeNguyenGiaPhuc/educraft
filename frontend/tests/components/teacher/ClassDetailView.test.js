@@ -27,6 +27,8 @@ test('semantic assignment archive bounds rows without losing real detail links a
     const html = render({ status: 'success', classroom: { id: 'class-id', code: '11A2', subject: 'Lịch sử', status: 'ACTIVE', students: [], studentCount: 0, assignmentCount: count }, assignments: Array.from({ length: count }, (_, i) => ({ id: `a-${i}`, title: 'Tên bài kiểm tra dài '.repeat(10), statusCode: 'OPEN', status: 'Đang mở', submission: 'Chưa có dữ liệu', threshold: '80%', dueDate: 'Chưa có hạn nộp' })) })
     assert.equal((html.match(/class="tk-assignment-record"/g) ?? []).length, Math.min(count, 25))
     assert.match(html, /role="tablist"/)
+    assert.match(html, /class="tk-class-header-main"/)
+    assert.match(html, /href="\/classes\/class-id\/assignments\/new"/)
     assert.match(html, /id="students-panel"[^>]*hidden/)
     if (count) assert.match(html, /href="\/classes\/class-id\/assignments\/a-0"/)
   }

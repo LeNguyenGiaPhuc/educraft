@@ -1,0 +1,485 @@
+/* Campus Studio Student Dashboard — Break the Frame composition. */
+.campus-studio-student-dashboard {
+  --cs-section-bleed: clamp(14px, 2.5vw, 32px);
+  background: var(--ec-color-cloud);
+}
+
+.campus-studio-student-dashboard > .page-container {
+  width: min(var(--ec-content-max-width), calc(100% - 64px));
+  padding: 34px 0 72px;
+}
+
+.campus-studio-student-dashboard .cs-student-welcome {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(190px, .48fr) minmax(250px, .62fr);
+  align-items: stretch;
+  min-width: 0;
+  min-height: 300px;
+  margin-bottom: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: var(--ec-color-ink-navy);
+  box-shadow: none;
+  animation: cs-region-in 260ms var(--ec-motion-ease-enter) both;
+}
+
+.campus-studio-student-dashboard .cs-student-welcome-copy {
+  align-self: center;
+  min-width: 0;
+  padding: clamp(32px, 5vw, 64px);
+}
+
+.campus-studio-student-dashboard .cs-student-welcome-copy .sf-section-kicker { color: var(--ec-color-sky); }
+
+.campus-studio-student-dashboard .cs-student-welcome-copy h1 {
+  max-width: 18ch;
+  margin: 0;
+  color: white;
+  font: 800 clamp(2.25rem, 4.2vw, 4.25rem)/1.02 var(--ec-font-display);
+  letter-spacing: -.06em;
+  text-wrap: balance;
+}
+
+.campus-studio-student-dashboard .cs-student-welcome-copy p {
+  max-width: 50ch;
+  margin: 18px 0 0;
+  color: rgb(255 255 255 / 70%);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.campus-studio-student-dashboard .cs-student-snapshot {
+  display: grid;
+  align-content: center;
+  gap: 0;
+  min-width: 0;
+  margin: 42px 0;
+  padding: 0 28px;
+  border-inline: 1px solid rgb(255 255 255 / 16%);
+  background: transparent;
+}
+
+.campus-studio-student-dashboard .cs-student-snapshot > div {
+  display: grid;
+  gap: 7px;
+  padding: 18px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 16%);
+}
+
+.campus-studio-student-dashboard .cs-student-snapshot > div:last-child { border-bottom: 0; }
+.campus-studio-student-dashboard .cs-student-snapshot dt { color: rgb(255 255 255 / 62%); font-size: 11px; font-weight: 700; }
+.campus-studio-student-dashboard .cs-student-snapshot dd { margin: 0; color: white; font: 800 42px/1 var(--ec-font-display); }
+
+.campus-studio-student-dashboard .cs-campus-visual {
+  position: relative;
+  min-width: 0;
+  min-height: 260px;
+  overflow: hidden;
+  background: #202f52;
+}
+
+.campus-studio-student-dashboard .cs-campus-visual::before {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  width: 9px;
+  height: 72px;
+  background: var(--ec-color-mint);
+  box-shadow: 18px 18px 0 var(--ec-color-sky);
+  content: '';
+}
+
+.campus-studio-student-dashboard .cs-campus-sun {
+  position: absolute;
+  top: 34px;
+  right: 34px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--ec-color-sun-yellow);
+}
+
+.campus-studio-student-dashboard .cs-campus-notebook {
+  position: absolute;
+  right: 34px;
+  bottom: 34px;
+  left: 38px;
+  height: 142px;
+  border-radius: 4px;
+  background: var(--ec-color-paper);
+  box-shadow: 10px 10px 0 var(--ec-color-learning-blue);
+  transform: rotate(-3deg);
+}
+
+.campus-studio-student-dashboard .cs-campus-notebook::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 48%;
+  width: 1px;
+  background: var(--ec-color-blue-200);
+  content: '';
+}
+
+.campus-studio-student-dashboard .cs-campus-notebook i {
+  position: absolute;
+  left: 22px;
+  width: 38%;
+  height: 5px;
+  background: var(--ec-color-blue-200);
+}
+.campus-studio-student-dashboard .cs-campus-notebook i:nth-child(1) { top: 28px; background: var(--ec-color-learning-blue); }
+.campus-studio-student-dashboard .cs-campus-notebook i:nth-child(2) { top: 52px; width: 28%; }
+.campus-studio-student-dashboard .cs-campus-notebook i:nth-child(3) { top: 76px; width: 34%; }
+
+.campus-studio-student-dashboard .cs-campus-assignment-sheet {
+  position: absolute;
+  right: 24px;
+  bottom: 26px;
+  z-index: 2;
+  width: 42%;
+  height: 110px;
+  border-top: 9px solid var(--ec-color-learning-blue);
+  background: white;
+  box-shadow: -7px 8px 0 rgb(15 25 48 / 18%);
+  transform: rotate(4deg);
+}
+
+.campus-studio-student-dashboard .cs-campus-assignment-sheet i {
+  position: absolute;
+  left: 16px;
+  height: 4px;
+  background: var(--ec-color-blue-200);
+}
+
+.campus-studio-student-dashboard .cs-campus-assignment-sheet i:nth-child(1) { top: 22px; width: 55%; background: var(--ec-color-lavender); }
+.campus-studio-student-dashboard .cs-campus-assignment-sheet i:nth-child(2) { top: 43px; width: 68%; }
+.campus-studio-student-dashboard .cs-campus-assignment-sheet i:nth-child(3) { top: 64px; width: 46%; }
+
+.campus-studio-student-dashboard .cs-campus-pencil {
+  position: absolute;
+  right: 25%;
+  bottom: 25px;
+  z-index: 3;
+  width: 104px;
+  height: 10px;
+  border-right: 12px solid var(--ec-color-coral);
+  background: var(--ec-color-sun-yellow);
+  box-shadow: inset 8px 0 0 #e6b14a;
+  transform: rotate(-19deg);
+}
+
+.campus-studio-student-dashboard .cs-campus-pencil::after {
+  position: absolute;
+  right: -22px;
+  border-block: 5px solid transparent;
+  border-left: 10px solid var(--ec-color-paper);
+  content: '';
+}
+
+.campus-studio-student-dashboard .cs-campus-sticky-note {
+  position: absolute;
+  top: 48px;
+  left: 42%;
+  z-index: 2;
+  width: 72px;
+  height: 64px;
+  padding: 17px 13px;
+  background: var(--ec-color-mint);
+  box-shadow: 5px 6px 0 rgb(15 25 48 / 16%);
+  transform: rotate(5deg);
+}
+
+.campus-studio-student-dashboard .cs-campus-sticky-note i {
+  display: block;
+  width: 100%;
+  height: 4px;
+  margin-bottom: 9px;
+  background: rgb(23 33 58 / 32%);
+}
+
+.campus-studio-student-dashboard .cs-campus-sticky-note i:last-child { width: 62%; }
+
+.campus-studio-student-dashboard .cs-campus-tab {
+  position: absolute;
+  z-index: 1;
+  padding: 7px 10px;
+  border-radius: 3px 3px 0 0;
+  color: var(--ec-color-ink-navy);
+  font-size: 10px;
+  font-weight: 800;
+  transform: rotate(-4deg);
+}
+.campus-studio-student-dashboard .cs-campus-tab-mint { right: 30px; bottom: 118px; background: var(--ec-color-mint); }
+.campus-studio-student-dashboard .cs-campus-tab-yellow { left: 28px; bottom: 24px; background: var(--ec-color-sun-yellow); transform: rotate(4deg); }
+
+.campus-studio-student-dashboard .cs-student-campus-board {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0;
+  min-width: 0;
+}
+
+.campus-studio-student-dashboard :is(.cs-student-open-zone, .cs-student-class-board, .cs-student-assignment-board) {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  grid-column: 1 / -1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  animation: cs-region-in 260ms var(--ec-motion-ease-enter) both;
+}
+
+.campus-studio-student-dashboard :is(.cs-student-open-zone, .cs-student-class-board, .cs-student-assignment-board)::before {
+  position: absolute;
+  inset: 0 calc(var(--cs-section-bleed) * -1);
+  z-index: -1;
+  content: '';
+  pointer-events: none;
+}
+
+.campus-studio-student-dashboard .cs-student-open-zone {
+  padding: 42px 0 48px;
+  border-bottom: 1px solid var(--ec-color-border);
+  animation-delay: 45ms;
+}
+
+.campus-studio-student-dashboard .cs-student-open-zone::before,
+.campus-studio-student-dashboard .cs-student-assignment-board::before {
+  background: var(--ec-color-paper);
+}
+
+.campus-studio-student-dashboard .cs-open-zone-heading,
+.campus-studio-student-dashboard .cs-board-heading,
+.campus-studio-student-dashboard .cs-assignment-board-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  min-width: 0;
+  margin-bottom: 22px;
+}
+
+.campus-studio-student-dashboard :is(.cs-open-zone-heading, .cs-board-heading, .cs-assignment-board-heading) h2 {
+  margin: 0;
+  color: var(--ec-color-ink-navy);
+  font: 800 clamp(1.55rem, 2.5vw, 2.4rem)/1.15 var(--ec-font-display);
+  letter-spacing: -.04em;
+}
+
+.campus-studio-student-dashboard :is(.cs-open-zone-heading, .cs-board-heading, .cs-assignment-board-heading) > span {
+  flex: 0 0 auto;
+  color: var(--ec-color-text-muted);
+  font-size: 12px;
+}
+
+.campus-studio-student-dashboard .cs-open-task-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, .65fr);
+  grid-template-rows: repeat(2, minmax(112px, auto));
+  gap: 1px;
+  overflow: hidden;
+  background: var(--ec-color-border);
+}
+
+.campus-studio-student-dashboard .cs-open-task {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: center;
+  min-width: 0;
+  min-height: 112px;
+  padding: 20px 24px;
+  border: 0;
+  border-radius: 0;
+  background: var(--ec-color-paper);
+  transition: transform 200ms var(--ec-motion-ease-standard), background-color 200ms var(--ec-motion-ease-standard);
+}
+
+.campus-studio-student-dashboard .cs-open-task.is-primary {
+  grid-row: 1 / 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  min-height: 225px;
+  padding: clamp(28px, 4vw, 48px);
+  background: var(--ec-color-learning-blue);
+  color: white;
+}
+
+.campus-studio-student-dashboard .cs-open-task.is-primary:only-child {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.campus-studio-student-dashboard .cs-open-task:nth-child(2):last-child {
+  grid-row: 1 / 3;
+}
+
+.campus-studio-student-dashboard .cs-open-task:hover { transform: translateY(-2px); }
+.campus-studio-student-dashboard .cs-open-task-subject { grid-column: 1 / -1; color: var(--ec-color-primary-hover); font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.campus-studio-student-dashboard .cs-open-task:not(.is-primary) .cs-open-task-subject { padding-left: 10px; border-left: 4px solid var(--ec-color-mint); }
+.campus-studio-student-dashboard .cs-open-task.is-primary .cs-open-task-subject { color: rgb(255 255 255 / 72%); }
+.campus-studio-student-dashboard .cs-open-task h3 { margin: 9px 0 5px; color: var(--ec-color-ink-navy); font: 800 clamp(1.05rem, 1.7vw, 1.45rem)/1.3 var(--ec-font-display); overflow-wrap: anywhere; }
+.campus-studio-student-dashboard .cs-open-task.is-primary h3 { max-width: 25ch; color: white; font-size: clamp(1.55rem, 2.6vw, 2.5rem); }
+.campus-studio-student-dashboard .cs-open-task p { margin: 0; color: var(--ec-color-text-muted); font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.campus-studio-student-dashboard .cs-open-task.is-primary p { color: rgb(255 255 255 / 76%); }
+.campus-studio-student-dashboard .cs-open-task a { grid-column: 2; grid-row: 2 / 4; align-self: center; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-left: 18px; color: var(--ec-color-primary-hover); font-size: 12px; font-weight: 800; text-decoration: none; }
+.campus-studio-student-dashboard .cs-open-task.is-primary a { grid-column: 1; grid-row: auto; justify-self: start; margin: 22px 0 0; padding: 0 16px; background: white; color: var(--ec-color-primary-hover); }
+.campus-studio-student-dashboard .cs-open-task a span[aria-hidden],
+.campus-studio-student-dashboard .sf-open-assignment span[aria-hidden] { transition: transform 200ms var(--ec-motion-ease-standard); }
+.campus-studio-student-dashboard .cs-open-task a:hover span[aria-hidden],
+.campus-studio-student-dashboard .sf-open-assignment:hover span[aria-hidden] { transform: translateX(3px); }
+.campus-studio-student-dashboard .cs-open-task a:active,
+.campus-studio-student-dashboard .sf-open-assignment:active { transform: translateY(1px); }
+
+.campus-studio-student-dashboard .cs-open-zone-empty { display: grid; gap: 5px; padding: 28px 0; border-block: 1px solid var(--ec-color-border); color: var(--ec-color-text-muted); }
+.campus-studio-student-dashboard .cs-open-zone-empty strong { color: var(--ec-color-ink-navy); }
+
+.campus-studio-student-dashboard .cs-student-class-board {
+  padding: 48px 0;
+  border-bottom: 1px solid var(--ec-color-border);
+  animation-delay: 90ms;
+}
+
+.campus-studio-student-dashboard .cs-student-class-board::before {
+  background: color-mix(in srgb, var(--ec-color-mint) 8%, var(--ec-color-cloud));
+}
+
+.campus-studio-student-dashboard .cs-board-search { max-width: 480px; margin-bottom: 20px; }
+.campus-studio-student-dashboard .cs-board-search > label,
+.campus-studio-student-dashboard .cs-assignment-tools label { display: block; margin-bottom: 8px; color: var(--ec-color-ink-navy); font-size: 12px; font-weight: 750; }
+.campus-studio-student-dashboard .cs-board-search .sf-search-field,
+.campus-studio-student-dashboard .cs-assignment-tools .sf-search-field { border: 1px solid var(--ec-color-border); border-radius: 3px; background: var(--ec-color-paper); }
+
+.campus-studio-student-dashboard .cs-student-class-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.campus-studio-student-dashboard .cs-student-class-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
+  align-items: start;
+  gap: 7px 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 178px;
+  padding: 22px 19px 18px;
+  border: 1px solid var(--ec-color-border-soft);
+  border-radius: 4px;
+  background: var(--ec-color-paper);
+  color: var(--ec-color-ink-navy);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 200ms var(--ec-motion-ease-standard), border-color 200ms var(--ec-motion-ease-standard), background-color 200ms var(--ec-motion-ease-standard), box-shadow 200ms var(--ec-motion-ease-standard);
+}
+
+.campus-studio-student-dashboard .cs-student-class-card::before { position: absolute; inset: 0 0 auto; height: 5px; background: var(--ec-color-sky); content: ''; }
+.campus-studio-student-dashboard .cs-student-class-card[data-accent='mint']::before { background: var(--ec-color-mint); }
+.campus-studio-student-dashboard .cs-student-class-card[data-accent='lavender']::before { background: var(--ec-color-lavender); }
+.campus-studio-student-dashboard .cs-student-class-card[data-accent='yellow']::before { background: var(--ec-color-sun-yellow); }
+.campus-studio-student-dashboard .cs-student-class-card:hover { transform: translateY(-2px); border-color: var(--ec-color-blue-300); }
+.campus-studio-student-dashboard .cs-student-class-card:active { transform: translateY(0); }
+
+.campus-studio-student-dashboard .cs-student-class-card.is-selected {
+  border-color: var(--ec-color-learning-blue);
+  background: var(--ec-color-primary-soft);
+  box-shadow: 0 5px 0 rgb(91 124 250 / 16%);
+}
+
+.campus-studio-student-dashboard .cs-student-class-card .sf-class-position { grid-row: 1 / 3; color: var(--ec-color-primary); font-size: 11px; font-weight: 800; }
+.campus-studio-student-dashboard .cs-student-class-card .sf-class-card-main { display: grid; gap: 4px; min-width: 0; }
+.campus-studio-student-dashboard .cs-student-class-card .sf-class-card-main strong { font: 800 19px/1.2 var(--ec-font-display); overflow-wrap: anywhere; }
+.campus-studio-student-dashboard .cs-student-class-card .sf-class-card-main span { color: var(--ec-color-text-muted); font-size: 13px; overflow-wrap: anywhere; }
+.campus-studio-student-dashboard .cs-student-class-card > small { grid-column: 2 / -1; color: var(--ec-color-text-muted); font-size: 11px; overflow-wrap: anywhere; }
+.campus-studio-student-dashboard .cs-class-open-count { grid-column: 2; align-self: end; margin-top: 10px; color: var(--ec-color-primary-hover); font-size: 11px; font-weight: 750; }
+.campus-studio-student-dashboard .cs-student-class-card .sf-class-card-arrow { grid-column: 3; grid-row: 1; color: var(--ec-color-primary); font-weight: 800; }
+.campus-studio-student-dashboard .cs-student-class-card .sf-selected-label { position: absolute; right: 14px; bottom: 13px; display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 4px 9px; border: 1px solid var(--ec-color-learning-blue); border-radius: var(--ec-radius-pill); background: var(--ec-color-learning-blue); color: white; font-size: 10px; font-weight: 800; }
+
+.campus-studio-student-dashboard .cs-student-assignment-board {
+  padding: 48px 0 0;
+  animation-delay: 135ms;
+}
+
+.campus-studio-student-dashboard .cs-assignment-board-heading > div { min-width: 0; }
+.campus-studio-student-dashboard .cs-assignment-board-heading p { margin: 7px 0 0; color: var(--ec-color-text-muted); font-size: 12px; }
+.campus-studio-student-dashboard .cs-assignment-tools { display: flex; margin-bottom: 20px; }
+.campus-studio-student-dashboard .cs-assignment-tools > div { width: min(100%, 480px); }
+
+.campus-studio-student-dashboard .cs-student-assignment-list { display: grid; gap: 0; margin: 0; padding: 0; border-block: 1px solid var(--ec-color-border); list-style: none; }
+.campus-studio-student-dashboard .cs-student-assignment-list .sf-assignment-card { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto auto; align-items: center; gap: 14px; min-width: 0; min-height: 84px; padding: 15px 6px; border: 0; border-bottom: 1px solid var(--ec-color-border-soft); border-radius: 0; background: transparent; box-shadow: none; }
+.campus-studio-student-dashboard .cs-student-assignment-list .sf-assignment-card:last-child { border-bottom: 0; }
+.campus-studio-student-dashboard .cs-student-assignment-list .sf-assignment-card:hover { background: var(--ec-color-blue-50); }
+.campus-studio-student-dashboard .cs-student-assignment-list .sf-record-number { color: var(--ec-color-primary); font-size: 11px; font-weight: 800; }
+.campus-studio-student-dashboard .cs-student-assignment-list .sf-assignment-card-content { min-width: 0; }
+.campus-studio-student-dashboard .cs-student-assignment-list h3 { margin: 0; color: var(--ec-color-ink-navy); font: 750 15px/1.45 var(--ec-font-display); overflow-wrap: anywhere; }
+.campus-studio-student-dashboard .cs-student-assignment-list p { margin: 4px 0 0; color: var(--ec-color-text-muted); font-size: 11px; }
+.campus-studio-student-dashboard .cs-student-assignment-list .sf-open-assignment { min-height: 44px; }
+
+@keyframes cs-region-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@supports (animation-timeline: view()) {
+  .campus-studio-student-dashboard :is(.cs-student-open-zone, .cs-student-class-board, .cs-student-assignment-board) {
+    animation-delay: 0ms;
+    animation-timeline: view();
+    animation-range: entry 0% entry 24%;
+  }
+}
+
+@media (max-width: 1080px) {
+  .campus-studio-student-dashboard .cs-student-welcome { grid-template-columns: minmax(0, 1.35fr) minmax(190px, .55fr); }
+  .campus-studio-student-dashboard .cs-campus-visual { display: none; }
+  .campus-studio-student-dashboard .cs-student-snapshot { border-right: 0; }
+  .campus-studio-student-dashboard .cs-student-class-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .campus-studio-student-dashboard > .page-container { width: calc(100% - 40px); padding-top: 24px; }
+  .campus-studio-student-dashboard .cs-student-welcome { grid-template-columns: minmax(0, 1fr); }
+  .campus-studio-student-dashboard .cs-student-snapshot { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 20px 28px; border: 0; border-top: 1px solid rgb(255 255 255 / 16%); }
+  .campus-studio-student-dashboard .cs-student-snapshot > div { border: 0; }
+  .campus-studio-student-dashboard .cs-open-task-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .campus-studio-student-dashboard .cs-open-task.is-primary { grid-row: auto; min-height: 190px; }
+  .campus-studio-student-dashboard .cs-student-class-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .campus-studio-student-dashboard .cs-student-assignment-list .sf-assignment-card { grid-template-columns: 34px minmax(0, 1fr) auto; }
+  .campus-studio-student-dashboard .cs-student-assignment-list .sf-status { grid-column: 2; justify-self: start; }
+  .campus-studio-student-dashboard .cs-student-assignment-list .sf-open-assignment { grid-column: 3; grid-row: 1 / 3; }
+}
+
+@media (max-width: 560px) {
+  .campus-studio-student-dashboard > .page-container { width: calc(100% - 28px); padding-bottom: 48px; }
+  .campus-studio-student-dashboard .cs-student-welcome-copy { padding: 32px 22px; }
+  .campus-studio-student-dashboard .cs-student-welcome-copy h1 { font-size: 2.15rem; }
+  .campus-studio-student-dashboard .cs-student-snapshot { padding: 16px 20px; }
+  .campus-studio-student-dashboard .cs-student-open-zone,
+  .campus-studio-student-dashboard .cs-student-class-board,
+  .campus-studio-student-dashboard .cs-student-assignment-board { padding-block: 34px; }
+  .campus-studio-student-dashboard :is(.cs-open-zone-heading, .cs-board-heading, .cs-assignment-board-heading) { align-items: flex-start; flex-direction: column; gap: 7px; }
+  .campus-studio-student-dashboard .cs-open-task:not(.is-primary) { grid-template-columns: minmax(0, 1fr); }
+  .campus-studio-student-dashboard .cs-open-task:not(.is-primary) a { grid-column: 1; grid-row: auto; justify-self: start; margin: 10px 0 0; }
+  .campus-studio-student-dashboard .cs-student-class-grid { grid-template-columns: minmax(0, 1fr); }
+  .campus-studio-student-dashboard .cs-student-class-card { min-height: 168px; }
+  .campus-studio-student-dashboard .cs-student-assignment-list .sf-assignment-card { grid-template-columns: 28px minmax(0, 1fr); gap: 8px 10px; }
+  .campus-studio-student-dashboard .cs-student-assignment-list .sf-status { grid-column: 2; }
+  .campus-studio-student-dashboard .cs-student-assignment-list .sf-open-assignment { grid-column: 2; grid-row: auto; justify-self: stretch; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .campus-studio-student-dashboard :is(.cs-student-welcome, .cs-student-open-zone, .cs-student-class-board, .cs-student-assignment-board) { animation: none; }
+  .campus-studio-student-dashboard :is(.cs-open-task, .cs-student-class-card) { transition: none; }
+  .campus-studio-student-dashboard :is(.cs-open-task, .cs-student-class-card):hover { transform: none; }
+  .campus-studio-student-dashboard :is(.cs-open-task a span[aria-hidden], .sf-open-assignment span[aria-hidden]) { transition: none; }
+  .campus-studio-student-dashboard :is(.cs-open-task a, .sf-open-assignment):active,
+  .campus-studio-student-dashboard :is(.cs-open-task a, .sf-open-assignment):hover span[aria-hidden] { transform: none; }
+}

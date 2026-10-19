@@ -14,7 +14,7 @@ function EvidenceImage({ url, fileName, source }) {
 export default function SubmissionEvidence({ submission, references }) {
   const [referenceId, setReferenceId] = useState(references[0]?.id ?? '')
   const reference = references.find(row => row.id === referenceId) ?? references[0]
-  return <section className="tk-evidence" aria-labelledby="evidence-title">
+  return <section className="tk-evidence cs-review-evidence" aria-labelledby="evidence-title">
     <header><h2 id="evidence-title">Bằng chứng đối chiếu</h2><p>Ảnh gốc không thay đổi nội dung. Chỉ tải ảnh của lượt đang xem và bài mẫu đang chọn.</p></header>
     <EvidenceImage key={submission.fileUrl ?? submission.id} url={submission.fileUrl} fileName={submission.fileName} source="Bài học sinh" />
     {references.length > 0 ? <>

@@ -47,6 +47,8 @@ test('create paper preserves 125 native class options, labels, maxlength and val
   assert.match(html, /aria-invalid="true"/)
   assert.match(html, /Lỗi mạng/)
   assert.match(html, /value="c-124"/)
+  assert.match(html, /Bài mẫu được thêm sau khi tạo bài kiểm tra/)
+  assert.match(html, /class="tk-form-next-step"/)
 })
 test('edit paper keeps deadline/status/threshold and the shared title limit without a class switch', () => {
   const html = render(Edit, { assignment: { id: 'a', title: 'Bài kiểm tra', dueAt: '2026-10-20T10:00:00Z', coverageThreshold: 80, status: 'OPEN' }, onSaved: () => {}, onCancel: () => {} })

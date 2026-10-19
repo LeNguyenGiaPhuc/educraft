@@ -46,6 +46,9 @@ test('selected-only review keeps manual form usable during GET and has native or
   assert.match(html, /Cần bổ sung/)
   assert.match(html, /href="https:\/\/example.invalid\/attempt1.png"/)
   assert.match(html, /<textarea/)
+  assert.match(html, /AI hỗ trợ phân tích/)
+  assert.match(html, /Giáo viên quyết định/)
+  assert.match(html, /class="tk-review-authority"/)
   assert.doesNotMatch(html, /<img|disabled=""|tk-teacher-seal/)
 })
 

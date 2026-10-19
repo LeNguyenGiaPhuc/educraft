@@ -1,24 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
-
-/* KINETIC FIELD NOTES / Operate: real folders, one open dossier, no marketing hero.
-   All selectors belong to Teacher; role contracts and other page styles stay intact. */
+/* EduCraft Campus — Teacher shared primitives and dashboard. */
 .teacher-kinetic-shell {
-  --tk-navy: #1f3340;
-  --tk-deep: #234254;
-  --tk-hover: #1d3644;
-  --tk-stock: #dce8ec;
-  --tk-stock-closed: #eaf1f3;
-  --tk-selected: #d9e7ec;
-  --tk-paper: #f7f5ef;
-  --tk-ochre: #c9a66b;
-  --tk-russet: #965044;
-  --tk-muted: #536873;
-  --tk-line: #b6c7cd;
-  --tk-ease: cubic-bezier(.2, .8, .2, 1);
-  --tk-font-display: 'Archivo', Arial, sans-serif;
-  --tk-font-body: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+  --tk-navy: var(--ec-color-ink-navy);
+  --tk-deep: var(--ec-color-primary);
+  --tk-hover: var(--ec-color-primary-hover);
+  --tk-stock: var(--ec-color-cloud);
+  --tk-stock-closed: var(--ec-color-surface-subtle);
+  --tk-selected: var(--ec-color-primary-soft);
+  --tk-paper: var(--ec-color-surface);
+  --tk-ochre: var(--ec-color-sun-yellow);
+  --tk-russet: var(--ec-color-danger);
+  --tk-muted: var(--ec-color-text-muted);
+  --tk-line: var(--ec-color-border-soft);
+  --tk-ease: var(--ec-motion-ease-standard);
+  --tk-font-display: var(--ec-font-display);
+  --tk-font-body: var(--ec-font-body);
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   min-width: 0;
   min-height: 100vh;
@@ -26,336 +22,188 @@
   color: var(--tk-navy);
   font-family: var(--tk-font-body);
 }
+.teacher-shell.teacher-kinetic-shell { grid-template-columns: 264px minmax(0,1fr); grid-template-rows: minmax(0,1fr); }
 
 .teacher-kinetic-shell .teacher-kinetic-header {
   position: sticky;
   top: 0;
   z-index: 40;
   align-self: start;
-  width: 100%;
-  height: auto;
-  min-height: 72px;
-  padding: 0;
+  width: auto;
+  height: 100vh;
+  min-height: 100vh;
   border: 0;
-  background: var(--tk-deep);
+  background: var(--tk-navy);
   color: var(--tk-paper);
+  box-shadow: 8px 0 24px rgb(23 33 58 / 12%);
 }
-.teacher-kinetic-shell .teacher-kinetic-header .site-header-inner {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  width: min(1500px, calc(100% - 80px));
-  min-height: 72px;
-  height: auto;
-  padding: 12px 0;
-  gap: 16px 24px;
-  margin: auto;
-}
-.teacher-kinetic-shell .teacher-kinetic-header .brand {
-  align-self: center;
-  gap: 12px;
-  color: var(--tk-paper);
-  font: 800 23px/1.2 var(--tk-font-display);
-  letter-spacing: -.035em;
-}
+.teacher-kinetic-shell .teacher-kinetic-header .site-header-inner { display: flex; flex-direction: column; align-items: stretch; width: 100%; height: 100%; min-height: 100%; margin: 0; padding: 0; gap: 0; }
+.teacher-kinetic-shell .teacher-kinetic-header .brand { gap: 12px; color: var(--tk-paper); font: 800 22px/1.2 var(--tk-font-display); letter-spacing: -.03em; }
 .teacher-kinetic-shell .teacher-kinetic-header .brand > span:last-child { color: var(--tk-paper); }
-.teacher-kinetic-shell .teacher-kinetic-header .brand-mark {
-  width: 36px;
-  height: 38px;
-  background: var(--tk-stock);
-  color: var(--tk-navy);
-  border-radius: 2px 8px 0 0;
-  font: 900 22px var(--tk-font-display);
-  box-shadow: 3px 3px 0 var(--tk-ochre);
-}
-.teacher-kinetic-shell .teacher-kinetic-header .shell-role-label {
-  margin-top: 4px;
-  color: var(--tk-paper);
-  font: 400 11px/1.4 var(--tk-font-body);
-  letter-spacing: 0;
-  text-transform: none;
-}
-.teacher-kinetic-shell .teacher-kinetic-header .primary-nav {
-  display: flex;
-  align-items: end;
-  align-self: stretch;
-  justify-content: start;
-  gap: 6px;
-  min-width: 0;
-  height: auto;
-  padding-top: 22px;
-}
-.teacher-kinetic-shell .teacher-kinetic-header .nav-link {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 52px;
-  padding: 12px 22px;
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 10px 10px 0 0;
-  background: var(--tk-deep);
-  color: var(--tk-paper);
-  font: 600 14px/1.4 var(--tk-font-body);
-  white-space: normal;
-  transition: background-color 250ms var(--tk-ease), color 250ms var(--tk-ease);
-}
+.teacher-kinetic-shell .teacher-kinetic-header .brand-mark { width: 38px; height: 38px; border-radius: 12px; background: var(--ec-color-primary); color: white; box-shadow: none; font: 800 21px var(--tk-font-display); }
+.teacher-kinetic-shell .teacher-kinetic-header .shell-role-label { margin-top: 3px; color: rgb(255 255 255 / 72%); font: 500 11px/1.4 var(--tk-font-body); }
+.teacher-kinetic-shell .teacher-kinetic-header .primary-nav { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 0; }
+.teacher-kinetic-shell .teacher-kinetic-header .nav-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; border: 0; border-radius: var(--ec-radius-md); background: transparent; color: rgb(255 255 255 / 78%); font: 600 14px/1.4 var(--tk-font-body); transition: background var(--ec-motion-duration-base) var(--tk-ease), color var(--ec-motion-duration-base) var(--tk-ease); }
 .teacher-kinetic-shell .teacher-kinetic-header .nav-link::before,
 .teacher-kinetic-shell .teacher-kinetic-header .nav-link::after { display: none; }
-.teacher-kinetic-shell .teacher-kinetic-header .nav-link:hover { background: var(--tk-hover); }
+.teacher-kinetic-shell .teacher-kinetic-header .nav-link:hover { background: rgb(255 255 255 / 9%); color: white; }
 .teacher-kinetic-shell .teacher-kinetic-header .nav-link-active,
-.teacher-kinetic-shell .teacher-kinetic-header .nav-link-active:hover {
-  padding-top: 19px;
-  background: var(--tk-stock);
-  color: var(--tk-navy);
-}
-.teacher-kinetic-shell .teacher-kinetic-header .profile-area {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  min-width: 0;
-  margin: 0 0 0 auto;
-  padding: 0;
-  border: 0;
-}
-.teacher-kinetic-shell .teacher-kinetic-header .shell-user { min-width: 0; }
-.teacher-kinetic-shell .teacher-kinetic-header .profile-monogram {
-  width: 36px;
-  height: 36px;
-  border: 1px solid rgb(247 245 239 / 50%);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--tk-stock);
-}
-.teacher-kinetic-shell .teacher-kinetic-header .shell-user-details strong {
-  max-width: 20ch;
-  overflow-wrap: anywhere;
-  color: var(--tk-paper);
-  font: 600 13px/1.5 var(--tk-font-body);
-}
-.teacher-kinetic-shell .teacher-kinetic-header .shell-user-details small { color: var(--tk-paper); font-size: 11px; }
-.teacher-kinetic-shell .teacher-kinetic-header .logout-button {
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid rgb(247 245 239 / 50%);
-  border-radius: 2px;
-  background: transparent;
-  color: var(--tk-paper);
-  font: 500 13px var(--tk-font-body);
-}
-.teacher-kinetic-shell .teacher-kinetic-header .logout-button:hover { background: var(--tk-paper); color: var(--tk-navy); }
-.teacher-kinetic-shell :is(button, a, input, [tabindex]):focus-visible {
-  outline: 3px solid var(--tk-russet);
-  outline-offset: 3px;
-}
-.teacher-kinetic-shell .teacher-kinetic-header :is(a, button):focus-visible { outline-color: var(--tk-ochre); outline-offset: -4px; }
+.teacher-kinetic-shell .teacher-kinetic-header .nav-link-active:hover { background: rgb(91 124 250 / 22%); color: white; }
+.teacher-kinetic-shell .teacher-kinetic-header .profile-area { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; width: 100%; min-width: 0; margin: auto 0 0; padding-top: 20px; border-top: 1px solid rgb(255 255 255 / 18%); }
+.teacher-kinetic-shell .teacher-kinetic-header .shell-user { display: grid; grid-template-columns: 38px minmax(0,1fr); align-items: center; gap: 10px; width: 100%; min-width: 0; }
+.teacher-kinetic-shell .teacher-kinetic-header .profile-monogram { width: 38px; height: 38px; border: 1px solid rgb(255 255 255 / 28%); border-radius: 50%; background: rgb(255 255 255 / 8%); color: white; }
+.teacher-kinetic-shell .teacher-kinetic-header .shell-user-details { display: grid; gap: 2px; min-width: 0; }
+.teacher-kinetic-shell .teacher-kinetic-header .shell-user-details strong { display: block; max-width: 100%; overflow: hidden; color: white; font: 600 13px/1.4 var(--tk-font-body); overflow-wrap: normal; text-overflow: ellipsis; white-space: nowrap; word-break: normal; }
+.teacher-kinetic-shell .teacher-kinetic-header .shell-user-details small { display: block; color: rgb(255 255 255 / 68%); font-size: 11px; overflow-wrap: normal; word-break: normal; }
+.teacher-kinetic-shell .teacher-kinetic-header .logout-button { width: 100%; min-height: 44px; padding: 0 14px; border: 1px solid rgb(255 255 255 / 24%); border-radius: var(--ec-radius-md); background: transparent; color: white; font: 600 13px var(--tk-font-body); }
+.teacher-kinetic-shell .teacher-kinetic-header .logout-button:hover { background: white; color: var(--tk-navy); }
+.teacher-kinetic-shell :is(button,a,input,select,textarea,[tabindex]):focus-visible { outline: var(--ec-focus-ring-width) solid var(--ec-focus-ring); outline-offset: var(--ec-focus-ring-offset); }
+.teacher-kinetic-shell .teacher-kinetic-header :is(a,button):focus-visible { outline-color: white; }
 
 .teacher-kinetic-shell .teacher-kinetic-overview { min-width: 0; min-height: calc(100vh - 72px); background: var(--tk-stock); }
-.teacher-kinetic-shell .teacher-kinetic-overview .page-container {
-  width: min(1500px, calc(100% - 80px));
-  padding: 34px 0 60px;
-  margin: 0 auto;
-}
-.teacher-kinetic-shell .tk-workspace-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-  padding-bottom: 24px;
-  border-bottom: 2px solid var(--tk-navy);
-}
-.teacher-kinetic-shell .tk-workspace-heading h1 {
-  margin: 0;
-  color: var(--tk-navy);
-  font: 800 clamp(26px, 2.5vw, 36px)/1.15 var(--tk-font-display);
-  letter-spacing: -.035em;
-}
-.teacher-kinetic-shell .tk-workspace-heading p { margin: 9px 0 0; font-size: 14px; line-height: 1.6; }
-.teacher-kinetic-shell .tk-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  min-height: 48px;
-  padding: 12px 20px;
-  border: 1px solid var(--tk-navy);
-  border-radius: 2px;
-  font: 600 14px/1.35 var(--tk-font-body);
-  text-decoration: none;
-  cursor: pointer;
-  transition: transform 180ms var(--tk-ease), box-shadow 180ms var(--tk-ease), background-color 180ms var(--tk-ease);
-}
-.teacher-kinetic-shell .tk-button-primary { background: var(--tk-deep); color: var(--tk-paper); box-shadow: 3px 4px 0 rgb(31 51 64 / 22%); }
-.teacher-kinetic-shell .tk-button-primary:hover { transform: translate(-1px, -2px); box-shadow: 4px 6px 0 rgb(31 51 64 / 22%); }
-.teacher-kinetic-shell .tk-button-secondary { background: var(--tk-paper); color: var(--tk-navy); }
-.teacher-kinetic-shell .tk-button-secondary:hover { background: var(--tk-stock); }
-.teacher-kinetic-shell :is(.tk-button, .tk-page-button, .tk-index-open, .tk-folder-open):active { transform: translate(1px, 2px); box-shadow: none; }
-.teacher-kinetic-shell .tk-button-arrow { position: relative; width: 17px; height: 1px; background: currentColor; flex: 0 0 auto; }
-.teacher-kinetic-shell .tk-button-arrow::after { content: ''; position: absolute; right: 0; top: -3px; width: 7px; height: 7px; border-top: 1px solid; border-right: 1px solid; transform: rotate(45deg); }
+.teacher-kinetic-shell .teacher-kinetic-overview .page-container { width: min(var(--ec-content-max-width), calc(100% - 64px)); margin: 0 auto; padding: 40px 0 64px; }
+.teacher-kinetic-shell .tk-workspace-heading { display: flex; justify-content: space-between; align-items: center; gap: 28px; margin-bottom: 28px; padding: 30px 32px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-xl); background: linear-gradient(135deg, white 0%, var(--ec-color-blue-50) 100%); box-shadow: var(--ec-shadow-card); }
+.teacher-kinetic-shell .tk-workspace-heading > div { min-width: 0; }
+.teacher-kinetic-shell .tk-workspace-kicker,
+.teacher-kinetic-shell .tk-section-kicker { display: block; margin-bottom: 8px; color: var(--tk-deep); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.teacher-kinetic-shell .tk-workspace-heading h1 { margin: 0; color: var(--tk-navy); font: 800 clamp(28px,3vw,40px)/1.15 var(--tk-font-display); letter-spacing: -.035em; }
+.teacher-kinetic-shell .tk-workspace-heading p { max-width: 62ch; margin: 10px 0 12px; color: var(--tk-muted); font-size: 14px; line-height: 1.65; }
+.teacher-kinetic-shell .tk-workspace-count { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 10px; border-radius: var(--ec-radius-pill); background: white; color: var(--tk-navy); font-size: 12px; font-weight: 700; box-shadow: inset 0 0 0 1px var(--tk-line); }
+.teacher-kinetic-shell .tk-button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 46px; padding: 11px 18px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-md); font: 700 14px/1.35 var(--tk-font-body); text-decoration: none; cursor: pointer; transition: transform var(--ec-motion-duration-base) var(--tk-ease), box-shadow var(--ec-motion-duration-base) var(--tk-ease), background var(--ec-motion-duration-base) var(--tk-ease); }
+.teacher-kinetic-shell .tk-button-primary { border-color: var(--tk-deep); background: var(--tk-deep); color: white; box-shadow: var(--ec-button-shadow); }
+.teacher-kinetic-shell .tk-button-primary:hover { background: var(--tk-hover); transform: translateY(-2px); box-shadow: var(--ec-shadow-card); }
+.teacher-kinetic-shell .tk-button-secondary { background: white; color: var(--tk-navy); }
+.teacher-kinetic-shell .tk-button-secondary:hover { background: var(--ec-color-surface-hover); }
+.teacher-kinetic-shell :is(.tk-button,.tk-page-button,.tk-index-open,.tk-folder-open):active { transform: translateY(0); }
+.teacher-kinetic-shell .tk-button-arrow { position: relative; width: 16px; height: 2px; flex: 0 0 auto; background: currentColor; }
+.teacher-kinetic-shell .tk-button-arrow::after { content: ''; position: absolute; top: -3px; right: 0; width: 7px; height: 7px; border-top: 2px solid; border-right: 2px solid; transform: rotate(45deg); }
 
-.teacher-kinetic-shell .tk-archive-toolbar { display: flex; justify-content: space-between; align-items: end; gap: 24px; padding: 24px 0 28px; }
-.teacher-kinetic-shell .tk-archive-search { width: min(100%, 460px); }
-.teacher-kinetic-shell .tk-archive-search label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
-.teacher-kinetic-shell .tk-search-field { display: flex; align-items: center; background: var(--tk-paper); border: 1px solid var(--tk-navy); }
-.teacher-kinetic-shell .tk-search-field input { min-width: 0; width: 100%; height: 48px; padding: 10px 12px; border: 0; border-radius: 0; background: transparent; color: var(--tk-navy); font: 400 14px var(--tk-font-body); }
+.teacher-kinetic-shell .tk-archive { min-width: 0; }
+.teacher-kinetic-shell .tk-archive-toolbar { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 20px; }
+.teacher-kinetic-shell .tk-archive-search { width: min(100%,480px); }
+.teacher-kinetic-shell .tk-archive-search label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 700; }
+.teacher-kinetic-shell .tk-search-field { display: flex; align-items: center; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-md); background: white; box-shadow: 0 4px 12px rgb(23 33 58 / 4%); }
+.teacher-kinetic-shell .tk-search-field:focus-within { border-color: var(--tk-deep); box-shadow: var(--ec-shadow-focus); }
+.teacher-kinetic-shell .tk-search-field input { min-width: 0; width: 100%; min-height: 46px; padding: 10px 12px; border: 0; outline: 0; background: transparent; color: var(--tk-navy); font: 400 14px var(--tk-font-body); }
 .teacher-kinetic-shell .tk-search-field input::placeholder { color: var(--tk-muted); opacity: 1; }
-.teacher-kinetic-shell .tk-search-icon { position: relative; flex: 0 0 14px; height: 14px; margin-left: 16px; border: 1.5px solid var(--tk-navy); border-radius: 50%; }
-.teacher-kinetic-shell .tk-search-icon::after { content: ''; position: absolute; width: 6px; height: 1.5px; right: -5px; bottom: -3px; background: var(--tk-navy); transform: rotate(45deg); }
-.teacher-kinetic-shell .tk-search-clear { min-width: 44px; min-height: 44px; margin-right: 2px; border: 0; background: transparent; color: var(--tk-russet); font: 600 13px var(--tk-font-body); cursor: pointer; }
-.teacher-kinetic-shell .tk-archive-scope { display: grid; gap: 5px; margin: 0; font-size: 12px; text-align: right; line-height: 1.5; }
-.teacher-kinetic-shell .tk-archive-scope strong { font-size: 15px; }
-.teacher-kinetic-shell .tk-archive-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, .7fr); gap: 32px; align-items: start; }
-.teacher-kinetic-shell .tk-archive.is-folders .tk-archive-layout { grid-template-columns: minmax(0, 1fr); }
-
-/* The tabs sit on the sheet's edge. The active tab shares its paper surface. */
-.teacher-kinetic-shell .tk-folder-sheet { min-width: 0; position: relative; padding-bottom: 16px; }
-.teacher-kinetic-shell .tk-folder-tabs { display: grid; grid-template-columns: repeat(var(--tk-tab-count), minmax(0, 1fr)); align-items: end; position: relative; width: min(100%, 780px); gap: 6px; padding-top: 8px; z-index: 3; }
-.teacher-kinetic-shell .tk-folder-slot { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; min-width: 0; margin-bottom: -1px; border: 1px solid var(--tk-navy); border-bottom: 0; border-radius: 12px 16px 0 0; background: var(--tk-stock-closed); transform: translateY(0); transition: background-color 250ms var(--tk-ease), transform 250ms var(--tk-ease), box-shadow 250ms var(--tk-ease); }
-.teacher-kinetic-shell .tk-folder-slot:nth-of-type(2) { background: var(--tk-ochre); }
-.teacher-kinetic-shell .tk-folder-slot:nth-of-type(3) { background: #9ebcc4; }
-.teacher-kinetic-shell .tk-folder-slot.is-selected { background: var(--tk-paper); transform: translateY(-7px); box-shadow: 0 7px 0 var(--tk-paper); }
-.teacher-kinetic-shell .tk-folder-tab { display: grid; gap: 6px; width: 100%; min-height: 94px; padding: 18px 20px 14px; border: 0; background: transparent; color: var(--tk-navy); text-align: left; cursor: pointer; }
-.teacher-kinetic-shell .tk-folder-tab strong { font: 800 28px/1.1 var(--tk-font-display); overflow-wrap: anywhere; letter-spacing: -.03em; }
-.teacher-kinetic-shell .tk-folder-tab span { font: 500 12px/1.4 var(--tk-font-body); }
-.teacher-kinetic-shell .tk-folder-open { display: flex; align-items: center; min-height: 44px; padding: 6px 14px; color: var(--tk-navy); font: 600 12px/1.4 var(--tk-font-body); text-underline-offset: 3px; }
-.teacher-kinetic-shell .tk-folder-marker { position: absolute; bottom: 1px; left: 0; width: calc(100% / var(--tk-tab-count) - 6px); height: 3px; background: var(--tk-russet); transform: translateX(calc(var(--tk-tab-position) * (100% + 6px))); transition: transform 250ms var(--tk-ease); z-index: 4; pointer-events: none; }
-.teacher-kinetic-shell .tk-sheet-tab { display: inline-block; position: relative; z-index: 3; min-height: 44px; padding: 12px 22px; margin-bottom: -1px; background: var(--tk-paper); border: 1px solid var(--tk-navy); border-bottom: 0; border-radius: 10px 14px 0 0; font-size: 13px; font-weight: 600; }
-.teacher-kinetic-shell .tk-dossier { position: relative; isolation: isolate; min-width: 0; }
+.teacher-kinetic-shell .tk-search-icon { position: relative; flex: 0 0 14px; height: 14px; margin-left: 16px; border: 2px solid var(--tk-muted); border-radius: 50%; }
+.teacher-kinetic-shell .tk-search-icon::after { content: ''; position: absolute; right: -5px; bottom: -3px; width: 6px; height: 2px; background: var(--tk-muted); transform: rotate(45deg); }
+.teacher-kinetic-shell .tk-search-clear { min-width: 44px; min-height: 44px; margin-right: 2px; border: 0; background: transparent; color: var(--tk-deep); font: 700 13px var(--tk-font-body); }
+.teacher-kinetic-shell .tk-archive-scope { display: grid; gap: 3px; margin: 0; color: var(--tk-muted); font-size: 12px; text-align: right; }
+.teacher-kinetic-shell .tk-archive-scope strong { color: var(--tk-navy); font-size: 14px; }
+.teacher-kinetic-shell .tk-archive-layout { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(300px,.75fr); gap: 24px; align-items: start; }
+.teacher-kinetic-shell .tk-archive.is-folders .tk-archive-layout { grid-template-columns: minmax(0,1fr); }
+.teacher-kinetic-shell .tk-folder-sheet { min-width: 0; }
+.teacher-kinetic-shell .tk-folder-tabs { display: grid; grid-template-columns: repeat(var(--tk-tab-count),minmax(0,1fr)); gap: 12px; margin-bottom: 16px; }
+.teacher-kinetic-shell .tk-folder-slot { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; min-width: 0; overflow: hidden; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-lg); background: white; box-shadow: var(--ec-shadow-card); transition: border-color var(--ec-motion-duration-base) var(--tk-ease), transform var(--ec-motion-duration-base) var(--tk-ease), box-shadow var(--ec-motion-duration-base) var(--tk-ease); }
+.teacher-kinetic-shell .tk-folder-slot:hover { transform: translateY(-2px); box-shadow: var(--ec-shadow-raised); }
+.teacher-kinetic-shell .tk-folder-slot.is-selected { border-color: var(--tk-deep); box-shadow: 0 0 0 3px rgb(91 124 250 / 12%), var(--ec-shadow-card); }
+.teacher-kinetic-shell .tk-folder-tab { display: grid; gap: 5px; min-width: 0; min-height: 88px; padding: 18px; border: 0; background: transparent; color: var(--tk-navy); text-align: left; cursor: pointer; }
+.teacher-kinetic-shell .tk-folder-tab strong { font: 800 22px/1.2 var(--tk-font-display); overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-folder-tab span { color: var(--tk-muted); font-size: 12px; }
+.teacher-kinetic-shell .tk-folder-open { display: inline-flex; align-items: center; min-height: 44px; margin-right: 10px; padding: 8px 12px; border-radius: var(--ec-radius-sm); color: var(--tk-deep); font-size: 12px; font-weight: 700; }
+.teacher-kinetic-shell .tk-folder-marker,
+.teacher-kinetic-shell .tk-sheet-tab,
 .teacher-kinetic-shell .tk-paper-underlay,
-.teacher-kinetic-shell .tk-paper-backplate { position: absolute; inset: 8px 3px -10px; z-index: 0; border: 1px solid var(--tk-navy); pointer-events: none; }
-.teacher-kinetic-shell .tk-paper-underlay { background: var(--tk-ochre); transform: translate(8px, 4px) rotate(.8deg); }
-.teacher-kinetic-shell .tk-paper-backplate { background: var(--tk-stock-closed); transform: rotate(-1deg); }
-.teacher-kinetic-shell .tk-dossier-content { position: relative; z-index: 1; min-height: 340px; padding: clamp(24px, 3vw, 44px); background: var(--tk-paper); border: 1px solid var(--tk-navy); box-shadow: 6px 8px 0 rgb(31 51 64 / 16%); }
-.teacher-kinetic-shell .tk-dossier-topline { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--tk-line); font-size: 12px; line-height: 1.5; }
-.teacher-kinetic-shell .tk-dossier-selection { color: var(--tk-russet); font-weight: 600; overflow-wrap: anywhere; }
-.teacher-kinetic-shell .tk-class-status { display: inline-flex; align-items: center; gap: 7px; flex: 0 1 auto; }
-.teacher-kinetic-shell .tk-class-status::before { content: ''; flex: 0 0 7px; height: 7px; border: 1px solid var(--tk-navy); border-radius: 50%; }
-.teacher-kinetic-shell .tk-class-status.is-active::before { background: var(--tk-navy); }
-.teacher-kinetic-shell .tk-dossier-body { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(220px, 1fr); gap: 40px; padding: 32px 0; align-items: start; }
+.teacher-kinetic-shell .tk-paper-backplate { display: none; }
+.teacher-kinetic-shell .tk-dossier { min-width: 0; }
+.teacher-kinetic-shell .tk-dossier-content { min-height: 0; padding: clamp(24px,3vw,36px); border: 1px solid var(--tk-line); border-radius: var(--ec-radius-xl); background: white; box-shadow: var(--ec-shadow-card); }
+.teacher-kinetic-shell .tk-dossier-topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid var(--tk-line); font-size: 12px; }
+.teacher-kinetic-shell .tk-dossier-selection { color: var(--tk-deep); font-weight: 800; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-class-status { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: var(--ec-radius-pill); background: var(--ec-color-surface-subtle); font-weight: 700; }
+.teacher-kinetic-shell .tk-class-status::before { content: ''; width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: var(--ec-color-border); }
+.teacher-kinetic-shell .tk-class-status.is-active { background: rgb(89 215 182 / 16%); color: var(--ec-color-success); }
+.teacher-kinetic-shell .tk-class-status.is-active::before { background: var(--ec-color-mint); }
+.teacher-kinetic-shell .tk-dossier-body { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(260px,.9fr); gap: 36px; padding: 28px 0; }
 .teacher-kinetic-shell .tk-dossier-identity { min-width: 0; }
-.teacher-kinetic-shell .tk-dossier-code { margin: 0 0 12px; font: 900 clamp(40px, 5.5vw, 84px)/1 var(--tk-font-display); letter-spacing: -.04em; overflow-wrap: anywhere; }
-.teacher-kinetic-shell .tk-dossier-identity h3 { margin: 0; font: 700 22px/1.3 var(--tk-font-display); letter-spacing: -.02em; overflow-wrap: anywhere; }
-.teacher-kinetic-shell .tk-dossier-name { margin: 12px 0 0; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
-.teacher-kinetic-shell .tk-dossier-meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; margin: 0; padding: 8px 0 0; }
-.teacher-kinetic-shell .tk-dossier-meta dt { margin-bottom: 6px; color: var(--tk-muted); font-size: 13px; }
-.teacher-kinetic-shell .tk-dossier-meta dd { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
-.teacher-kinetic-shell .tk-dossier-quantity dd { font: 800 28px/1.1 var(--tk-font-display); }
-.teacher-kinetic-shell .tk-dossier-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 20px; border-top: 1px solid var(--tk-line); }
-.teacher-kinetic-shell .tk-dossier-footer > span { font-size: 12px; }
-.teacher-kinetic-shell .tk-dossier-note { margin: 0 0 16px; padding: 10px 0; border-top: 1px dashed var(--tk-line); font-size: 13px; line-height: 1.6; }
-
-.teacher-kinetic-shell .tk-index-panel { min-width: 0; padding-top: 44px; }
-.teacher-kinetic-shell .tk-index-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 16px; border: 1px solid var(--tk-navy); border-bottom: 0; background: var(--tk-stock-closed); border-radius: 10px 10px 0 0; }
-.teacher-kinetic-shell .tk-index-heading h2 { margin: 0; font: 700 18px var(--tk-font-display); }
-.teacher-kinetic-shell .tk-index-heading span { font-size: 12px; }
-.teacher-kinetic-shell .tk-index-scroll { max-height: 440px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; border: 1px solid var(--tk-navy); background: var(--tk-paper); scrollbar-color: var(--tk-navy) var(--tk-paper); scrollbar-width: auto; scrollbar-gutter: stable; }
-.teacher-kinetic-shell .tk-index-scroll::-webkit-scrollbar { width: 10px; }
-.teacher-kinetic-shell .tk-index-scroll::-webkit-scrollbar-track { background: var(--tk-paper); }
-.teacher-kinetic-shell .tk-index-scroll::-webkit-scrollbar-thumb { background: var(--tk-navy); border: 2px solid var(--tk-paper); border-radius: 8px; }
-.teacher-kinetic-shell .tk-class-index { list-style: none; margin: 0; padding: 0; }
-.teacher-kinetic-shell .tk-index-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; border-bottom: 1px solid var(--tk-line); }
+.teacher-kinetic-shell .tk-dossier-code { margin: 0 0 10px; color: var(--tk-navy); font: 800 clamp(34px,4vw,56px)/1 var(--tk-font-display); letter-spacing: -.04em; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-dossier-identity h3 { margin: 0; font: 700 21px/1.35 var(--tk-font-display); overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-dossier-name { margin: 10px 0 0; color: var(--tk-muted); font-size: 14px; line-height: 1.6; }
+.teacher-kinetic-shell .tk-dossier-meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 0; }
+.teacher-kinetic-shell .tk-dossier-meta > div { min-width: 0; padding: 14px; border-radius: var(--ec-radius-md); background: var(--ec-color-surface-subtle); }
+.teacher-kinetic-shell .tk-dossier-meta dt { margin-bottom: 5px; color: var(--tk-muted); font-size: 12px; }
+.teacher-kinetic-shell .tk-dossier-meta dd { margin: 0; font-size: 15px; font-weight: 700; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-dossier-quantity dd { font: 800 24px/1.2 var(--tk-font-display); }
+.teacher-kinetic-shell .tk-dossier-note { margin: 0 0 16px; padding: 10px 12px; border-radius: var(--ec-radius-sm); background: var(--ec-color-blue-50); color: var(--tk-muted); font-size: 12px; }
+.teacher-kinetic-shell .tk-dossier-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 18px; border-top: 1px solid var(--tk-line); }
+.teacher-kinetic-shell .tk-dossier-footer > span { color: var(--tk-muted); font-size: 12px; }
+.teacher-kinetic-shell .tk-index-panel { min-width: 0; padding: 18px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-lg); background: white; box-shadow: var(--ec-shadow-card); }
+.teacher-kinetic-shell .tk-index-heading { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 14px; }
+.teacher-kinetic-shell .tk-index-heading h2 { margin: 0; font: 800 18px var(--tk-font-display); }
+.teacher-kinetic-shell .tk-index-heading span { color: var(--tk-muted); font-size: 12px; }
+.teacher-kinetic-shell .tk-index-scroll { max-height: 460px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-md); scrollbar-color: var(--ec-color-blue-300) white; }
+.teacher-kinetic-shell .tk-class-index { margin: 0; padding: 0; list-style: none; }
+.teacher-kinetic-shell .tk-index-row { display: grid; grid-template-columns: minmax(0,1fr) auto; border-bottom: 1px solid var(--tk-line); background: white; }
 .teacher-kinetic-shell .tk-index-row:last-child { border-bottom: 0; }
-.teacher-kinetic-shell .tk-index-row.is-selected { background: var(--tk-selected); }
-.teacher-kinetic-shell .tk-index-select { display: flex; align-items: start; gap: 12px; width: 100%; min-height: 80px; padding: 16px 12px; border: 0; background: transparent; color: var(--tk-navy); text-align: left; font-family: var(--tk-font-body); cursor: pointer; }
-.teacher-kinetic-shell .tk-index-select:hover { background: rgb(127 169 184 / 16%); }
-.teacher-kinetic-shell .tk-index-number { width: 24px; flex: 0 0 auto; padding-top: 2px; color: var(--tk-russet); font: 700 14px var(--tk-font-display); }
-.teacher-kinetic-shell .tk-index-copy { display: grid; gap: 4px; min-width: 0; }
-.teacher-kinetic-shell .tk-index-copy strong { font: 800 18px/1.2 var(--tk-font-display); }
-.teacher-kinetic-shell .tk-index-copy > span { font-size: 13px; line-height: 1.5; }
-.teacher-kinetic-shell .tk-index-copy small { color: var(--tk-muted); font-size: 11px; line-height: 1.6; }
-.teacher-kinetic-shell .tk-index-copy > * { overflow-wrap: anywhere; }
-.teacher-kinetic-shell .tk-index-copy .tk-index-selected-label { font-size: 11px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
-.teacher-kinetic-shell .tk-index-open { display: flex; align-items: center; justify-content: center; min-width: 60px; min-height: 44px; padding: 10px; color: var(--tk-navy); font: 600 12px/1.5 var(--tk-font-body); text-underline-offset: 4px; }
-.teacher-kinetic-shell .tk-index-open:hover { background: var(--tk-hover); color: var(--tk-paper); }
-.teacher-kinetic-shell .tk-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; font-size: 12px; }
+.teacher-kinetic-shell .tk-index-row.is-selected { background: var(--tk-selected); box-shadow: inset 3px 0 0 var(--tk-deep); }
+.teacher-kinetic-shell .tk-index-select { display: flex; align-items: start; gap: 12px; min-width: 0; min-height: 82px; padding: 15px 12px; border: 0; background: transparent; color: var(--tk-navy); text-align: left; cursor: pointer; }
+.teacher-kinetic-shell .tk-index-select:hover { background: rgb(91 124 250 / 6%); }
+.teacher-kinetic-shell .tk-index-number { flex: 0 0 26px; color: var(--tk-deep); font: 800 13px var(--tk-font-display); }
+.teacher-kinetic-shell .tk-index-copy { display: grid; gap: 3px; min-width: 0; }
+.teacher-kinetic-shell .tk-index-copy strong { font: 800 16px/1.3 var(--tk-font-display); overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-index-copy > span { font-size: 13px; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-index-copy small { color: var(--tk-muted); font-size: 11px; }
+.teacher-kinetic-shell .tk-index-selected-label { color: var(--tk-deep); font-weight: 800; }
+.teacher-kinetic-shell .tk-index-open { display: inline-flex; align-items: center; min-width: 70px; min-height: 44px; margin: auto 8px auto 0; padding: 8px 10px; border-radius: var(--ec-radius-sm); color: var(--tk-deep); font-size: 12px; font-weight: 700; }
+.teacher-kinetic-shell .tk-index-open:hover { background: white; }
+.teacher-kinetic-shell .tk-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; color: var(--tk-muted); font-size: 12px; }
 .teacher-kinetic-shell .tk-pagination-buttons { display: flex; align-items: center; gap: 8px; }
-.teacher-kinetic-shell .tk-page-button { min-width: 44px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--tk-navy); background: var(--tk-paper); color: var(--tk-navy); font: 600 12px var(--tk-font-body); cursor: pointer; }
-.teacher-kinetic-shell .tk-page-button:disabled { opacity: .5; cursor: default; }
-.teacher-kinetic-shell .tk-page-button:hover:not(:disabled) { background: var(--tk-hover); color: var(--tk-paper); }
-.teacher-kinetic-shell .tk-index-empty { display: grid; gap: 16px; padding: 24px; border: 1px solid var(--tk-navy); background: var(--tk-paper); font-size: 14px; line-height: 1.6; }
-.teacher-kinetic-shell .tk-state { position: relative; margin-top: 44px; padding: 36px; border: 1px solid var(--tk-navy); background: var(--tk-paper); box-shadow: 6px 8px 0 rgb(31 51 64 / 16%); }
-.teacher-kinetic-shell .tk-state h2 { margin: 0; font: 800 28px/1.2 var(--tk-font-display); letter-spacing: -.025em; }
-.teacher-kinetic-shell .tk-state p { max-width: 65ch; margin: 14px 0 20px; font-size: 15px; line-height: 1.7; }
-.teacher-kinetic-shell .tk-error-state { border-color: var(--tk-russet); }
-.teacher-kinetic-shell .tk-empty-folder { display: block; width: 56px; height: 34px; margin-bottom: 22px; border: 1px solid var(--tk-navy); background: var(--tk-stock); border-radius: 10px 10px 0 0; box-shadow: 4px 4px 0 var(--tk-ochre); }
-.teacher-kinetic-shell .tk-loading-paper { position: relative; height: 70px; }
-.teacher-kinetic-shell .tk-loading-paper span { position: absolute; width: 100px; height: 54px; left: 10px; top: 0; border: 1px solid var(--tk-line); background: var(--tk-stock); }
-.teacher-kinetic-shell .tk-loading-paper span:nth-child(2) { left: 20px; top: 6px; background: var(--tk-ochre); }
-.teacher-kinetic-shell .tk-loading-paper span:last-child { left: 30px; top: 12px; background: var(--tk-paper); animation: tk-paper-wait 1.8s var(--tk-ease) infinite alternate; }
-@keyframes tk-paper-wait { to { transform: translateY(-6px); } }
+.teacher-kinetic-shell .tk-page-button { min-width: 44px; min-height: 44px; padding: 8px 11px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-sm); background: white; color: var(--tk-navy); font: 700 12px var(--tk-font-body); }
+.teacher-kinetic-shell .tk-page-button:hover:not(:disabled) { border-color: var(--tk-deep); color: var(--tk-deep); }
+.teacher-kinetic-shell .tk-page-button:disabled { background: var(--ec-color-surface-subtle); color: var(--tk-muted); opacity: 1; cursor: default; }
+.teacher-kinetic-shell .tk-index-empty { display: grid; gap: 14px; padding: 24px; border: 1px dashed var(--tk-line); border-radius: var(--ec-radius-md); color: var(--tk-muted); }
+.teacher-kinetic-shell .tk-state { margin-top: 24px; padding: 32px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-xl); background: white; box-shadow: var(--ec-shadow-card); }
+.teacher-kinetic-shell .tk-state h2 { margin: 0; font: 800 25px/1.25 var(--tk-font-display); }
+.teacher-kinetic-shell .tk-state p { max-width: 65ch; margin: 12px 0 20px; color: var(--tk-muted); font-size: 14px; line-height: 1.7; }
+.teacher-kinetic-shell .tk-error-state { border-color: rgb(186 26 26 / 35%); }
+.teacher-kinetic-shell .tk-empty-folder { display: block; width: 54px; height: 38px; margin-bottom: 20px; border-radius: 10px 10px 6px 6px; background: var(--ec-color-blue-100); box-shadow: inset 0 0 0 1px var(--ec-color-blue-300); }
+.teacher-kinetic-shell .tk-loading-paper { display: flex; gap: 8px; height: 40px; align-items: end; }
+.teacher-kinetic-shell .tk-loading-paper span { width: 58px; height: 8px; border-radius: var(--ec-radius-pill); background: var(--ec-color-blue-100); animation: tk-pulse 1.4s var(--tk-ease) infinite alternate; }
+.teacher-kinetic-shell .tk-loading-paper span:nth-child(2) { width: 84px; animation-delay: 120ms; }
+.teacher-kinetic-shell .tk-loading-paper span:nth-child(3) { width: 42px; animation-delay: 240ms; }
+@keyframes tk-pulse { to { background: var(--ec-color-blue-300); } }
 
-@media (max-width: 1100px) {
-  .teacher-kinetic-shell .teacher-kinetic-header .site-header-inner { width: calc(100% - 48px); gap: 24px; }
+@media (max-width:1100px) {
   .teacher-kinetic-shell .teacher-kinetic-overview .page-container { width: calc(100% - 48px); }
-  .teacher-kinetic-shell .tk-archive-layout { gap: 24px; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); }
-  .teacher-kinetic-shell .tk-dossier-body { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-  .teacher-kinetic-shell .tk-archive.is-folders .tk-dossier-body { grid-template-columns: minmax(0, 1fr) minmax(220px, 1fr); }
-  .teacher-kinetic-shell .teacher-kinetic-header .shell-user-details { max-width: 15ch; }
+  .teacher-kinetic-shell .tk-archive-layout { grid-template-columns: minmax(0,1.25fr) minmax(280px,.75fr); }
+  .teacher-kinetic-shell .tk-dossier-body { grid-template-columns: minmax(0,1fr); gap: 22px; }
 }
-@media (max-width: 800px) {
-  .teacher-kinetic-shell .teacher-kinetic-header .site-header-inner { gap: 12px; padding: 12px 0; }
-  .teacher-kinetic-shell .teacher-kinetic-header .primary-nav { order: 3; width: 100%; padding-top: 0; }
-  .teacher-kinetic-shell .tk-archive-layout { grid-template-columns: minmax(0, 1fr); }
-  .teacher-kinetic-shell .tk-folder-sheet { grid-row: 1; }
-  .teacher-kinetic-shell .tk-index-panel { padding-top: 0; }
-  .teacher-kinetic-shell .tk-dossier-body { grid-template-columns: minmax(0, 1fr) minmax(220px, 1fr); gap: 24px; }
-  .teacher-kinetic-shell .tk-index-scroll { max-height: 420px; }
+@media (max-width:960px) {
+  .teacher-shell.teacher-kinetic-shell { grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr); }
+  .teacher-kinetic-shell .teacher-kinetic-header { width: 100%; height: auto; min-height: 0; box-shadow: 0 8px 24px rgb(23 33 58 / 12%); }
+  .teacher-kinetic-shell .teacher-kinetic-header .site-header-inner { flex-flow: row wrap; align-items: center; width: 100%; height: auto; min-height: 0; }
+  .teacher-kinetic-shell .teacher-kinetic-header .profile-area { grid-template-columns: minmax(180px,1fr) auto; width: min(100%,360px); margin: 0 0 0 auto; padding: 0; border: 0; }
+  .teacher-kinetic-shell .teacher-kinetic-header .logout-button { width: auto; }
 }
-@media (max-width: 560px) {
-  .teacher-kinetic-shell .teacher-kinetic-header .site-header-inner,
+@media (max-width:800px) {
+  .teacher-kinetic-shell .teacher-kinetic-header .primary-nav { order: 3; width: 100%; }
+  .teacher-kinetic-shell .tk-archive-layout { grid-template-columns: minmax(0,1fr); }
+  .teacher-kinetic-shell .tk-index-panel { order: -1; }
+  .teacher-kinetic-shell .tk-folder-tabs { grid-template-columns: minmax(0,1fr); }
+  .teacher-kinetic-shell .tk-workspace-heading { align-items: flex-start; }
+}
+@media (max-width:560px) {
   .teacher-kinetic-shell .teacher-kinetic-overview .page-container { width: calc(100% - 32px); }
-  .teacher-kinetic-shell .teacher-kinetic-header .site-header-inner { gap: 12px; }
-  .teacher-kinetic-shell .teacher-kinetic-header .brand { font-size: 20px; gap: 8px; }
-  .teacher-kinetic-shell .teacher-kinetic-header .shell-role-label { font-size: 10px; }
-  .teacher-kinetic-shell .teacher-kinetic-header .profile-area { gap: 8px; }
-  .teacher-kinetic-shell .teacher-kinetic-header .shell-user-details { display: none; }
-  .teacher-kinetic-shell .teacher-kinetic-header .profile-monogram { width: 30px; height: 30px; }
-  .teacher-kinetic-shell .teacher-kinetic-header .logout-button { padding: 0 8px; font-size: 12px; }
-  .teacher-kinetic-shell .teacher-kinetic-header .nav-link { min-height: 48px; padding: 12px 18px; font-size: 13px; }
-  .teacher-kinetic-shell .teacher-kinetic-header .nav-link-active { padding-top: 17px; }
-  .teacher-kinetic-shell .teacher-kinetic-overview .page-container { padding-top: 24px; padding-bottom: 40px; }
-  .teacher-kinetic-shell .tk-workspace-heading { align-items: start; flex-direction: column; gap: 16px; padding-bottom: 20px; }
-  .teacher-kinetic-shell .tk-workspace-heading h1 { font-size: 28px; }
-  .teacher-kinetic-shell .tk-workspace-heading p { font-size: 13px; }
-  .teacher-kinetic-shell .tk-workspace-heading .tk-button { min-height: 44px; padding: 10px 16px; }
-  .teacher-kinetic-shell .tk-archive-toolbar { align-items: start; flex-direction: column; gap: 10px; padding: 20px 0 24px; }
-  .teacher-kinetic-shell .tk-archive-scope { display: flex; flex-wrap: wrap; gap: 8px 16px; text-align: left; font-size: 11px; }
-  .teacher-kinetic-shell .tk-archive-scope strong { font-size: 12px; }
-  .teacher-kinetic-shell .tk-archive-layout { gap: 20px; }
-  .teacher-kinetic-shell .tk-folder-slot { grid-template-columns: minmax(0, 1fr); border-radius: 10px 12px 0 0; }
-  .teacher-kinetic-shell .tk-folder-tab { min-height: 72px; padding: 12px 8px 4px; gap: 5px; }
-  .teacher-kinetic-shell .tk-folder-tab strong { font-size: 23px; }
-  .teacher-kinetic-shell .tk-folder-tab span { font-size: 11px; }
-  .teacher-kinetic-shell .tk-folder-open { min-height: 44px; padding: 4px 8px; font-size: 12px; }
-  .teacher-kinetic-shell .tk-dossier-content { min-height: 0; padding: 18px; }
-  .teacher-kinetic-shell .tk-dossier-topline { padding-bottom: 12px; gap: 12px; font-size: 11px; }
-  .teacher-kinetic-shell .tk-dossier-body,
-  .teacher-kinetic-shell .tk-archive.is-folders .tk-dossier-body { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 16px 0; }
-  .teacher-kinetic-shell .tk-dossier-identity { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); align-items: end; gap: 10px 16px; }
-  .teacher-kinetic-shell .tk-dossier-code { font-size: 38px; margin: 0; }
-  .teacher-kinetic-shell .tk-dossier-identity h3 { font-size: 18px; }
-  .teacher-kinetic-shell .tk-dossier-name { grid-column: 1 / -1; font-size: 13px; margin: 0; }
-  .teacher-kinetic-shell .tk-dossier-meta { gap: 14px 16px; padding: 0; }
-  .teacher-kinetic-shell .tk-dossier-meta dt { font-size: 11px; margin-bottom: 3px; }
-  .teacher-kinetic-shell .tk-dossier-meta dd { font-size: 13px; }
-  .teacher-kinetic-shell .tk-dossier-quantity dd { font-size: 20px; }
-  .teacher-kinetic-shell .tk-dossier-footer { padding-top: 14px; }
-  .teacher-kinetic-shell .tk-dossier-footer > span { max-width: 14ch; font-size: 11px; }
-  .teacher-kinetic-shell .tk-dossier-footer .tk-button { min-height: 44px; padding: 10px 14px; font-size: 13px; gap: 14px; }
-  .teacher-kinetic-shell .tk-paper-underlay { transform: translate(4px, 2px); }
-  .teacher-kinetic-shell .tk-index-scroll { max-height: 360px; }
-  .teacher-kinetic-shell .tk-index-heading { padding: 12px; }
-  .teacher-kinetic-shell .tk-index-select { padding: 14px 10px; }
-  .teacher-kinetic-shell .tk-index-copy strong { font-size: 17px; }
-  .teacher-kinetic-shell .tk-state { padding: 24px; margin-top: 24px; }
+  .teacher-kinetic-shell .teacher-kinetic-header .site-header-inner { gap: 16px; }
+  .teacher-kinetic-shell .teacher-kinetic-header .profile-area { grid-template-columns: minmax(0,1fr); width: 100%; margin-left: 0; }
+  .teacher-kinetic-shell .teacher-kinetic-header .logout-button { width: 100%; }
+  .teacher-kinetic-shell .teacher-kinetic-header .primary-nav { overflow-x: auto; }
+  .teacher-kinetic-shell .tk-workspace-heading { flex-direction: column; padding: 24px 20px; }
+  .teacher-kinetic-shell .tk-workspace-heading .tk-button { width: 100%; }
+  .teacher-kinetic-shell .tk-archive-toolbar { flex-direction: column; align-items: stretch; }
+  .teacher-kinetic-shell .tk-archive-scope { text-align: left; }
+  .teacher-kinetic-shell .tk-folder-slot { grid-template-columns: minmax(0,1fr); }
+  .teacher-kinetic-shell .tk-folder-open { margin: 0 12px 12px; justify-content: center; background: var(--ec-color-blue-50); }
+  .teacher-kinetic-shell .tk-dossier-content { padding: 22px 18px; }
+  .teacher-kinetic-shell .tk-dossier-topline,
+  .teacher-kinetic-shell .tk-dossier-footer { align-items: flex-start; flex-direction: column; }
+  .teacher-kinetic-shell .tk-dossier-footer .tk-button { width: 100%; }
+  .teacher-kinetic-shell .tk-dossier-meta { grid-template-columns: minmax(0,1fr); }
+  .teacher-kinetic-shell .tk-index-row { grid-template-columns: minmax(0,1fr); }
+  .teacher-kinetic-shell .tk-index-open { margin: 0 12px 12px 50px; justify-content: center; background: var(--ec-color-blue-50); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .teacher-kinetic-shell :is(.tk-folder-marker, .tk-folder-slot, .tk-button, .tk-page-button, .nav-link) { transition: none; }
-  .teacher-kinetic-shell .tk-loading-paper span { animation: none; }
-  .teacher-kinetic-shell .tk-folder-slot.is-selected { transform: none; }
-  .teacher-kinetic-shell .tk-button:hover,
-  .teacher-kinetic-shell :is(.tk-button, .tk-page-button, .tk-index-open, .tk-folder-open):active { transform: none; }
-  .teacher-kinetic-shell .tk-paper-underlay,
-  .teacher-kinetic-shell .tk-paper-backplate { transform: none; }
+@media (prefers-reduced-motion:reduce) {
+  .teacher-kinetic-shell *,
+  .teacher-kinetic-shell *::before,
+  .teacher-kinetic-shell *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

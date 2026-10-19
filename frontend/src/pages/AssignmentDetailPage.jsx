@@ -23,6 +23,7 @@ import {
 import { assignmentService } from '../services/assignmentService.js'
 import { referenceService } from '../services/referenceService.js'
 import { submissionService } from '../services/submissionService.js'
+import '../styles/teacher-review-board.css'
 
 export {
   AiResultCard,
@@ -167,15 +168,26 @@ export function AssignmentDetailWorkspace({ detail, onRefresh }) {
         <ReferenceCard assignment={detail} onChanged={onRefresh} references={detail.references} />
       </section>
       <section id="assignment-review-section" role="tabpanel" aria-labelledby="assignment-review-tab" hidden={section !== 'review'}>
-        <div className="tk-detail-review-grid">
-          <section className="tk-submission-navigator" aria-labelledby="submissions-title">
+        <div className="tk-detail-review-grid campus-studio-review-board">
+          <section className="tk-submission-navigator cs-review-queue" aria-labelledby="submissions-title">
             <h2 id="submissions-title">Lượt nộp</h2>
             <p>{detail.submissions.length} lượt trong dữ liệu đã tải. Chọn từng lần nộp để xem và nhận xét.</p>
             <SubmissionList onSelect={setSelectedSubmissionId} selectedId={selectedSubmission?.id} submissions={displayedSubmissions} />
           </section>
           {selectedSubmission ? <>
-            <SubmissionEvidence submission={selectedSubmission} references={detail.references} />
-            <SubmissionReviewPanel key={selectedSubmission.id} assignmentId={detail.id} coverageThreshold={detail.coverageThreshold} reviewSession={reviewSession} onReviewed={onRefresh} submission={selectedSubmission} />
+            <div className="tk-selected-review">
+              <header className="tk-selected-review-context">
+                <div>
+                  <span>Đang duyệt</span>
+                  <strong>{selectedSubmission.studentName}</strong>
+                </div>
+                <span>{selectedSubmission.studentCode} · Lần {selectedSubmission.attemptNumber}</span>
+              </header>
+              <div className="cs-review-workgrid">
+                <SubmissionEvidence submission={selectedSubmission} references={detail.references} />
+                <SubmissionReviewPanel hideIdentity key={selectedSubmission.id} assignmentId={detail.id} coverageThreshold={detail.coverageThreshold} reviewSession={reviewSession} onReviewed={onRefresh} submission={selectedSubmission} />
+              </div>
+            </div>
           </> : <section className="tk-review-empty"><h2>Chưa có bài để duyệt</h2><p>Bằng chứng và hồ sơ nhận xét sẽ xuất hiện khi học sinh nộp bài.</p></section>}
         </div>
       </section>
@@ -229,7 +241,7 @@ function AssignmentDetailPage() {
 
   if (state.assignmentId !== assignmentId || state.status === 'loading' || !state.detail) {
     return (
-      <main className="page-content assignment-detail-page teacher-page teacher-assignment-detail-page">
+      <main className="page-content assignment-detail-page teacher-page teacher-assignment-detail-page campus-studio-page campus-studio-review-page">
         <div className="page-container">
           <section className="state-panel" aria-live="polite" aria-busy="true">
             <p className="state-kicker">Chi tiết bài kiểm tra</p>
@@ -241,7 +253,7 @@ function AssignmentDetailPage() {
   }
 
   return (
-    <main className="page-content assignment-detail-page teacher-page teacher-assignment-detail-page">
+    <main className="page-content assignment-detail-page teacher-page teacher-assignment-detail-page campus-studio-page campus-studio-review-page">
       <div className="page-container">
         {state.refreshError && <div className="tk-detail-refresh-error" role="alert"><p>Không thể làm mới dữ liệu: {state.refreshError}. Các nhận xét đang nhập vẫn được giữ trong phiên hiện tại.</p><button type="button" onClick={() => setReloadToken(current => current + 1)}>Thử làm mới lại</button></div>}
         <AssignmentDetailWorkspace

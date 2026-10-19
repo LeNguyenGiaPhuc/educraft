@@ -1,80 +1,91 @@
-/* Phase3A: forms only. Inherited Kinetic paper, stable fields and moving chrome. */
-.teacher-kinetic-shell .teacher-assignment-hero:has(> .tk-assignment-editor) { padding: 0; border: 0; background: transparent; overflow: visible; }
+/* Focused Teacher assignment forms built from Campus tokens. */
+.teacher-kinetic-shell .teacher-assignment-hero:has(> .tk-assignment-editor) { padding: 0; border: 0; background: transparent; overflow: visible; box-shadow: none; }
 .teacher-kinetic-shell .teacher-assignment-hero:has(> .tk-assignment-editor)::after { display: none; }
 .teacher-kinetic-shell .tk-assignment-create,
-.teacher-kinetic-shell .tk-assignment-create-error .page-content { background: var(--tk-stock); background-image: none; color: var(--tk-navy); min-width: 0; }
+.teacher-kinetic-shell .tk-assignment-create-error .page-content { min-width: 0; background: var(--tk-stock); background-image: none; color: var(--tk-navy); }
 .teacher-kinetic-shell .tk-assignment-create > .page-container,
-.teacher-kinetic-shell .tk-assignment-create-error .page-container { width: min(1100px, calc(100% - 80px)); max-width: 1100px; margin: auto; padding: 24px 0 56px; }
-.teacher-kinetic-shell .tk-assignment-create .breadcrumb { margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 10px; overflow-wrap: anywhere; color: var(--tk-navy); }
-.teacher-kinetic-shell .tk-assignment-create .breadcrumb a { color: var(--tk-navy); min-height: 44px; display: inline-flex; align-items: center; }
+.teacher-kinetic-shell .tk-assignment-create-error .page-container { width: min(1040px,calc(100% - 64px)); margin: auto; padding: 28px 0 64px; }
+.teacher-kinetic-shell .tk-assignment-create .breadcrumb { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; color: var(--tk-muted); font-size: 13px; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-assignment-create .breadcrumb a { display: inline-flex; align-items: center; min-height: 44px; color: var(--tk-deep); font-weight: 700; }
 .teacher-kinetic-shell .tk-assignment-create .breadcrumb span { align-self: center; }
 .teacher-kinetic-shell .tk-assignment-create .tk-assignment-paper,
-.teacher-kinetic-shell .tk-assignment-editor { position: relative; isolation: isolate; min-width: 0; margin: 0; padding: 32px; border: 1px solid var(--tk-navy); border-radius: 0; background: var(--tk-paper); color: var(--tk-navy); box-shadow: 6px 8px 0 rgb(31 51 64 / 16%); overflow: visible; }
+.teacher-kinetic-shell .tk-assignment-editor { position: relative; min-width: 0; margin: 0; padding: 32px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-lg); background: var(--ec-color-paper); color: var(--tk-navy); box-shadow: none; overflow: hidden; }
 .teacher-kinetic-shell .tk-assignment-create .tk-assignment-paper { width: 100%; max-width: none; }
-.teacher-kinetic-shell .tk-assignment-paper::before { content: ''; position: absolute; z-index: -1; inset: 0; background: var(--tk-paper); pointer-events: none; }
-.teacher-kinetic-shell .tk-form-paper-edge { position: absolute; z-index: -2; inset: 7px -5px -8px 5px; border: 1px solid var(--tk-navy); background: var(--tk-ochre); transform: rotate(-1deg); pointer-events: none; }
+.teacher-kinetic-shell .tk-assignment-paper::before { display: none; }
+.teacher-kinetic-shell .tk-form-paper-edge { position: absolute; inset: 0 auto 0 0; width: 5px; background: linear-gradient(var(--tk-deep),var(--ec-color-sky)); pointer-events: none; }
 .teacher-kinetic-shell .tk-assignment-paper > :not(.tk-form-paper-edge) { position: relative; }
 .teacher-kinetic-shell .tk-assignment-create .teacher-form-heading,
-.teacher-kinetic-shell .tk-form-editor-heading { margin: -32px -32px 28px; padding: 24px 32px; border-bottom: 1px solid var(--tk-navy); background: var(--tk-paper); }
+.teacher-kinetic-shell .tk-form-editor-heading { margin: -32px -32px 28px; padding: 28px 32px 24px; border-bottom: 1px solid var(--tk-line); background: var(--ec-color-primary-soft); }
 .teacher-kinetic-shell .tk-assignment-create .teacher-form-heading::before,
-.teacher-kinetic-shell .tk-form-editor-heading::before { content: ''; display: block; width: 94px; height: 12px; margin: -37px 0 20px; border: 1px solid var(--tk-navy); border-bottom: 0; border-radius: 10px 12px 0 0; background: var(--tk-ochre); }
+.teacher-kinetic-shell .tk-form-editor-heading::before { content: 'THIẾT LẬP BÀI KIỂM TRA'; display: block; margin-bottom: 9px; color: var(--tk-deep); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.teacher-kinetic-shell .tk-form-editor-heading::before { content: 'CẬP NHẬT BÀI KIỂM TRA'; }
 .teacher-kinetic-shell .tk-assignment-create h1,
-.teacher-kinetic-shell .tk-form-editor-heading h2 { margin: 0; color: var(--tk-navy); font: 800 clamp(25px, 3vw, 36px)/1.2 var(--tk-font-display); letter-spacing: -.03em; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-form-editor-heading h2 { margin: 0; color: var(--tk-navy); font: 800 clamp(26px,3vw,36px)/1.2 var(--tk-font-display); letter-spacing: -.035em; overflow-wrap: anywhere; }
 .teacher-kinetic-shell .tk-assignment-create .teacher-form-heading p,
-.teacher-kinetic-shell .tk-form-editor-heading p { margin: 10px 0 0; color: var(--tk-muted); font: 400 14px/1.7 var(--tk-font-body); }
+.teacher-kinetic-shell .tk-form-editor-heading p { max-width: 68ch; margin: 9px 0 0; color: var(--tk-muted); font: 400 14px/1.7 var(--tk-font-body); }
 .teacher-kinetic-shell .tk-assignment-create .teacher-fields-grid,
-.teacher-kinetic-shell .tk-assignment-editor .teacher-fields-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 0; margin: 0; }
+.teacher-kinetic-shell .tk-assignment-editor .teacher-fields-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; padding: 0; margin: 0; }
 .teacher-kinetic-shell .tk-assignment-create .teacher-field,
 .teacher-kinetic-shell .tk-assignment-editor .teacher-field { min-width: 0; max-width: none; width: auto; margin: 0; }
 .teacher-kinetic-shell .tk-assignment-create .teacher-field-wide,
 .teacher-kinetic-shell .tk-assignment-editor .teacher-field-wide { grid-column: 1 / -1; }
 .teacher-kinetic-shell .tk-assignment-create .form-field label,
-.teacher-kinetic-shell .tk-assignment-editor .form-field label { display: block; margin-bottom: 10px; color: var(--tk-navy); font: 600 14px/1.5 var(--tk-font-body); }
+.teacher-kinetic-shell .tk-assignment-editor .form-field label { display: block; margin-bottom: 8px; color: var(--tk-navy); font: 700 14px/1.5 var(--tk-font-body); }
 .teacher-kinetic-shell .tk-assignment-create .form-field input,
 .teacher-kinetic-shell .tk-assignment-create .form-field select,
 .teacher-kinetic-shell .tk-assignment-editor .form-field input,
-.teacher-kinetic-shell .tk-assignment-editor .form-field select { display: block; min-width: 0; width: 100%; max-width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid var(--tk-navy); border-radius: 2px; background: #f7f5ef; color: var(--tk-navy); font: 400 16px/1.5 var(--tk-font-body); }
+.teacher-kinetic-shell .tk-assignment-editor .form-field select { display: block; min-width: 0; width: 100%; max-width: 100%; min-height: 48px; padding: 11px 13px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-md); background: white; color: var(--tk-navy); font: 400 16px/1.5 var(--tk-font-body); transition: border-color var(--ec-motion-duration-fast) var(--tk-ease), box-shadow var(--ec-motion-duration-fast) var(--tk-ease); }
+.teacher-kinetic-shell .tk-assignment-create .form-field :is(input,select):focus,
+.teacher-kinetic-shell .tk-assignment-editor .form-field :is(input,select):focus { border-color: var(--tk-deep); box-shadow: var(--ec-shadow-focus); }
 .teacher-kinetic-shell .tk-assignment-create .form-field input::placeholder { color: var(--tk-muted); opacity: 1; }
-.teacher-kinetic-shell .tk-assignment-create .form-field-help { margin: 8px 0 0; color: var(--tk-muted); font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-assignment-create .form-field-help { margin: 7px 0 0; color: var(--tk-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 .teacher-kinetic-shell .tk-assignment-create .input-with-suffix { position: relative; }
 .teacher-kinetic-shell .tk-assignment-create .input-with-suffix input { padding-right: 48px; }
-.teacher-kinetic-shell .tk-assignment-create .input-with-suffix > span { color: var(--tk-navy); }
+.teacher-kinetic-shell .tk-assignment-create .input-with-suffix > span { color: var(--tk-muted); }
+.teacher-kinetic-shell .tk-form-next-step { display: grid; gap: 4px; margin-top: 26px; padding: 16px 18px; border: 1px solid var(--ec-color-blue-200); border-radius: var(--ec-radius-lg); background: var(--ec-color-blue-50); }
+.teacher-kinetic-shell .tk-form-next-step strong { color: var(--tk-navy); font-size: 13px; }
+.teacher-kinetic-shell .tk-form-next-step span { color: var(--tk-muted); font-size: 12px; line-height: 1.6; }
 .teacher-kinetic-shell .tk-assignment-create .teacher-form-actions,
 .teacher-kinetic-shell .tk-assignment-editor .teacher-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin: 28px 0 0; padding: 24px 0 0; border-top: 1px solid var(--tk-line); }
 .teacher-kinetic-shell .tk-assignment-create .button,
-.teacher-kinetic-shell .tk-assignment-editor .button { min-height: 46px; padding: 12px 20px; border: 1px solid var(--tk-navy); border-radius: 2px 8px 2px 2px; background: var(--tk-paper); color: var(--tk-navy); font: 600 14px/1.4 var(--tk-font-body); box-shadow: 2px 3px 0 rgb(31 51 64 / 16%); }
+.teacher-kinetic-shell .tk-assignment-editor .button { min-height: 46px; padding: 11px 20px; border: 1px solid var(--tk-line); border-radius: var(--ec-radius-md); background: white; color: var(--tk-navy); font: 700 14px/1.4 var(--tk-font-body); box-shadow: none; }
 .teacher-kinetic-shell .tk-assignment-create .button-primary,
-.teacher-kinetic-shell .tk-assignment-editor .button-primary { background: var(--tk-deep); color: var(--tk-paper); }
-.teacher-kinetic-shell .tk-assignment-editor .button.button-outline { background: var(--tk-paper); color: var(--tk-navy); border-color: var(--tk-navy); }
+.teacher-kinetic-shell .tk-assignment-editor .button-primary { border-color: var(--tk-deep); background: var(--tk-deep); color: white; box-shadow: var(--ec-button-shadow); }
+.teacher-kinetic-shell .tk-assignment-editor .button.button-outline { background: white; color: var(--tk-navy); border-color: var(--tk-line); }
 .teacher-kinetic-shell .tk-assignment-create-error .state-kicker { display: none; }
 .teacher-kinetic-shell .tk-assignment-create .button::after,
 .teacher-kinetic-shell .tk-assignment-editor .button::after { display: none; }
 .teacher-kinetic-shell .tk-assignment-create .button:active,
-.teacher-kinetic-shell .tk-assignment-editor .button:active { transform: translate(1px, 2px); box-shadow: none; }
+.teacher-kinetic-shell .tk-assignment-editor .button:active { transform: translateY(1px); box-shadow: none; }
 .teacher-kinetic-shell .tk-assignment-create .button:disabled,
-.teacher-kinetic-shell .tk-assignment-editor .button:disabled { cursor: wait; opacity: .65; }
-.teacher-kinetic-shell .tk-assignment-create :is(input,select,button,a):focus-visible,
-.teacher-kinetic-shell .tk-assignment-editor :is(input,select,button):focus-visible { outline: 3px solid var(--tk-russet); outline-offset: 3px; }
+.teacher-kinetic-shell .tk-assignment-editor .button:disabled { border-color: var(--tk-line); background: var(--ec-color-surface-subtle); color: var(--tk-muted); cursor: wait; opacity: 1; box-shadow: none; }
 .teacher-kinetic-shell .tk-assignment-create .form-field-error { color: var(--tk-russet); }
 .teacher-kinetic-shell .tk-assignment-create :is(.form-error-summary,.form-submit-error),
-.teacher-kinetic-shell .tk-assignment-editor .form-submit-error { background: #f3dfdb; color: var(--tk-navy); border: 1px solid var(--tk-russet); border-left-width: 1px; padding: 16px; margin: 0 0 24px; overflow-wrap: anywhere; }
+.teacher-kinetic-shell .tk-assignment-editor .form-submit-error { margin: 0 0 24px; padding: 15px 16px; border: 1px solid rgb(186 26 26 / 32%); border-radius: var(--ec-radius-md); background: rgb(255 125 125 / 10%); color: var(--tk-navy); overflow-wrap: anywhere; }
 .teacher-kinetic-shell .tk-assignment-create .state-panel,
-.teacher-kinetic-shell .tk-assignment-create-error .state-panel { background: var(--tk-paper); color: var(--tk-navy); border: 1px solid var(--tk-navy); box-shadow: 6px 8px 0 rgb(31 51 64 / 16%); }
-.teacher-kinetic-shell .tk-assignment-create .teacher-success-panel p { color: var(--tk-navy); overflow-wrap: anywhere; }
-@media (max-width: 1100px) { .teacher-kinetic-shell .tk-assignment-create > .page-container,.teacher-kinetic-shell .tk-assignment-create-error .page-container { width: calc(100% - 48px); } }
-@media (max-width: 768px) {
-  .teacher-kinetic-shell .tk-assignment-create .teacher-fields-grid,.teacher-kinetic-shell .tk-assignment-editor .teacher-fields-grid { grid-template-columns: minmax(0, 1fr); }
+.teacher-kinetic-shell .tk-assignment-create-error .state-panel { border: 1px solid var(--tk-line); border-radius: var(--ec-radius-xl); background: white; color: var(--tk-navy); box-shadow: var(--ec-shadow-card); }
+.teacher-kinetic-shell .tk-assignment-create .teacher-success-panel p { color: var(--tk-muted); overflow-wrap: anywhere; }
+@media (max-width:1100px) {
+  .teacher-kinetic-shell .tk-assignment-create > .page-container,
+  .teacher-kinetic-shell .tk-assignment-create-error .page-container { width: calc(100% - 48px); }
 }
-@media (max-width: 560px) {
-  .teacher-kinetic-shell .tk-assignment-create > .page-container,.teacher-kinetic-shell .tk-assignment-create-error .page-container { width: calc(100% - 32px); padding-top: 18px; }
-  .teacher-kinetic-shell .tk-assignment-create .tk-assignment-paper,.teacher-kinetic-shell .tk-assignment-editor { padding: 20px 16px; }
-  .teacher-kinetic-shell .tk-assignment-create .teacher-form-heading,.teacher-kinetic-shell .tk-form-editor-heading { margin: -20px -16px 24px; padding: 24px 16px 20px; }
-  .teacher-kinetic-shell .tk-assignment-create .teacher-form-heading::before,.teacher-kinetic-shell .tk-form-editor-heading::before { margin-top: -37px; }
-  .teacher-kinetic-shell .tk-assignment-create .teacher-form-actions,.teacher-kinetic-shell .tk-assignment-editor .teacher-form-actions { justify-content: stretch; }
-  .teacher-kinetic-shell .tk-assignment-create .teacher-form-actions > *,.teacher-kinetic-shell .tk-assignment-editor .teacher-form-actions > * { flex: 1 1 auto; }
-  .teacher-kinetic-shell .tk-form-paper-edge { inset-inline-end: -2px; transform: none; }
+@media (max-width:768px) {
+  .teacher-kinetic-shell .tk-assignment-create .teacher-fields-grid,
+  .teacher-kinetic-shell .tk-assignment-editor .teacher-fields-grid { grid-template-columns: minmax(0,1fr); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .teacher-kinetic-shell .tk-form-paper-edge { transform: none; }
-  .teacher-kinetic-shell .tk-assignment-create .button:active,.teacher-kinetic-shell .tk-assignment-editor .button:active { transform: none; }
+@media (max-width:560px) {
+  .teacher-kinetic-shell .tk-assignment-create > .page-container,
+  .teacher-kinetic-shell .tk-assignment-create-error .page-container { width: calc(100% - 32px); padding-top: 18px; }
+  .teacher-kinetic-shell .tk-assignment-create .tk-assignment-paper,
+  .teacher-kinetic-shell .tk-assignment-editor { padding: 22px 16px; }
+  .teacher-kinetic-shell .tk-assignment-create .teacher-form-heading,
+  .teacher-kinetic-shell .tk-form-editor-heading { margin: -22px -16px 24px; padding: 24px 18px 20px; }
+  .teacher-kinetic-shell .tk-assignment-create .teacher-form-actions,
+  .teacher-kinetic-shell .tk-assignment-editor .teacher-form-actions { flex-direction: column-reverse; }
+  .teacher-kinetic-shell .tk-assignment-create .teacher-form-actions > *,
+  .teacher-kinetic-shell .tk-assignment-editor .teacher-form-actions > * { width: 100%; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .teacher-kinetic-shell .tk-assignment-create :is(input,select,button),
+  .teacher-kinetic-shell .tk-assignment-editor :is(input,select,button) { transition: none; }
 }

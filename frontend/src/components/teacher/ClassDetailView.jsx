@@ -37,7 +37,16 @@ function ClassDetailView({ state, activeTab, onTabChange, countStore }) {
       <div className="page-container">
         <nav className="tk-class-breadcrumb" aria-label="Đường dẫn trang"><Link to="/">Về tổng quan</Link><span aria-hidden="true">/</span><span>{classroom.name}</span></nav>
         <section className="tk-class-dossier-heading" aria-labelledby="class-title">
-          <div className="tk-class-identity"><h1 id="class-title">{classroom.code || classroom.id}</h1><p>{classroom.subject}</p></div>
+          <div className="tk-class-header-main">
+            <div className="tk-class-identity">
+              <span className="tk-section-kicker">Không gian lớp học</span>
+              <h1 id="class-title">{classroom.code || classroom.id}</h1>
+              <p>{classroom.subject}</p>
+            </div>
+            <Link className="tk-button tk-button-primary" to={`/classes/${classroom.id}/assignments/new`}>
+              Tạo bài kiểm tra<span className="tk-button-arrow" aria-hidden="true" />
+            </Link>
+          </div>
           <dl className="tk-class-facts">
             <div><dt>Học kỳ</dt><dd>{classroom.semester || 'Chưa có dữ liệu'}</dd></div>
             <div><dt>Năm học</dt><dd>{classroom.schoolYear || 'Chưa có dữ liệu'}</dd></div>

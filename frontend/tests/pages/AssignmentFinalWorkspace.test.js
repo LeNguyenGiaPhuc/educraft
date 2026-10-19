@@ -27,6 +27,15 @@ test('integrated review at 0/1/30/300/1000 retains bounded queue and only select
     assert.match(html, /Không thể xóa bài kiểm tra đã có bài mẫu hoặc bài nộp/)
     assert.match(html, /href="\/classes\/class-A"/)
     assert.doesNotMatch(html, /Mỗi lớp học|một hồ sơ\./)
+    if (count) {
+      assert.match(html, /class="tk-detail-review-grid campus-studio-review-board"/)
+      assert.match(html, /class="tk-submission-navigator cs-review-queue"/)
+      assert.match(html, /class="cs-review-workgrid"/)
+      assert.match(html, /class="tk-evidence cs-review-evidence"/)
+      assert.match(html, /class="tk-review-workspace cs-review-side-rail"/)
+      assert.match(html, /class="tk-selected-review"/)
+      assert.match(html, /class="tk-selected-review-context"/)
+    }
   }
 })
 test('neutral auth pending state contains no class, student or account identity', () => {
@@ -49,4 +58,16 @@ test('final state and detail stylesheet selectors stay Teacher-scoped; fixtures 
   }
   const app = await readFile(new URL('../../src/App.jsx', import.meta.url), 'utf8')
   assert.doesNotMatch(app, /fixtures|synthetic|final-preview/)
+})
+
+test('Review canvas stays quiet while AI and Teacher authority retain distinct surfaces', async () => {
+  const css = await readFile(new URL('../../src/styles/teacher-review-board.css', import.meta.url), 'utf8')
+  const canvasRule = css.match(/\.campus-studio-teacher-review \.campus-studio-review-page\s*\{([^}]+)\}/)?.[1]
+  const advisoryRule = css.match(/\.campus-studio-teacher-review \.cs-ai-advisory\s*\{([^}]+)\}/)?.[1]
+  const decisionRule = css.match(/\.campus-studio-teacher-review \.cs-teacher-decision\s*\{([^}]+)\}/)?.[1]
+
+  assert.match(canvasRule ?? '', /background:\s*var\(--ec-color-cloud\)/)
+  assert.doesNotMatch(canvasRule ?? '', /gradient/)
+  assert.match(advisoryRule ?? '', /background:\s*#[a-f\d]{6}/i)
+  assert.match(decisionRule ?? '', /border-color:\s*var\(--ec-color-ink-navy\)/)
 })
