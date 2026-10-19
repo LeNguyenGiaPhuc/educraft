@@ -78,3 +78,15 @@ test('login keeps native labelled controls, reveal and empty credentials in shar
   assert.match(html, />Đăng nhập với Google</)
   assert.doesNotMatch(html, /login-panel-index|login-panel-note/)
 })
+
+test('landing presents the complete five-step assisted review journey', () => {
+  const html = render(React.createElement(AuthContext.Provider, { value: { user: null } }, React.createElement(MemoryRouter, null, React.createElement(Login))))
+
+  for (const label of ['Giao bài', 'Nộp bài', 'AI hỗ trợ phân tích', 'Giáo viên xem xét', 'Phản hồi cuối']) {
+    assert.match(html, new RegExp(`>${label}<`))
+  }
+
+  assert.equal([...html.matchAll(/aria-controls="campus-workflow-stage"/g)].length, 5)
+  assert.match(html, /AI hỗ trợ phân tích, không tự động chấm điểm/)
+  assert.match(html, /Giáo viên là người đưa ra quyết định cuối cùng/)
+})
