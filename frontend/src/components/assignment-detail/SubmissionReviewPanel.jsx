@@ -10,7 +10,7 @@ import { createReviewSession } from './reviewSession.js'
 import { animateTeacherDossier } from '../teacher/teacherMotion.js'
 import '../../styles/teacher-review-workspace.css'
 
-export default function SubmissionReviewPanel({ submission, onReviewed, assignmentId, coverageThreshold, reviewSession }) {
+export default function SubmissionReviewPanel({ submission, onReviewed, assignmentId, coverageThreshold, reviewSession, hideIdentity = false }) {
   const [ownSession] = useState(() => createReviewSession(assignmentId))
   const session = reviewSession ?? ownSession
   session.ensure(submission)
@@ -48,8 +48,8 @@ export default function SubmissionReviewPanel({ submission, onReviewed, assignme
     try { await onReviewed?.(result) } catch { session.refreshFailed(submission.id) }
   }
   return (
-    <section className="tk-review-workspace" aria-labelledby={`review-title-${submission.id}`}>
-      <header className="tk-review-identity">
+    <section className="tk-review-workspace cs-review-side-rail" aria-labelledby={`review-title-${submission.id}`}>
+      {hideIdentity ? <h2 className="visually-hidden" id={`review-title-${submission.id}`}>Duyệt bài của {submission.studentName}</h2> : <header className="tk-review-identity">
         <div>
           <h3 id={`review-title-${submission.id}`}>{submission.studentName}</h3>
           <p>{[submission.studentCode, formatSubmissionAttempt(submission.attemptNumber)].filter(Boolean).join(' · ')}</p>
@@ -57,8 +57,8 @@ export default function SubmissionReviewPanel({ submission, onReviewed, assignme
           {submission.fileUrl && <a href={submission.fileUrl} target="_blank" rel="noreferrer">Mở ảnh bài nộp gốc</a>}
         </div>
         <span className="tk-review-state">{isFinalized ? 'Đã chốt' : 'Chưa chốt'}</span>
-      </header>
-      <section className="tk-insights" aria-label="Gợi ý AI">
+      </header>}
+      <section className="tk-insights cs-ai-advisory" aria-label="Gợi ý AI">
         <header className="tk-insights-heading">
           <div><span>AI hỗ trợ phân tích</span><h3>Gợi ý tham khảo</h3></div>
           <p>AI hỗ trợ. Giáo viên quyết định.</p>
@@ -84,7 +84,7 @@ export default function SubmissionReviewPanel({ submission, onReviewed, assignme
         )}
         {evaluationState.status === 'success' && <AiResultCard evaluation={evaluationState.data} coverageThreshold={coverageThreshold} />}
       </section>
-      <section className="tk-teacher-folio" aria-labelledby={`folio-title-${submission.id}`}>
+      <section className="tk-teacher-folio cs-teacher-decision" aria-labelledby={`folio-title-${submission.id}`}>
         <div className="tk-folio-edge" ref={folioEdge} aria-hidden="true" />
         <div className="tk-review-authority"><span aria-hidden="true">✓</span><strong>Giáo viên quyết định</strong><small>Đây là kết quả chính thức gửi tới học sinh.</small></div>
         <header className="tk-folio-heading">
