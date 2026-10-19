@@ -1,20 +1,28 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import '../styles/admin-kinetic.css'
 import { useAuth } from '../contexts/useAuth.js'
 
 const adminNavigation = [
   { label: 'Tổng quan', to: '/admin', end: true },
-  { label: 'Quản lý tài khoản', to: '/admin/accounts' },
-  { label: 'Quản lý lớp học', to: '/admin/classes' },
+  { label: 'Tài khoản', to: '/admin/accounts' },
+  { label: 'Lớp học', to: '/admin/classes' },
 ]
 
 function adminNavClassName({ isActive }) {
-  return `admin-nav-link${isActive ? ' admin-nav-link-active' : ''}`
+  return `admin-command-link${isActive ? ' admin-command-link-active' : ''}`
+}
+
+function getAdminPageContext(pathname) {
+  if (pathname.startsWith('/admin/accounts')) return 'Admin · Tài khoản'
+  if (/^\/admin\/classes\/[^/]+/.test(pathname)) return 'Admin · Chi tiết lớp'
+  if (pathname.startsWith('/admin/classes')) return 'Admin · Lớp học'
+  return 'Admin · Tổng quan'
 }
 
 function AdminShell({ children }) {
   const { logout, user } = useAuth()
+  const { pathname } = useLocation()
   const initials = (user?.name ?? 'AD')
     .split(' ')
     .map((part) => part[0])
@@ -25,11 +33,11 @@ function AdminShell({ children }) {
 
   return (
     <div className="admin-shell admin-kinetic">
-      <header className="admin-command-bar">
+      <header aria-label="EduCraft Operations Desk" className="admin-command-bar">
         <div className="admin-command-inner">
           <Link
             aria-label="EduCraft - Tổng quan quản trị"
-            className="admin-sidebar-brand"
+            className="admin-command-brand"
             to="/admin"
           >
             <span className="brand-mark" aria-hidden="true">
@@ -37,11 +45,11 @@ function AdminShell({ children }) {
             </span>
             <div>
               <strong>EduCraft</strong>
-              <span className="admin-role-label">EduCraft Operations Desk</span>
+              <span className="admin-command-context">{getAdminPageContext(pathname)}</span>
             </div>
           </Link>
 
-          <nav className="admin-sidebar-nav" aria-label="Điều hướng quản trị">
+          <nav className="admin-command-nav" aria-label="Điều hướng quản trị">
             {adminNavigation.map((item) => (
               <NavLink
                 className={adminNavClassName}
@@ -54,8 +62,8 @@ function AdminShell({ children }) {
             ))}
           </nav>
 
-          <div className="admin-sidebar-footer">
-            <div className="admin-user-pill">
+          <div className="admin-command-actions">
+            <div className="admin-command-user">
               <span>{initials}</span>
               <div>
                 <strong>{user?.name ?? 'Quản trị viên'}</strong>
