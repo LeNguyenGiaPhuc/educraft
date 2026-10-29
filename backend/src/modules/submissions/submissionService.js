@@ -1,4 +1,5 @@
 import { AppError } from '../../common/errors.js'
+import { normalizeFilenameEncoding } from '../storage/filenameEncoding.js'
 import { STUDENT_SUBMISSIONS_BUCKET } from '../storage/storageService.js'
 
 const SUBMISSION_FILE_COLUMNS = [
@@ -113,7 +114,7 @@ async function projectFiles(files, createSignedUrl) {
     id: file.id,
     storage_path: file.storage_path,
     signed_url: await createSignedUrl(file.storage_path),
-    original_filename: file.original_filename,
+    original_filename: normalizeFilenameEncoding(file.original_filename),
     mime_type: file.mime_type,
     size_bytes: file.size_bytes,
     page_order: file.page_order,
@@ -266,7 +267,7 @@ function fileMetadata(submissionId, uploaded) {
   return {
     submission_id: submissionId,
     storage_path: uploaded.path,
-    original_filename: uploaded.originalFilename,
+    original_filename: normalizeFilenameEncoding(uploaded.originalFilename),
     mime_type: uploaded.mimeType,
     size_bytes: uploaded.sizeBytes,
     page_order: 1,

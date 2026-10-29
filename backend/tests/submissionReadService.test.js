@@ -15,13 +15,17 @@ const submissionIds = [
   '66666666-6666-4666-8666-666666666666',
   '77777777-7777-4777-8777-777777777777',
 ]
+const correctVietnameseFilename = 'bài nộp - đồng ý.png'
+const mojibakeVietnameseFilename = Buffer
+  .from(correctVietnameseFilename, 'utf8')
+  .toString('latin1')
 
-function file(submissionId, attemptNumber) {
+function file(submissionId, attemptNumber, originalFilename = `attempt-${attemptNumber}.png`) {
   return {
     id: `file-${attemptNumber}`,
     submission_id: submissionId,
     storage_path: `${submissionId}/attempt-${attemptNumber}.png`,
-    original_filename: `attempt-${attemptNumber}.png`,
+    original_filename: originalFilename,
     mime_type: 'image/png',
     size_bytes: 100 + attemptNumber,
     page_order: 1,
@@ -166,6 +170,26 @@ test('student history keeps attempts 1, 2, and 3 separate in requested order', a
     ['submitted_at', { ascending: true }],
     ['id', { ascending: true }],
   ])
+})
+
+test('student history repairs a stored mojibake filename', async () => {
+  const existingSubmission = submission(1, {
+    submission_files: [file(
+      submissionIds[0],
+      1,
+      mojibakeVietnameseFilename,
+    )],
+  })
+  const supabase = createReadSupabase([
+    accessibleAssignment(),
+    membership(),
+    { data: [existingSubmission], error: null },
+  ])
+  const { service, studentAuth } = createService(supabase)
+
+  const [result] = await service.listOwnSubmissions(studentAuth, assignmentId)
+
+  assert.equal(result.files[0].original_filename, 'bài nộp - đồng ý.png')
 })
 
 test('student projection excludes other students and every AI draft field', async () => {
@@ -358,6 +382,30 @@ test('assigned teacher sees all students and resubmissions with a safe projectio
     ['attempt_number', { ascending: true }],
     ['id', { ascending: true }],
   ])
+})
+
+test('teacher submission list repairs a stored mojibake filename', async () => {
+  const existingSubmission = submission(1, {
+    student: {
+      id: studentId,
+      full_name: 'Nguyễn Văn An',
+      student_code: 'HS001',
+    },
+    submission_files: [file(
+      submissionIds[0],
+      1,
+      mojibakeVietnameseFilename,
+    )],
+  })
+  const supabase = createReadSupabase([{
+    data: [existingSubmission],
+    error: null,
+  }])
+  const { service, teacherAuth } = createService(supabase)
+
+  const [result] = await service.listAssignmentSubmissions(teacherAuth, assignmentId)
+
+  assert.equal(result.files[0].original_filename, 'bài nộp - đồng ý.png')
 })
 
 test('assigned teacher can read submission detail after assignment ownership is checked', async () => {

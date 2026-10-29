@@ -1,4 +1,5 @@
 import { AppError } from '../../common/errors.js'
+import { normalizeFilenameEncoding } from '../storage/filenameEncoding.js'
 import { REFERENCE_MATERIALS_BUCKET } from '../storage/storageService.js'
 
 const REFERENCE_COLUMNS = [
@@ -36,7 +37,7 @@ function referenceMetadata(assignmentId, teacherId, uploaded) {
   return {
     assignment_id: assignmentId,
     storage_path: uploaded.path,
-    original_filename: uploaded.originalFilename,
+    original_filename: normalizeFilenameEncoding(uploaded.originalFilename),
     mime_type: uploaded.mimeType,
     size_bytes: uploaded.sizeBytes,
     uploaded_by: teacherId,
@@ -50,7 +51,11 @@ async function withSignedUrl(storageService, supabase, reference) {
     path: reference.storage_path,
   })
 
-  return { ...reference, signed_url: signedUrl }
+  return {
+    ...reference,
+    original_filename: normalizeFilenameEncoding(reference.original_filename),
+    signed_url: signedUrl,
+  }
 }
 
 export function createReferenceService({

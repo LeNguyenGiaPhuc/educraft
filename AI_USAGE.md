@@ -111,6 +111,14 @@ Em kiểm tra lại quyền Teacher, việc tái sử dụng evaluation đã t�
 Thay đổi chính nằm trong commit d4de897.
 Các file chính gồm backend/src/modules/ai-evaluations/aiEvaluationController.js, backend/src/modules/ai-evaluations/aiEvaluationRoutes.js và backend/src/modules/ai-evaluations/aiEvaluationService.js.
 Phiên bản này được sử dụng làm nền tảng ban đầu trước khi nhóm tiếp tục tích hợp provider AI thật và các cơ chế AI nâng cao ở những giai đoạn sau.
+Fix lỗi encoding tên file tiếng Việt cho Submission và Reference
+Tool: OpenAI Codex
+Key prompt (tóm tắt): Truy vết và sửa lỗi tên file tiếng Việt bị mojibake trong Student submission và Teacher reference; dùng một helper backend an toàn cho cả dữ liệu ghi mới và bản ghi cũ, không thay đổi Storage path hoặc quy tắc upload.
+Trong quá trình manual integration test, các tên như `bài nộp - đồng ý.png` và `bài mẫu đối chiếu.jpg` hiển thị sai trên màn Student và Teacher. Khi truy vết luồng multipart, em xác định Multer có thể đưa tên UTF-8 qua `file.originalname` dưới dạng chuỗi đã bị giải mã theo latin1; giá trị này sau đó được lưu vào `original_filename`, nên cần xử lý ở cả đường ghi và đường đọc.
+Codex hỗ trợ tách helper dùng chung `normalizeFilenameEncoding()` để chỉ khôi phục mojibake latin1 → UTF-8 khi phép chuyển đổi có thể round-trip. Helper giữ nguyên tên ASCII và Unicode/Vietnamese đã đúng, đồng thời không nhận kết quả chứa ký tự thay thế `�`.
+Submission service áp dụng helper trước khi ghi `submission_files.original_filename` và khi project file cũ ra API Student/Teacher. Reference service áp dụng cùng helper trước khi ghi hoặc thay thế `reference_files.original_filename` và khi trả reference cũ cho Teacher. Nhờ đó bản ghi đã bị lỗi hiển thị đúng mà không cần migration.
+Generated Storage path, nội dung file, MIME rule và giới hạn upload không thay đổi. Bộ focused test đạt 56/56, toàn bộ backend test đạt 305/305, lint đạt và manual test cho Student submission cùng Teacher reference đều đạt.
+Các file chính gồm backend/src/modules/storage/filenameEncoding.js, backend/src/modules/submissions/submissionService.js, backend/src/modules/assignments/referenceService.js và các test service tương ứng.
 Hai trường hợp AI-generated code chưa đạt
 Trường hợp 1: Deadline ban đầu chưa đủ chính xác để quyết định quyền nộp bài
 Trong implementation Student flow ban đầu, deadline chủ yếu được xử lý dưới dạng dữ liệu phục vụ hiển thị.

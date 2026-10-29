@@ -11,6 +11,10 @@ const otherAssignmentId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 const referenceAId = '11111111-aaaa-4111-8111-111111111111'
 const referenceBId = '22222222-bbbb-4222-8222-222222222222'
 const referenceCId = '33333333-cccc-4333-8333-333333333333'
+const correctVietnameseFilename = 'bài mẫu đối chiếu.jpg'
+const mojibakeVietnameseFilename = Buffer
+  .from(correctVietnameseFilename, 'utf8')
+  .toString('latin1')
 
 function reference(id, fileName) {
   return {
@@ -31,13 +35,13 @@ const references = [
   reference(referenceCId, 'reference-c.png'),
 ]
 
-function uploaded(fileName = 'new-file.png') {
+function uploaded(fileName = 'new-file.png', originalFilename = 'teacher-note.png') {
   return {
     bucket: REFERENCE_MATERIALS_BUCKET,
     path: `${assignmentId}/${fileName}`,
     fullPath: `${REFERENCE_MATERIALS_BUCKET}/${assignmentId}/${fileName}`,
     fileName,
-    originalFilename: 'teacher-note.png',
+    originalFilename,
     mimeType: 'image/png',
     sizeBytes: 8,
   }
@@ -195,6 +199,26 @@ test('assigned teacher lists every reference for an assignment', async () => {
   assert.deepEqual(supabase.calls[0].filters, [['assignment_id', assignmentId]])
 })
 
+test('reference list repairs a stored mojibake filename', async () => {
+  const storedReference = {
+    ...references[0],
+    original_filename: mojibakeVietnameseFilename,
+  }
+  const supabase = createQueuedSupabase([{
+    data: [storedReference],
+    error: null,
+  }])
+  const service = createReferenceService({
+    assignmentService: createAssignmentService(),
+    storageService: createStorageService(),
+  })
+
+  const [result] = await service.listReferences(teacherAuth(supabase), assignmentId)
+
+  assert.equal(result.original_filename, 'bài mẫu đối chiếu.jpg')
+  assert.equal(result.storage_path, storedReference.storage_path)
+})
+
 test('separate uploads append metadata records without updating existing references', async () => {
   const firstUpload = uploaded('first.png')
   const secondUpload = uploaded('second.png')
@@ -226,6 +250,42 @@ test('separate uploads append metadata records without updating existing referen
   assert.equal(storageService.removeCalls.length, 0)
   assert.equal(metadataWrites[0].value.uploaded_by, teacherId)
   assert.equal(metadataWrites[1].value.storage_path, `${assignmentId}/second.png`)
+})
+
+test('reference upload repairs mojibake metadata without changing valid names', async (context) => {
+  const cases = [
+    ['mojibake Vietnamese', mojibakeVietnameseFilename, 'bài mẫu đối chiếu.jpg'],
+    ['ASCII', 'teacher-reference.jpg', 'teacher-reference.jpg'],
+    ['valid Vietnamese', 'bài mẫu đúng.jpg', 'bài mẫu đúng.jpg'],
+  ]
+
+  for (const [name, originalFilename, expectedFilename] of cases) {
+    await context.test(name, async () => {
+      const savedReference = {
+        ...references[0],
+        original_filename: expectedFilename,
+      }
+      const supabase = createQueuedSupabase([{
+        data: savedReference,
+        error: null,
+      }])
+      const service = createReferenceService({
+        assignmentService: createAssignmentService(),
+        storageService: createStorageService({
+          uploads: [uploaded('generated.png', originalFilename)],
+        }),
+      })
+
+      await service.uploadReference(
+        teacherAuth(supabase),
+        assignmentId,
+        { name: originalFilename },
+      )
+
+      const insertion = supabase.calls.find((call) => call.operation === 'insert')
+      assert.equal(insertion.value.original_filename, expectedFilename)
+    })
+  }
 })
 
 test('replacement switches one row before removing only that row old object', async () => {
@@ -265,6 +325,34 @@ test('replacement switches one row before removing only that row old object', as
   assert.deepEqual(storageService.removeCalls.map((call) => call.path), [
     references[1].storage_path,
   ])
+})
+
+test('reference replacement repairs mojibake metadata', async () => {
+  const replacement = {
+    ...references[1],
+    storage_path: `${assignmentId}/replacement.png`,
+    original_filename: correctVietnameseFilename,
+  }
+  const supabase = createQueuedSupabase([
+    { data: references[1], error: null },
+    { data: replacement, error: null },
+  ])
+  const service = createReferenceService({
+    assignmentService: createAssignmentService(),
+    storageService: createStorageService({
+      uploads: [uploaded('replacement.png', mojibakeVietnameseFilename)],
+    }),
+  })
+
+  await service.replaceReference(
+    teacherAuth(supabase),
+    assignmentId,
+    referenceBId,
+    { name: mojibakeVietnameseFilename },
+  )
+
+  const update = supabase.calls.find((call) => call.operation === 'update')
+  assert.equal(update.value.original_filename, 'bài mẫu đối chiếu.jpg')
 })
 
 test('deletion removes one metadata row before removing its object', async () => {

@@ -17,6 +17,10 @@ const image = {
   originalname: 'student-note.png',
   size: 8,
 }
+const correctVietnameseFilename = 'bài nộp - đồng ý.png'
+const mojibakeVietnameseFilename = Buffer
+  .from(correctVietnameseFilename, 'utf8')
+  .toString('latin1')
 
 function submission(attemptNumber) {
   return {
@@ -161,6 +165,49 @@ test('three submissions use RPC attempts 1, 2, and 3 and preserve separate recor
     page_order: 1,
   })))
   assert.equal(adminClient.deleteCalls.length, 0)
+})
+
+test('submission metadata repairs mojibake filenames without changing valid names', async (context) => {
+  const cases = [
+    ['mojibake Vietnamese', mojibakeVietnameseFilename, 'bài nộp - đồng ý.png'],
+    ['ASCII', 'student-note.png', 'student-note.png'],
+    ['valid Vietnamese', 'bài nộp - đồng ý.png', 'bài nộp - đồng ý.png'],
+  ]
+
+  for (const [name, originalFilename, expectedFilename] of cases) {
+    await context.test(name, async () => {
+      const supabase = createUserClient({
+        rpcResults: [{ data: submission(1), error: null }],
+        metadataResults: [{
+          data: {
+            ...metadata(submissionIds[0]),
+            original_filename: expectedFilename,
+          },
+          error: null,
+        }],
+      })
+      const storageService = createStorageService()
+      storageService.uploadSubmissionFile = async function uploadSubmissionFile(input) {
+        this.uploadCalls.push(input)
+        return {
+          ...uploaded(input.submissionId),
+          originalFilename,
+        }
+      }
+      const { service } = buildService({ storageService })
+
+      await service.createSubmission(
+        studentAuth(supabase),
+        assignmentId,
+        { ...image, originalname: originalFilename },
+      )
+
+      assert.equal(
+        supabase.metadataWrites[0].original_filename,
+        expectedFilename,
+      )
+    })
+  }
 })
 
 test('student identity and attempt number come only from the authenticated RPC result', async () => {
